@@ -1,0 +1,49 @@
+{
+	"name": "@pencroff-lab/kore",
+	"version": "0.1.0",
+	"description": "Core utilities library",
+	"license": "Apache-2.0",
+	"author": "Pencroff",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/pencroff-lab/kore"
+	},
+	"keywords": [
+		"core",
+		"utilities"
+	],
+	"type": "module",
+	"main": "./dist/cjs/index.js",
+	"module": "./dist/esm/index.js",
+	"types": "./dist/esm/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/esm/index.d.ts",
+			"import": "./dist/esm/index.js",
+			"require": "./dist/cjs/index.js"
+		}
+	},
+	"sideEffects": false,
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"test": "bun test",
+		"build": "bun run build:esm && bun run build:cjs",
+		"prebuild": "rm -rf dist",
+		"build:esm": "tsc --project tsconfig.esm.json",
+		"build:cjs": "tsc --project tsconfig.cjs.json",
+		"prepublish_pkgOnly": "bun run build",
+		"publish_pkg": "bun publish --access public"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.4.2",
+		"@types/bun": "1.3.9",
+		"@types/sinon": "21.0.0",
+		"mitata": "1.0.34",
+		"sinon": "21.0.1"
+	},
+	"peerDependencies": {
+		"typescript": "5.9.3"
+	}
+}

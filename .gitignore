@@ -1,0 +1,23 @@
+# Build output
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+
+# Temporary
+tmp/
+
+# IDE
+.idea/
+
+# OS
+.DS_Store
+**/.DS_Store
