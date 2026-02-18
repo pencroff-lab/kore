@@ -19,6 +19,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Lint & format (auto-fix) | `bunx biome check --fix src/` |
 | Lint (CI, no writes) | `bunx biome ci src/` |
 | Build (ESM + CJS) | `bun run build` |
+| Fix CJS compatibility | `bun scripts/fix-cjs.sh.ts` (runs automatically in build) |
+| Verify build artifacts | `bun scripts/verify-build.sh.ts` (runs automatically in build) |
+| Check version on npm | `bun scripts/check-version.sh.ts` |
 | Publish | `bun run publish_pkg` |
 
 ## Testing
@@ -81,6 +84,7 @@ sandbox.stub(process, "exit").callsFake(
 ```
 index.ts (root barrel) --> tsc (tsconfig.esm.json) --> dist/esm/
                        --> tsc (tsconfig.cjs.json) --> dist/cjs/
+                                                   --> fix-cjs.sh.ts --> dist/cjs/package.json
 ```
 
 - `tsconfig.json` -- IDE/dev config (noEmit)
@@ -102,7 +106,7 @@ Build entry is `index.ts` at root which re-exports from `src/`. Tests, benchmark
 
 - Biome for linting and formatting (replaces ESLint + Prettier)
 - Tab indentation, 80 char line width, double quotes
-- `biome.json` scoped to `src/**/*.ts`
+- `biome.json` scoped to `src/**/*.ts` and `scripts/**/*.ts`
 - Strict TypeScript with `noUncheckedIndexedAccess`, `noImplicitOverride`
 
 ### Package Publishing

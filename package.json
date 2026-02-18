@@ -38,8 +38,9 @@
 		"build": "bun run build:esm && bun run build:cjs",
 		"prebuild": "rm -rf dist",
 		"build:esm": "tsc --project tsconfig.esm.json",
-		"build:cjs": "tsc --project tsconfig.cjs.json",
-		"prepublish_pkgOnly": "bun run build",
+		"build:cjs": "tsc --project tsconfig.cjs.json && bun scripts/fix-cjs.sh.ts",
+		"postbuild": "bun scripts/verify-build.sh.ts",
+		"prepublish_pkg": "bun scripts/check-version.sh.ts && bun run build",
 		"publish_pkg": "bun publish --access public"
 	},
 	"devDependencies": {
