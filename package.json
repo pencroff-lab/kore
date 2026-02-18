@@ -29,6 +29,9 @@
 	],
 	"scripts": {
 		"test": "bun test",
+		"test:coverage": "bun test --coverage",
+		"lint:edit": "bunx biome check --fix src/",
+		"lint:ci": "bunx biome ci src/",
 		"build": "bun run build:esm && bun run build:cjs",
 		"prebuild": "rm -rf dist",
 		"build:esm": "tsc --project tsconfig.esm.json",

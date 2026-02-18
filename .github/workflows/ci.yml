@@ -18,8 +18,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Lint
+        run: bun run lint:ci
+
       - name: Run tests
-        run: bun test
+        run: bun run test:coverage
 
       - name: Publish to npm
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
