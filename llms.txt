@@ -1,0 +1,22 @@
+# @pencroff-lab/kore
+
+> TypeScript core utilities library providing value-based error handling types inspired by Go-style error handling. Published as a dual ESM/CJS package.
+
+## Modules
+
+- [Err](docs/err.md): Immutable, value-based error type. Supports wrapping (cause chains), aggregation (multiple errors), hierarchical error codes, JSON serialization/deserialization, and conversion to native Error.
+- [Outcome](docs/outcome.md): Monadic container wrapping ResultTuple<T> ([T, null] | [null, Err]). Supports map/mapErr/pipe/pipeAsync chains, combinators (all, any), side effects (effect), and terminal operations (toTuple, defaultTo, either).
+- [dtStamp](docs/format_dt.md): Format a Date into a filesystem/log-safe timestamp string. Produces compact, sortable stamps suitable for file names, log prefixes, and identifiers.
+
+## Quick Start
+
+```typescript
+import { Err, Outcome } from "@pencroff-lab/kore/types";
+import { dtStamp } from "@pencroff-lab/kore/utils";
+```
+
+## Install
+
+```bash
+npm install @pencroff-lab/kore
+```

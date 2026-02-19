@@ -1,6 +1,6 @@
 {
 	"name": "@pencroff-lab/kore",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "Core utilities library",
 	"license": "Apache-2.0",
 	"author": "Pencroff",
@@ -25,7 +25,9 @@
 	},
 	"sideEffects": false,
 	"files": [
-		"dist"
+		"dist",
+		"docs",
+		"llms.txt"
 	],
 	"scripts": {
 		"test": "bun test",

@@ -12,6 +12,14 @@ bun add @pencroff-lab/kore
 
 Requires TypeScript 5.9+ as a peer dependency.
 
+## Documentation
+
+Detailed API documentation for each module:
+
+- [Err](docs/err.md) -- Immutable, value-based error type with wrapping, aggregation, and serialization
+- [Outcome\<T\>](docs/outcome.md) -- Monadic container for type-safe error handling with tuple-first API
+- [dtStamp](docs/format_dt.md) -- Filesystem/log-safe date formatting utility
+
 ## API
 
 ### Err
