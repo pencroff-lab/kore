@@ -1,18 +1,16 @@
 /**
- * @fileoverview Structured logging utility with multi-stream support and Err integration.
+ * @fileoverview Structured logging utility with transport DI and Err integration.
  *
- * This module provides a flexible, callable logger built on pino with:
- * - Multiple output streams (console with pretty formatting + file with JSON)
- * - Automatic Err serialization and pretty-printing
- * - Child loggers with module prefixes
- * - Variadic API supporting multiple call signatures
- * - Environment-based log level configuration
+ * This module provides a flexible, callable logger with a transport abstraction,
+ * built-in pretty console transport, and zero external runtime dependencies
+ * beyond `fast-safe-stringify`.
  *
  * ## Design Philosophy
  *
- * The logger is designed as a callable function with overloaded signatures,
- * making it easy to use in any context. It automatically detects and formats
- * Err instances, providing rich error context in logs.
+ * The logger is designed as a callable function with overloaded signatures.
+ * Transports are injectable, making the logger testable without streams or
+ * process-level side effects. The built-in pretty transport renders to stderr
+ * with ANSI colors and automatic Err formatting.
  *
  * ## Basic Usage
  *
@@ -32,7 +30,6 @@
  *
  * const [data, err] = fetchData();
  * if (err) {
- *   // Err is automatically serialized with full context
  *   log(log.ERROR, 'Data fetch failed', err);
  *   return;
  * }
@@ -49,72 +46,37 @@
  * // Output: [database] [users] User created
  * ```
  *
- * @example Custom logger for testing
+ * @example Custom transport for testing
  * ```typescript
  * import { createLogger, lvl } from './utils/logger';
+ * import type { LogEntry, LogTransport } from './utils/logger';
  *
- * const testLogger = createLogger('test', {
- *   level: lvl.DEBUG,
- *   streams: [{ stream: process.stdout }]
- * });
+ * const entries: LogEntry[] = [];
+ * const spy: LogTransport = { write(e) { entries.push(e); } };
+ * const testLogger = createLogger('test', { transports: [spy], level: lvl.TRACE });
  * ```
  *
  * ## Configuration
  *
  * The logger reads configuration from environment variables:
  * - `LOG_LEVEL`: Minimum level to log (trace|debug|info|warn|error|fatal). Default: 'info'
- * - `LOG_FILE_PATH`: Path to log file. Default: './tmp/logs/app.log'
- *
- * @example Environment configuration
- * ```bash
- * LOG_LEVEL=debug LOG_FILE_PATH=/var/log/app.log bun run start
- * ```
- *
- * ## Output Formats
- *
- * - **Console**: Pretty-formatted with colors, timestamps, and structured Err display
- * - **File**: JSON format for structured log aggregation and analysis
  *
  * @module logger
  */
 
-import { createWriteStream, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
-import { Err } from "@types";
 import stringifySafe from "fast-safe-stringify";
-import pino from "pino";
-import pinoPretty from "pino-pretty";
+import { Err } from "../types/err";
 
 /**
  * Log level constants for type-safe level specification.
  *
- * Use these constants instead of string literals to ensure type safety
- * and avoid typos. Each level includes all higher-severity levels.
- *
  * **Level Hierarchy** (lowest to highest):
- * - `TRACE`: Detailed debugging information (e.g., function entry/exit)
- * - `DEBUG`: Debugging information (e.g., variable values, control flow)
- * - `INFO`: General informational messages (e.g., startup, shutdown, major steps)
- * - `WARN`: Warning messages for potentially problematic situations
- * - `ERROR`: Error messages for failures that don't crash the application
- * - `FATAL`: Fatal errors that cause application termination
- *
- * @example Using log levels
- * ```typescript
- * import { log, lvl } from './utils/logger';
- *
- * log(lvl.TRACE, 'Entering function', { args });
- * log(lvl.DEBUG, 'Processing item', { id: item.id });
- * log(lvl.INFO, 'Server started', { port: 3000 });
- * log(lvl.WARN, 'Deprecated API used', { endpoint });
- * log(lvl.ERROR, 'Database query failed', err);
- * log(lvl.FATAL, 'Critical system failure', err);
- * ```
- *
- * @example Creating logger with specific level
- * ```typescript
- * const debugLogger = createLogger('debug-module', { level: lvl.DEBUG });
- * ```
+ * - `TRACE`: Detailed debugging information
+ * - `DEBUG`: Debugging information
+ * - `INFO`: General informational messages
+ * - `WARN`: Warning messages
+ * - `ERROR`: Error messages for failures
+ * - `FATAL`: Fatal errors causing termination
  */
 const lvl = {
 	TRACE: "trace",
@@ -127,62 +89,93 @@ const lvl = {
 
 /**
  * Type representing valid log level values.
- *
- * Extracted from the `lvl` constant for use in function signatures
- * and type annotations.
  */
 type LevelValue = (typeof lvl)[keyof typeof lvl];
 
 /**
+ * A single structured log entry passed to transports.
+ */
+interface LogEntry {
+	/** Log level */
+	level: LevelValue;
+	/** Unix timestamp in milliseconds (Date.now()) */
+	timestamp: number;
+	/** Log message */
+	message: string;
+	/** Merged bindings + call-site context */
+	context: Record<string, unknown>;
+	/** Module chain accumulated by child() calls */
+	modules: string[];
+}
+
+/**
+ * Transport interface — receives a `LogEntry` for each log call that passes
+ * the level filter. Implement this to integrate any logging backend.
+ *
+ * @example Pino transport
+ * ```typescript
+ * import pino from 'pino';
+ * import type { LogTransport, LogEntry } from '@pencroff-lab/kore';
+ *
+ * const pinoInstance = pino();
+ * const pinoTransport: LogTransport = {
+ *   write(entry: LogEntry) {
+ *     const prefix = entry.modules.map(m => `[${m}] `).join('');
+ *     pinoInstance[entry.level](entry.context, prefix + entry.message);
+ *   }
+ * };
+ * ```
+ */
+interface LogTransport {
+	write(entry: LogEntry): void;
+}
+
+/**
+ * Options for the built-in pretty console transport.
+ */
+interface PrettyOptions {
+	/** Output stream. Default: `process.stderr` */
+	output?: { write(data: string): void };
+	/**
+	 * Enable ANSI colors.
+	 * - `'auto'` (default): enable when output is a TTY
+	 * - `true`: always enable
+	 * - `false`: always disable
+	 */
+	colors?: boolean | "auto";
+	/** Override default level colors (ANSI escape sequences) */
+	levelColors?: Partial<Record<LevelValue, string>>;
+	/**
+	 * Timestamp format.
+	 * - `'short'` (default): `HH:MM:SS.mmm` local time
+	 * - `'iso'`: ISO 8601 string
+	 * - Custom function receiving `Date.now()` timestamp
+	 */
+	timestamp?: "short" | "iso" | ((ts: number) => string);
+}
+
+/**
+ * Options for `createLogger`.
+ */
+interface LoggerOptions {
+	/** Minimum log level. Default: from `LOG_LEVEL` env or `'info'` */
+	level?: LevelValue;
+	/** Transports to write entries to. Default: `[prettyTransport()]` */
+	transports?: LogTransport[];
+}
+
+/**
  * Callable logger interface with overloaded signatures.
  *
- * The Logger is both a function (for logging) and an object (with level constants
- * and the `child` method). This design allows for flexible usage patterns while
- * maintaining type safety.
+ * The Logger is both a function (for logging) and an object (with level
+ * constants and the `child` method).
  *
  * ## Call Signatures
- *
- * The logger supports multiple call patterns:
  * 1. `log(message)` - Log at INFO level
  * 2. `log(message, context)` - Log at INFO level with context object or Err
  * 3. `log(message, detail)` - Log at INFO level with detail string
  * 4. `log(level, message)` - Log at specific level
  * 5. `log(level, message, context)` - Log at specific level with context
- *
- * ## Level Constants
- *
- * Each logger instance provides level constants as readonly properties:
- * - `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`
- *
- * ## Methods
- *
- * - `child(module, bindings?)` - Create a child logger with module prefix
- *
- * @example Basic usage
- * ```typescript
- * const logger: Logger = createLogger();
- *
- * logger('App started');                          // INFO: App started
- * logger('Config loaded', { env: 'production' }); // INFO: Config loaded {env: "production"}
- * logger(logger.DEBUG, 'Cache hit');              // DEBUG: Cache hit
- * ```
- *
- * @example With Err instances
- * ```typescript
- * const [user, err] = await getUser(id);
- * if (err) {
- *   logger(logger.ERROR, 'User fetch failed', err);
- *   // Automatically serializes Err with full context
- * }
- * ```
- *
- * @example Child loggers
- * ```typescript
- * const dbLogger = logger.child('database');
- * const userDbLogger = dbLogger.child('users', { table: 'users' });
- *
- * userDbLogger('Query executed'); // [database] [users] Query executed {table: "users"}
- * ```
  */
 interface Logger {
 	/** Trace level constant */
@@ -198,89 +191,63 @@ interface Logger {
 	/** Fatal level constant */
 	readonly FATAL: "fatal";
 
-	/**
-	 * Log a message at INFO level.
-	 * @param message - The log message
-	 */
+	/** Log a message at INFO level. */
 	(message: string): void;
-
-	/**
-	 * Log a message at INFO level with context.
-	 * @param message - The log message
-	 * @param context - Context object or Err instance
-	 */
+	/** Log a message at INFO level with context. */
 	(message: string, context: object | Err): void;
-
-	/**
-	 * Log a message at INFO level with detail string.
-	 * @param message - The log message
-	 * @param detail - Additional detail string
-	 */
+	/** Log a message at INFO level with detail string. */
 	(message: string, detail: string): void;
-
-	/**
-	 * Log a message at a specific level.
-	 * @param level - The log level
-	 * @param message - The log message
-	 */
+	/** Log a message at a specific level. */
 	(level: LevelValue, message: string): void;
-
-	/**
-	 * Log a message at a specific level with context.
-	 * @param level - The log level
-	 * @param message - The log message
-	 * @param context - Context object or Err instance
-	 */
+	/** Log a message at a specific level with context. */
 	(level: LevelValue, message: string, context: object | Err): void;
 
 	/**
 	 * Create a child logger with module-specific context.
 	 *
-	 * Child loggers inherit the parent's configuration and add a module
-	 * prefix to all messages. They can also include additional bindings
-	 * that appear in every log entry.
-	 *
-	 * @param module - Module name for message prefix (e.g., "database", "auth")
-	 * @param bindings - Optional additional context to include in all logs
-	 * @returns New Logger instance with module prefix
-	 *
-	 * @example Simple child logger
-	 * ```typescript
-	 * const mainLogger = createLogger();
-	 * const dbLogger = mainLogger.child('database');
-	 *
-	 * dbLogger('Connection established');
-	 * // Output: [database] Connection established
-	 * ```
-	 *
-	 * @example With bindings
-	 * ```typescript
-	 * const userLogger = mainLogger.child('users', {
-	 *   service: 'user-service',
-	 *   version: '2.0'
-	 * });
-	 *
-	 * userLogger('User created', { userId: '123' });
-	 * // Output includes: service="user-service", version="2.0", userId="123"
-	 * ```
-	 *
-	 * @example Nested child loggers
-	 * ```typescript
-	 * const apiLogger = log.child('api');
-	 * const v2Logger = apiLogger.child('v2');
-	 * const usersLogger = v2Logger.child('users');
-	 *
-	 * usersLogger('GET /users');
-	 * // Output: [api] [v2] [users] GET /users
-	 * ```
+	 * @param module - Module name added to the modules array
+	 * @param bindings - Optional bindings merged into every log entry's context
+	 * @returns New Logger instance
 	 */
 	child(module: string, bindings?: object): Logger;
 }
 
-// Level validation set
+// ─── Internal constants ───────────────────────────────────────────────────────
 
 const levelSet = new Set(Object.values(lvl));
-// Helper: Check if string is a valid level
+
+const LEVEL_NUMBERS: Record<LevelValue, number> = {
+	trace: 0,
+	debug: 1,
+	info: 2,
+	warn: 3,
+	error: 4,
+	fatal: 5,
+};
+
+const LEVEL_TAGS: Record<LevelValue, string> = {
+	trace: "TRC",
+	debug: "DBG",
+	info: "INF",
+	warn: "WRN",
+	error: "ERR",
+	fatal: "FTL",
+};
+
+const DEFAULT_LEVEL_COLORS: Record<LevelValue, string> = {
+	trace: "\x1b[2m",
+	debug: "\x1b[36m",
+	info: "\x1b[32m",
+	warn: "\x1b[38;5;208m",
+	error: "\x1b[31m",
+	fatal: "\x1b[1m\x1b[31m",
+};
+
+const RESET = "\x1b[0m";
+const DIM = "\x1b[2m";
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 function isLevel(val: unknown): val is LevelValue {
 	return (
 		typeof val === "string" &&
@@ -288,43 +255,30 @@ function isLevel(val: unknown): val is LevelValue {
 	);
 }
 
-// Helper: Normalize context - wrap Err objects in { err }
-function normalizeContext(ctx: unknown): object {
+function normalizeContext(ctx: unknown): Record<string, unknown> {
 	if (Err.isErr(ctx)) return { err: ctx };
 	if (typeof ctx === "string") return { detail: ctx };
-	if (typeof ctx === "object" && ctx !== null) return ctx as object;
+	if (typeof ctx === "object" && ctx !== null)
+		return ctx as Record<string, unknown>;
 	return {};
 }
 
-// Helper: Parse variadic arguments into { level, message, context }
 function resolveCall(...args: unknown[]): {
 	level: LevelValue;
 	message: string;
-	context: object;
+	context: Record<string, unknown>;
 } {
-	// 1 arg: [msg] → { level: 'info', message: msg, context: {} }
+	// 1 arg: [msg]
 	if (args.length === 1) {
-		return {
-			level: lvl.INFO,
-			message: String(args[0]),
-			context: {},
-		};
+		return { level: lvl.INFO, message: String(args[0]), context: {} };
 	}
 
 	// 2 args
 	if (args.length === 2) {
 		const [first, second] = args;
-
-		// 2 args where first is level: [lvl, msg]
 		if (isLevel(first)) {
-			return {
-				level: first,
-				message: String(second),
-				context: {},
-			};
+			return { level: first, message: String(second), context: {} };
 		}
-
-		// 2 args where first is message, second is context
 		return {
 			level: lvl.INFO,
 			message: String(first),
@@ -332,10 +286,9 @@ function resolveCall(...args: unknown[]): {
 		};
 	}
 
-	// 3 args: [lvl, msg, ctx]
+	// 3+ args: [lvl, msg, ctx]
 	if (args.length >= 3) {
 		const [first, second, third] = args;
-
 		if (isLevel(first)) {
 			return {
 				level: first,
@@ -345,203 +298,195 @@ function resolveCall(...args: unknown[]): {
 		}
 	}
 
-	// Fallback for unexpected cases
-	return {
-		level: lvl.INFO,
-		message: String(args[0] ?? ""),
-		context: {},
-	};
+	// Fallback
+	return { level: lvl.INFO, message: String(args[0] ?? ""), context: {} };
 }
 
-// Helper: Get log level from env var
 function getLogLevel(): LevelValue {
-	const envLevel = process.env.HERMES_LOG_LEVEL?.toLowerCase();
+	const envLevel = process.env.LOG_LEVEL?.toLowerCase();
 	return isLevel(envLevel) ? envLevel : lvl.INFO;
 }
 
-// Helper: Get log file path from env var with default
-function getLogFilePath(): string {
-	return process.env.HERMES_LOG_FILE_PATH || ".workspace/logs/hermes.log";
+// ─── Timestamp formatters ─────────────────────────────────────────────────────
+
+function formatShortTimestamp(ts: number): string {
+	const d = new Date(ts);
+	const hh = String(d.getHours()).padStart(2, "0");
+	const mm = String(d.getMinutes()).padStart(2, "0");
+	const ss = String(d.getSeconds()).padStart(2, "0");
+	const ms = String(d.getMilliseconds()).padStart(3, "0");
+	return `${hh}:${mm}:${ss}.${ms}`;
 }
 
-// Factory: Create pino instance with multistream
-function createPinoInstance(options?: {
-	streams?: pino.StreamEntry[];
-	level?: LevelValue;
-}): pino.Logger {
-	// Use provided streams or create defaults
-	const streams =
-		options?.streams ??
-		(() => {
-			const logFilePath = getLogFilePath();
+// ─── Pretty transport ─────────────────────────────────────────────────────────
 
-			// Ensure directory exists
-			mkdirSync(dirname(logFilePath), { recursive: true });
+/**
+ * Create a built-in pretty console transport.
+ *
+ * Renders log entries to a human-readable format with optional ANSI colors.
+ *
+ * Output format:
+ * ```
+ * {dim timestamp} {colored TAG} {[mod] [mod]} {message} {dim context}
+ * ```
+ *
+ * Err instances in context are rendered via `Err.toString()` on their own
+ * indented line below the main line.
+ *
+ * @param options - Optional configuration
+ */
+function prettyTransport(options?: PrettyOptions): LogTransport {
+	const output = options?.output ?? process.stderr;
+	const colorsOpt = options?.colors ?? "auto";
+	const tsOpt = options?.timestamp ?? "short";
+	const levelColors = { ...DEFAULT_LEVEL_COLORS, ...options?.levelColors };
 
-			// Create console stream with pretty formatting
-			const prettyStream = pinoPretty({
-				colorize: true,
-				translateTime: "SYS:yyyy-mm-dd__HH:MM:ss.l",
-				ignore: "pid,hostname",
-				customPrettifiers: {
-					err: (val: unknown) => {
-						if (val && typeof val === "object") {
-							try {
-								const err = Err.fromJSON(val);
-								return err.toString({ stack: 3, metadata: true });
-							} catch {
-								return stringifySafe(val);
-							}
-						}
-						return stringifySafe(val);
-					},
-				},
-			});
+	const isTTY =
+		"isTTY" in output && (output as { isTTY?: boolean }).isTTY === true;
+	const useColors = colorsOpt === "auto" ? isTTY : colorsOpt === true;
 
-			// Create file stream
-			const fileStream = createWriteStream(logFilePath, { flags: "a" });
+	function formatTimestamp(ts: number): string {
+		if (typeof tsOpt === "function") return tsOpt(ts);
+		if (tsOpt === "iso") return new Date(ts).toISOString();
+		return formatShortTimestamp(ts);
+	}
 
-			return [{ stream: prettyStream }, { stream: fileStream }];
-		})();
+	return {
+		write(entry: LogEntry): void {
+			const ts = formatTimestamp(entry.timestamp);
+			const tag = LEVEL_TAGS[entry.level] ?? entry.level.toUpperCase();
+			const levelColor = levelColors[entry.level] ?? "";
 
-	// Create multistream
-	const multistream = pino.multistream(streams);
+			// Module prefix
+			const modulePrefix =
+				entry.modules.length > 0
+					? `${entry.modules.map((m) => `[${m}]`).join(" ")} `
+					: "";
 
-	// Return pino logger
-	return pino(
-		{
-			level: options?.level ?? getLogLevel(),
-			base: { pid: process.pid },
-			serializers: {
-				err: (err: unknown) => {
-					if (Err.isErr(err)) return err.toJSON();
-					return pino.stdSerializers.err(err as Error);
-				},
-			},
+			// Split err from rest of context
+			const { err: errVal, ...rest } = entry.context;
+			const hasErr = errVal !== undefined;
+			const hasRest = Object.keys(rest).length > 0;
+
+			let line: string;
+			if (useColors) {
+				const ctxStr = hasRest ? ` ${DIM}${stringifySafe(rest)}${RESET}` : "";
+				line = `${DIM}${ts}${RESET} ${levelColor}${tag}${RESET} ${modulePrefix}${entry.message}${ctxStr}`;
+			} else {
+				const ctxStr = hasRest ? ` ${stringifySafe(rest)}` : "";
+				line = `${ts} ${tag} ${modulePrefix}${entry.message}${ctxStr}`;
+			}
+
+			if (hasErr) {
+				let errStr: string;
+				if (Err.isErr(errVal)) {
+					errStr = (errVal as Err).toString({ stack: 3, metadata: true });
+				} else {
+					errStr = stringifySafe(errVal);
+				}
+				const indented = errStr
+					.split("\n")
+					.map((l) => `  ${l}`)
+					.join("\n");
+				line += `\n  err: ${indented.trimStart()}`;
+			}
+
+			output.write(`${line}\n`);
 		},
-		multistream,
-	);
+	};
 }
 
-// Factory: Wrap pino logger as callable Logger
-function wrapPino(pinoLogger: pino.Logger): Logger {
-	// Create callable function
-	const logFn = (...args: unknown[]) => {
-		const { level, message, context } = resolveCall(...args);
-		pinoLogger[level](context, message);
+// ─── Core logger builder ──────────────────────────────────────────────────────
+
+function buildLogger(
+	modules: string[],
+	bindings: Record<string, unknown>,
+	level: LevelValue,
+	transports: LogTransport[],
+): Logger {
+	const configNum = LEVEL_NUMBERS[level];
+
+	const logFn = (...args: unknown[]): void => {
+		const { level: callLevel, message, context } = resolveCall(...args);
+		if ((LEVEL_NUMBERS[callLevel] ?? 0) < configNum) return;
+
+		const entry: LogEntry = {
+			level: callLevel,
+			timestamp: Date.now(),
+			message,
+			context: { ...bindings, ...context },
+			modules,
+		};
+
+		for (const transport of transports) {
+			transport.write(entry);
+		}
 	};
 
+	// Attach level constants
 	const keys = Object.keys(lvl) as (keyof typeof lvl)[];
-
-	keys.forEach((key) => {
+	for (const key of keys) {
 		Object.defineProperty(logFn, key, {
 			value: lvl[key],
 			writable: false,
 			enumerable: true,
 		});
-	});
+	}
 
-	// Attach child() method
-	logFn.child = (module: string, bindings?: object): Logger => {
-		const childPinoLogger = pinoLogger.child(bindings ?? {}, {
-			msgPrefix: `[${module}] `,
-		});
-		return wrapPino(childPinoLogger);
+	// Attach child()
+	(logFn as unknown as { child: Logger["child"] }).child = (
+		name: string,
+		childBindings?: object,
+	): Logger => {
+		const mergedBindings: Record<string, unknown> = {
+			...bindings,
+			...(childBindings as Record<string, unknown> | undefined),
+		};
+		return buildLogger([...modules, name], mergedBindings, level, transports);
 	};
 
 	return logFn as unknown as Logger;
 }
 
+// ─── Public factory ───────────────────────────────────────────────────────────
+
 /**
  * Create a logger instance with optional module name and configuration.
  *
- * This factory function creates a new Logger instance with customizable
- * output streams and log level. It's useful for:
- * - Creating module-specific loggers
- * - Testing with custom streams
- * - Setting up different log levels for different parts of the application
- *
- * @param module - Optional module name for message prefix
+ * @param module - Optional module name added as the first entry in `modules`
  * @param options - Optional configuration
- * @param options.streams - Custom pino stream entries (default: console + file)
- * @param options.level - Minimum log level (default: from LOG_LEVEL env or 'info')
  * @returns New Logger instance
  *
  * @example Basic usage
  * ```typescript
- * // Create root logger
  * const logger = createLogger();
  * logger('Application ready');
  * ```
  *
  * @example Module-specific logger
  * ```typescript
- * // Create logger with module prefix
  * const dbLogger = createLogger('database');
- * dbLogger('Connected'); // Output: [database] Connected
+ * dbLogger('Connected');
  * ```
  *
- * @example Custom configuration
+ * @example Testing with spy transport
  * ```typescript
- * // Create logger with debug level
- * const debugLogger = createLogger('debug', { level: lvl.DEBUG });
- * debugLogger(debugLogger.DEBUG, 'Verbose info');
- * ```
+ * import type { LogEntry, LogTransport } from './utils/logger';
  *
- * @example Testing with custom streams
- * ```typescript
- * import { createLogger, lvl } from './utils/logger';
- *
- * // Capture logs in tests
- * const logs: string[] = [];
- * const testStream = {
- *   write: (msg: string) => logs.push(msg)
- * };
- *
- * const testLogger = createLogger('test', {
- *   streams: [{ stream: testStream }],
- *   level: lvl.DEBUG
- * });
- *
- * testLogger('Test started');
- * expect(logs).toContain('[test] Test started');
- * ```
- *
- * @example Production setup with custom file path
- * ```typescript
- * // Custom streams for different environments
- * const prodLogger = createLogger('api', {
- *   level: lvl.INFO,
- *   streams: [
- *     { stream: process.stdout },
- *     { stream: createWriteStream('/var/log/api.log', { flags: 'a' }) }
- *   ]
- * });
+ * const entries: LogEntry[] = [];
+ * const spy: LogTransport = { write(e) { entries.push(e); } };
+ * const testLogger = createLogger('test', { transports: [spy], level: lvl.TRACE });
  * ```
  */
-function createLogger(
-	module?: string,
-	options?: { streams?: pino.StreamEntry[]; level?: LevelValue },
-): Logger {
-	const pinoLogger = createPinoInstance(options);
-
-	if (module) {
-		const childLogger = pinoLogger.child({}, { msgPrefix: `[${module}] ` });
-		return wrapPino(childLogger);
-	}
-
-	return wrapPino(pinoLogger);
+function createLogger(module?: string, options?: LoggerOptions): Logger {
+	const level = options?.level ?? getLogLevel();
+	const transports = options?.transports ?? [prettyTransport()];
+	const modules = module ? [module] : [];
+	return buildLogger(modules, {}, level, transports);
 }
 
 /**
  * Default logger instance for application-wide logging.
- *
- * This is a pre-configured logger ready to use throughout the application.
- * It uses the default configuration (console + file output, INFO level unless
- * overridden by LOG_LEVEL environment variable).
- *
- * For module-specific logging, use `log.child(moduleName)` instead of importing
- * separate loggers.
  *
  * @example Basic usage
  * ```typescript
@@ -552,20 +497,20 @@ function createLogger(
  * log(log.ERROR, 'Startup failed', err);
  * ```
  *
- * @example Module-specific logging
+ * @example Module-specific logging via child
  * ```typescript
- * import { log } from './utils/logger';
- *
  * const dbLogger = log.child('database');
- * const authLogger = log.child('auth');
- *
  * dbLogger('Connection pool initialized');
- * authLogger('JWT keys loaded');
  * ```
  */
 export const log = createLogger();
 
-// Exports
-export { createLogger };
-export { lvl };
-export type { Logger, LevelValue };
+export { createLogger, prettyTransport, lvl };
+export type {
+	Logger,
+	LevelValue,
+	LogEntry,
+	LogTransport,
+	LoggerOptions,
+	PrettyOptions,
+};
