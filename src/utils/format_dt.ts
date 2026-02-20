@@ -4,7 +4,6 @@
 export interface DtStampOptions {
 	/**
 	 * Character(s) between date/time segments.
-	 * Ignored when `compact` is `true`.
 	 * @default "_"
 	 */
 	delimiter?: string;
@@ -23,16 +22,18 @@ export interface DtStampOptions {
 	/**
 	 * Which parts of the stamp to include.
 	 * - `"datetime"` -- full stamp (date + time)
-	 * - `"date"` -- date only (`YYYYMMDD`)
-	 * - `"time"` -- time only (`HHmmss` or `HHmmss_SSS` with `ms`)
+	 * - `"date"` -- date only
+	 * - `"time"` -- time only
 	 * @default "datetime"
 	 */
 	parts?: "datetime" | "date" | "time";
 	/**
-	 * When `true`, omits the delimiter entirely (equivalent to `delimiter: ""`).
+	 * When `true`, formats with human-readable separators:
+	 * dashes in date (`YYYY-MM-DD`), colons in time (`HH:MM:SS`),
+	 * and `.` before milliseconds in time-only mode (`HH:MM:SS.mmm`).
 	 * @default false
 	 */
-	compact?: boolean;
+	readable?: boolean;
 }
 
 /**
@@ -42,7 +43,7 @@ export interface DtStampOptions {
  * and anywhere a human-readable but machine-sortable date/time is needed.
  *
  * @param date - Date to format. Defaults to `new Date()` when `null` or omitted.
- * @param options - Formatting options (delimiter, milliseconds, timezone, parts, compact)
+ * @param options - Formatting options (delimiter, milliseconds, timezone, parts, readable)
  * @returns Formatted timestamp string
  *
  * @example Default (UTC datetime with underscore delimiter)
@@ -51,22 +52,22 @@ export interface DtStampOptions {
  * // "20240315_103045"
  * ```
  *
- * @example Compact with milliseconds
+ * @example Readable datetime with milliseconds
  * ```typescript
- * dtStamp(new Date("2024-03-15T10:30:45.123Z"), { compact: true, ms: true });
- * // "20240315103045123"
+ * dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, ms: true });
+ * // "2024-03-15_10:30:45_123"
  * ```
  *
- * @example Date only
+ * @example Readable date only
  * ```typescript
- * dtStamp(new Date("2024-03-15T10:30:45.123Z"), { parts: "date" });
- * // "20240315"
+ * dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, parts: "date" });
+ * // "2024-03-15"
  * ```
  *
- * @example Time only with milliseconds
+ * @example Readable time with milliseconds
  * ```typescript
- * dtStamp(new Date("2024-03-15T10:30:45.123Z"), { parts: "time", ms: true });
- * // "103045_123"
+ * dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, parts: "time", ms: true });
+ * // "10:30:45.123"
  * ```
  *
  * @example Custom delimiter
@@ -82,10 +83,9 @@ export function dtStamp(date?: Date | null, options?: DtStampOptions): string {
 		ms = false,
 		tz = "utc",
 		parts = "datetime",
-		compact = false,
+		readable = false,
 	} = options ?? {};
 
-	const sep = compact ? "" : delimiter;
 	const utc = tz === "utc";
 
 	const year = utc ? d.getUTCFullYear() : d.getFullYear();
@@ -104,14 +104,19 @@ export function dtStamp(date?: Date | null, options?: DtStampOptions): string {
 		"0",
 	);
 
-	const datePart = `${year}${month}${day}`;
-	let timePart = `${hours}${minutes}${seconds}`;
+	const datePart = readable
+		? `${year}-${month}-${day}`
+		: `${year}${month}${day}`;
+	let timePart = readable
+		? `${hours}:${minutes}:${seconds}`
+		: `${hours}${minutes}${seconds}`;
 
 	if (ms) {
 		const millis = String(
 			utc ? d.getUTCMilliseconds() : d.getMilliseconds(),
 		).padStart(3, "0");
-		timePart = `${timePart}${sep}${millis}`;
+		const msSep = readable && parts === "time" ? "." : delimiter;
+		timePart = `${timePart}${msSep}${millis}`;
 	}
 
 	if (parts === "date") {
@@ -120,5 +125,5 @@ export function dtStamp(date?: Date | null, options?: DtStampOptions): string {
 	if (parts === "time") {
 		return timePart;
 	}
-	return `${datePart}${sep}${timePart}`;
+	return `${datePart}${delimiter}${timePart}`;
 }

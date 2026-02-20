@@ -115,34 +115,48 @@ describe("dtStamp", () => {
 		});
 	});
 
-	describe("compact option", () => {
-		test("compact removes all delimiters", () => {
-			const date = new Date("2024-02-18T14:30:52.000Z");
+	describe("readable option", () => {
+		test("readable datetime", () => {
+			const date = new Date("2024-03-15T10:30:45.123Z");
 
-			expect(dtStamp(date, { compact: true })).toBe("20240218143052");
+			expect(dtStamp(date, { readable: true })).toBe("2024-03-15_10:30:45");
 		});
 
-		test("compact with ms", () => {
-			const date = new Date("2024-02-18T14:30:52.789Z");
+		test("readable datetime with ms", () => {
+			const date = new Date("2024-03-15T10:30:45.123Z");
 
-			expect(dtStamp(date, { compact: true, ms: true })).toBe(
-				"20240218143052789",
+			expect(dtStamp(date, { readable: true, ms: true })).toBe(
+				"2024-03-15_10:30:45_123",
 			);
 		});
 
-		test("compact overrides explicit delimiter", () => {
-			const date = new Date("2024-02-18T14:30:52.000Z");
+		test("readable date only", () => {
+			const date = new Date("2024-03-15T10:30:45.123Z");
 
-			expect(dtStamp(date, { compact: true, delimiter: "-" })).toBe(
-				"20240218143052",
+			expect(dtStamp(date, { readable: true, parts: "date" })).toBe(
+				"2024-03-15",
 			);
 		});
 
-		test("compact with parts: time and ms", () => {
-			const date = new Date("2024-02-18T14:30:52.789Z");
+		test("readable time only", () => {
+			const date = new Date("2024-03-15T10:30:45.123Z");
 
-			expect(dtStamp(date, { compact: true, parts: "time", ms: true })).toBe(
-				"143052789",
+			expect(dtStamp(date, { readable: true, parts: "time" })).toBe("10:30:45");
+		});
+
+		test("readable time with ms uses dot separator", () => {
+			const date = new Date("2024-03-15T10:30:45.123Z");
+
+			expect(dtStamp(date, { readable: true, parts: "time", ms: true })).toBe(
+				"10:30:45.123",
+			);
+		});
+
+		test("readable with custom delimiter", () => {
+			const date = new Date("2024-03-15T10:30:45.123Z");
+
+			expect(dtStamp(date, { readable: true, delimiter: "T" })).toBe(
+				"2024-03-15T10:30:45",
 			);
 		});
 	});
