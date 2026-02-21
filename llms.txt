@@ -7,12 +7,14 @@
 - [Err](docs/err.md): Immutable, value-based error type. Supports wrapping (cause chains), aggregation (multiple errors), hierarchical error codes, JSON serialization/deserialization, and conversion to native Error.
 - [Outcome](docs/outcome.md): Monadic container wrapping ResultTuple<T> ([T, null] | [null, Err]). Supports map/mapErr/pipe/pipeAsync chains, combinators (all, any), side effects (effect), and terminal operations (toTuple, defaultTo, either).
 - [dtStamp](docs/format_dt.md): Format a Date into a filesystem/log-safe timestamp string. Produces compact, sortable stamps suitable for file names, log prefixes, and identifiers.
+- [Logger](docs/logger.md): Structured logging utility with transport DI and Err integration. Callable function with overloaded signatures, child loggers, pretty console transport, and automatic Err formatting.
+- [Logging Guide](docs/logging_guide.md): Usage patterns, DI conventions, error logging strategy, and integration examples.
 
 ## Quick Start
 
 ```typescript
 import { Err, Outcome } from "@pencroff-lab/kore/types";
-import { dtStamp } from "@pencroff-lab/kore/utils";
+import { dtStamp, log, createLogger } from "@pencroff-lab/kore/utils";
 ```
 
 ## Install

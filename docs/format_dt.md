@@ -25,27 +25,27 @@ interface DtStampOptions {
   ms?: boolean;
   tz?: "utc" | "local";
   parts?: "datetime" | "date" | "time";
-  compact?: boolean;
+  readable?: boolean;
 }
 ```
 
 | Option      | Type                              | Default      | Description                                                                 |
 |-------------|-----------------------------------|--------------|-----------------------------------------------------------------------------|
-| `delimiter` | `string`                          | `"_"`        | Character(s) between date/time segments. Ignored when `compact` is `true`. |
+| `delimiter` | `string`                          | `"_"`        | Character(s) between date/time segments.                                   |
 | `ms`        | `boolean`                         | `false`      | Include milliseconds in the time portion.                                  |
 | `tz`        | `"utc" \| "local"`               | `"utc"`      | Timezone for extracting date/time components.                              |
 | `parts`     | `"datetime" \| "date" \| "time"` | `"datetime"` | Which parts of the stamp to include.                                       |
-| `compact`   | `boolean`                         | `false`      | When `true`, omits the delimiter entirely (equivalent to `delimiter: ""`). |
+| `readable`  | `boolean`                         | `false`      | When `true`, formats with human-readable separators.                       |
 
 ### Option Details
 
 #### `delimiter`
 
-Character(s) placed between date and time segments, and between time and milliseconds when `ms` is `true`. Ignored when `compact` is `true`.
+Character(s) placed between date and time segments, and between time and milliseconds when `ms` is `true`.
 
 #### `ms`
 
-When `true`, appends milliseconds to the time portion, separated by the delimiter.
+When `true`, appends milliseconds to the time portion, separated by the delimiter (or `.` in readable time-only mode).
 
 #### `tz`
 
@@ -59,9 +59,13 @@ Controls which parts of the timestamp are included:
 - `"date"` -- date only: `YYYYMMDD`
 - `"time"` -- time only: `HHmmss` or `HHmmss_SSS` with `ms`
 
-#### `compact`
+#### `readable`
 
-When `true`, omits the delimiter entirely. Equivalent to setting `delimiter: ""`.
+When `true`, formats with human-readable separators:
+- Dashes in date: `YYYY-MM-DD`
+- Colons in time: `HH:MM:SS`
+- `.` before milliseconds in time-only mode: `HH:MM:SS.mmm`
+- Delimiter still used between date/time and between time/milliseconds in datetime mode
 
 ## Examples
 
@@ -74,11 +78,25 @@ dtStamp(new Date("2024-03-15T10:30:45.123Z"));
 // "20240315_103045"
 ```
 
-### Compact with milliseconds
+### Readable datetime with milliseconds
 
 ```typescript
-dtStamp(new Date("2024-03-15T10:30:45.123Z"), { compact: true, ms: true });
-// "20240315103045123"
+dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, ms: true });
+// "2024-03-15_10:30:45_123"
+```
+
+### Readable date only
+
+```typescript
+dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, parts: "date" });
+// "2024-03-15"
+```
+
+### Readable time with milliseconds
+
+```typescript
+dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, parts: "time", ms: true });
+// "10:30:45.123"
 ```
 
 ### Date only
@@ -125,15 +143,17 @@ dtStamp(new Date("2024-03-15T10:30:45.123Z"), { tz: "local" });
 
 ## Output Format Reference
 
-| Options                                | Output              |
-|----------------------------------------|---------------------|
-| `{}`                                   | `20240315_103045`   |
-| `{ ms: true }`                         | `20240315_103045_123` |
-| `{ compact: true }`                    | `20240315103045`    |
-| `{ compact: true, ms: true }`          | `20240315103045123` |
-| `{ parts: "date" }`                    | `20240315`          |
-| `{ parts: "time" }`                    | `103045`            |
-| `{ parts: "time", ms: true }`          | `103045_123`        |
-| `{ delimiter: "-" }`                   | `20240315-103045`   |
-| `{ delimiter: "-", ms: true }`         | `20240315-103045-123` |
-| `{ parts: "time", compact: true, ms: true }` | `103045123`  |
+| Options                                             | Output                  |
+|-----------------------------------------------------|-------------------------|
+| `{}`                                                | `20240315_103045`       |
+| `{ ms: true }`                                      | `20240315_103045_123`   |
+| `{ parts: "date" }`                                 | `20240315`              |
+| `{ parts: "time" }`                                 | `103045`                |
+| `{ parts: "time", ms: true }`                       | `103045_123`            |
+| `{ delimiter: "-" }`                                | `20240315-103045`       |
+| `{ delimiter: "-", ms: true }`                      | `20240315-103045-123`   |
+| `{ readable: true }`                                | `2024-03-15_10:30:45`   |
+| `{ readable: true, ms: true }`                      | `2024-03-15_10:30:45_123` |
+| `{ readable: true, parts: "date" }`                 | `2024-03-15`            |
+| `{ readable: true, parts: "time" }`                 | `10:30:45`              |
+| `{ readable: true, parts: "time", ms: true }`       | `10:30:45.123`          |

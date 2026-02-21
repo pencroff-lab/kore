@@ -19,6 +19,8 @@ Detailed API documentation for each module:
 - [Err](docs/err.md) -- Immutable, value-based error type with wrapping, aggregation, and serialization
 - [Outcome\<T\>](docs/outcome.md) -- Monadic container for type-safe error handling with tuple-first API
 - [dtStamp](docs/format_dt.md) -- Filesystem/log-safe date formatting utility
+- [Logger](docs/logger.md) -- Structured logging with transport DI and Err integration
+- [Logging Guide](docs/logging_guide.md) -- Patterns, conventions, and integration strategies
 
 ## API
 
@@ -209,8 +211,37 @@ import { dtStamp } from "@pencroff-lab/kore";
 dtStamp(); // "20260218_153045"
 dtStamp(new Date(), { parts: "date" }); // "20260218"
 dtStamp(new Date(), { parts: "time", ms: true }); // "153045_123"
-dtStamp(new Date(), { compact: true }); // "20260218153045"
+dtStamp(new Date(), { readable: true }); // "2026-02-18_15:30:45"
 dtStamp(new Date(), { tz: "local" }); // uses local timezone
+```
+
+#### Logger
+
+Structured, callable logger with transport DI, child loggers, and automatic `Err` formatting.
+
+```typescript
+import { log, createLogger } from "@pencroff-lab/kore";
+
+// Default logger
+log("Application started");
+log(log.WARN, "Connection slow");
+log(log.ERROR, "Failed to save", { userId: "123" });
+
+// Module-specific logger
+const dbLog = createLogger("database");
+dbLog("Connected to postgres");
+
+// Child loggers with inherited context
+const userLog = dbLog.child("users", { version: "1.0" });
+userLog("User created");
+// Output: [database] [users] User created {"version":"1.0"}
+
+// Err instances rendered automatically
+const [data, err] = fetchData();
+if (err) {
+  log(log.ERROR, "Fetch failed", err);
+  // Output includes indented Err.toString() below the log line
+}
 ```
 
 ## Development

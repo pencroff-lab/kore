@@ -1,6 +1,6 @@
 # Logging Guide
 
-This guide covers logging patterns, conventions, and integration for the project.
+This guide covers logging patterns, conventions, and integration for `@pencroff-lab/kore` logger.
 
 ## Overview
 
@@ -34,28 +34,78 @@ svcLog(svcLog.DEBUG, 'Calling CLI');
 | `log.ERROR` | Failures at handler boundary | `Command failed` (logged once) |
 | `log.FATAL` | Unrecoverable, process exits | `Database connection failed` |
 
+## Call Signatures
+
+The Logger is a callable function with overloaded signatures:
+
+```typescript
+log('Server started');                              // INFO level (default)
+log('Retrying connection', { attempt: 2 });         // INFO + context object
+log('Retrying connection', 'attempt 2 of 3');       // INFO + detail string
+log(log.ERROR, 'Connection lost');                  // Explicit level
+log(log.ERROR, 'Connection lost', err);             // Level + Err instance
+log(log.DEBUG, 'Query result', { rows: 42 });       // Level + context object
+```
+
+When the first argument is a valid level string, it's used as the level. Otherwise, defaults to `INFO`.
+
+## Transports
+
+The logger uses a transport abstraction for output. The built-in `prettyTransport` writes human-readable output to `process.stderr` with optional ANSI colors.
+
+```typescript
+import { createLogger, prettyTransport, lvl } from "@pencroff-lab/kore";
+import type { LogEntry, LogTransport } from "@pencroff-lab/kore";
+
+// Default: prettyTransport with auto-detected colors
+const appLog = createLogger('app');
+
+// Custom transport (useful for testing)
+const entries: LogEntry[] = [];
+const spy: LogTransport = { write(e) { entries.push(e); } };
+const testLog = createLogger('test', { transports: [spy], level: lvl.TRACE });
+
+// Pretty transport with explicit options
+const verboseLog = createLogger('app', {
+  transports: [prettyTransport({
+    colors: false,           // Disable ANSI (default: 'auto' based on TTY)
+    timestamp: 'iso',        // ISO 8601 (default: 'short' HH:MM:SS.mmm)
+  })],
+});
+```
+
+Output format (pretty transport, colors disabled):
+
+```
+12:34:56.789 INF [app] [handler] Server started {"port":3000}
+12:34:56.800 ERR [app] [handler] Request failed
+  err: Err: Connection timeout [NET:TIMEOUT]
+```
+
+`Err` instances in context are rendered on their own indented line below the main line.
+
 ## Logger DI Pattern
 
 Logger is passed through deps, matching the handler factory pattern. Only import `createLogger` at the entry point; everywhere else receive `Logger` type via deps:
 
 ```typescript
-import type { Logger } from "../../utils/logger";
+import type { Logger } from "@pencroff-lab/kore";
 
-interface FromPlanDeps {
+interface HandlerDeps {
   db: Database;
   log: Logger;  // Injected logger function
   config: Config;
 }
 
-function createFromPlanHandler(deps: FromPlanDeps): Outcome<Handler> {
+function createHandler(deps: HandlerDeps): Outcome<Handler> {
   // Validate deps...
 
-  const handler = async (argv: ArgumentsCamelCase<FromPlanArgs>): Promise<void> => {
+  const handler = async (argv: ArgumentsCamelCase<Args>): Promise<void> => {
     const { log, db, config } = deps;
-    const runId = Bun.randomUUIDv7("base64url");
+    const runId = crypto.randomUUID();
 
     // Create run-scoped logger with correlation
-    const runLog = log.child('from_plan', { runId });
+    const runLog = log.child('handler', { runId });
 
     // Create dry-run logger if needed
     const dryRunLog = argv.dryRun
@@ -81,10 +131,10 @@ function createFromPlanHandler(deps: FromPlanDeps): Outcome<Handler> {
 Use child loggers with `runId` binding so all log lines from the same run can be traced:
 
 ```typescript
-const runLog = log.child('from_plan', { runId });
+const runLog = log.child('handler', { runId });
 
 // All subsequent log calls include runId automatically
-runLog(runLog.INFO, 'Starting note generation', { plan: argv.plan });
+runLog(runLog.INFO, 'Starting generation', { plan: argv.plan });
 runLog(runLog.INFO, 'Processing section', { index: 1, title: "Gradient Descent" });
 ```
 
@@ -192,8 +242,8 @@ async function saveNote(
   });
 }
 
-// Console output:
-// [hermes] [DRY-RUN] [from_plan] Would write note { path: "...", size: 4521 }
+// Console output (pretty transport, colors disabled):
+// 12:34:56.789 INF [app] [DRY-RUN] [handler] Would write note {"path":"...","size":4521}
 ```
 
 ## Service Logger Injection
@@ -201,7 +251,7 @@ async function saveNote(
 Services receive logger through their factory/constructor and create service-specific child loggers:
 
 ```typescript
-import type { Logger } from "@utils/logger";
+import type { Logger } from "@pencroff-lab/kore";
 
 interface ClaudeServiceDeps {
   shell: ShellExecutor;
@@ -231,11 +281,11 @@ function createClaudeService(deps: ClaudeServiceDeps) {
 ## CLI Initialization with Logger
 
 ```typescript
-import { createLogger } from "./utils/logger";
+import { createLogger } from "@pencroff-lab/kore";
 
 async function initializeCli(): Promise<Outcome<void>> {
   // 1. Create root logger
-  const log = createLogger('hermes');
+  const log = createLogger('app');
 
   // 2. Load config
   const [config, configErr] = await loadConfig().toTuple();
@@ -252,7 +302,7 @@ async function initializeCli(): Promise<Outcome<void>> {
   }
 
   // 4. Create handler with log in deps
-  const [handler, handlerErr] = createFromPlanHandler({
+  const [handler, handlerErr] = createHandler({
     db,
     log,
     config
@@ -275,7 +325,7 @@ async function initializeCli(): Promise<Outcome<void>> {
 ## Execution Context
 
 ```typescript
-import type { Logger } from "../../utils/logger";
+import type { Logger } from "@pencroff-lab/kore";
 
 interface ExecutionContext {
   runId: string;
@@ -287,29 +337,31 @@ interface ExecutionContext {
 
 ## Environment Configuration
 
-Hermes uses `HERMES_` prefix for env vars:
-
 ```bash
 # Log level (default: info)
-HERMES_LOG_LEVEL=debug
-
-# Log file path (default: .workspace/logs/hermes.log)
-HERMES_LOG_FILE_PATH=./logs/hermes.log
+# Valid values: trace, debug, info, warn, error, fatal
+LOG_LEVEL=debug
 ```
+
+The logger reads `LOG_LEVEL` from the environment at creation time. When not set, defaults to `info`. The level can also be set explicitly via `createLogger` options:
 
 ```typescript
-// Internal to src/utils/logger.ts (lvl is module-private)
-function getLogLevel(): LevelValue {
-  const envLevel = process.env.HERMES_LOG_LEVEL?.toLowerCase();
-  return isLevel(envLevel) ? envLevel : lvl.INFO;
-}
+import { createLogger, lvl } from "@pencroff-lab/kore";
 
-function getLogFilePath(): string {
-  return process.env.HERMES_LOG_FILE_PATH || "./.workspace/logs/hermes.log";
-}
+// Explicit level (overrides LOG_LEVEL env var)
+const log = createLogger('app', { level: lvl.DEBUG });
 ```
 
-Consumer code never imports `lvl` — use `log.INFO`, `log.DEBUG`, etc. instead.
+Consumer code never imports `lvl` — use `log.INFO`, `log.DEBUG`, etc. instead. The `lvl` export is intended for `createLogger` options only.
+
+The package also exports a default logger instance (`log`) created with no module name and default options. Prefer `createLogger` with an explicit module name for production use:
+
+```typescript
+import { log } from "@pencroff-lab/kore";           // Default instance (no module)
+import { createLogger } from "@pencroff-lab/kore";   // Named instance (preferred)
+
+const appLog = createLogger('myapp');
+```
 
 ## Testing with Logger
 
@@ -317,7 +369,7 @@ Logger is silent in tests for v1. Use a mock logger that captures calls for asse
 
 ```typescript
 import sinon from "sinon";
-import type { Logger } from "@utils/logger";
+import type { Logger } from "@pencroff-lab/kore";
 
 export function createMockLog(): Logger {
   const log = sinon.stub() as unknown as Logger;
@@ -339,7 +391,7 @@ export function createMockLog(): Logger {
 const mockLog = createMockLog();
 const deps = { log: mockLog, db: mockDb, config: testConfig };
 
-const [handler] = createFromPlanHandler(deps).toTuple();
+const [handler] = createHandler(deps).toTuple();
 await handler({ plan: "./test.md" });
 
 sinon.assert.calledWith(
@@ -353,14 +405,14 @@ sinon.assert.calledWith(
 
 Logger is a function type — use short names: `log`, `ctx.log`, `svcLog`, `runLog`.
 
-| Context | Name | Example |
-|---------|------|---------|
-| Root / deps field | `log` | `deps.log`, `const log = createLogger('hermes')` |
-| Run-scoped child | `runLog` | `const runLog = log.child('from_plan', { runId })` |
-| Service child | `svcLog` | `const svcLog = log.child('claude')` |
-| Dry-run child | `dryRunLog` | `const dryRunLog = runLog.child('DRY-RUN')` |
-| Execution context | `ctx.log` | `ctx.log(ctx.log.INFO, 'Processing')` |
-| Test mock | `mockLog` | `const mockLog = createMockLog()` |
+| Context          | Name        | Example                                            |
+|------------------|-------------|----------------------------------------------------|
+| Root / deps      | `log`       | `deps.log`, `const log = createLogger('app')`      |
+| Run-scoped child | `runLog`    | `const runLog = log.child('handler', { runId })`   |
+| Service child    | `svcLog`    | `const svcLog = log.child('claude')`               |
+| Dry-run child    | `dryRunLog` | `const dryRunLog = runLog.child('DRY-RUN')`        |
+| Execution context | `ctx.log`   | `ctx.log(ctx.log.INFO, 'Processing')`              |
+| Test mock        | `mockLog`   | `const mockLog = createMockLog()`                  |
 
 ## Summary
 
