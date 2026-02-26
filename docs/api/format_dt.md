@@ -1,8 +1,8 @@
-[**@pencroff-lab/kore**](index.md)
+[**@pencroff-lab/kore**](README.md)
 
 ***
 
-[@pencroff-lab/kore](index.md) / format\_dt
+[@pencroff-lab/kore](README.md) / format\_dt
 
 # format\_dt
 
@@ -10,7 +10,7 @@
 
 ### DtStampOptions
 
-Defined in: [utils/format\_dt.ts:8](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/utils/format_dt.ts#L8)
+Defined in: [utils/format\_dt.ts:8](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/format_dt.ts#L8)
 
 Options for configuring `dtStamp()` output format.
 
@@ -20,7 +20,7 @@ Options for configuring `dtStamp()` output format.
 
 > `optional` **delimiter**: `string`
 
-Defined in: [utils/format\_dt.ts:13](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/utils/format_dt.ts#L13)
+Defined in: [utils/format\_dt.ts:13](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/format_dt.ts#L13)
 
 Character(s) between date/time segments.
 
@@ -34,7 +34,7 @@ Character(s) between date/time segments.
 
 > `optional` **ms**: `boolean`
 
-Defined in: [utils/format\_dt.ts:18](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/utils/format_dt.ts#L18)
+Defined in: [utils/format\_dt.ts:18](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/format_dt.ts#L18)
 
 Include milliseconds in the time portion.
 
@@ -48,7 +48,7 @@ false
 
 > `optional` **parts**: `"date"` \| `"datetime"` \| `"time"`
 
-Defined in: [utils/format\_dt.ts:33](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/utils/format_dt.ts#L33)
+Defined in: [utils/format\_dt.ts:33](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/format_dt.ts#L33)
 
 Which parts of the stamp to include.
 - `"datetime"` -- full stamp (date + time)
@@ -65,7 +65,7 @@ Which parts of the stamp to include.
 
 > `optional` **readable**: `boolean`
 
-Defined in: [utils/format\_dt.ts:40](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/utils/format_dt.ts#L40)
+Defined in: [utils/format\_dt.ts:40](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/format_dt.ts#L40)
 
 When `true`, formats with human-readable separators:
 dashes in date (`YYYY-MM-DD`), colons in time (`HH:MM:SS`),
@@ -81,7 +81,7 @@ false
 
 > `optional` **tz**: `"utc"` \| `"local"`
 
-Defined in: [utils/format\_dt.ts:25](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/utils/format_dt.ts#L25)
+Defined in: [utils/format\_dt.ts:25](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/format_dt.ts#L25)
 
 Timezone to use for extracting date/time components.
 - `"utc"` -- use UTC methods (`getUTCFullYear`, etc.)
@@ -99,7 +99,7 @@ Timezone to use for extracting date/time components.
 
 > **dtStamp**(`date?`, `options?`): `string`
 
-Defined in: [utils/format\_dt.ts:83](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/utils/format_dt.ts#L83)
+Defined in: [utils/format\_dt.ts:83](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/format_dt.ts#L83)
 
 Format a `Date` into a filesystem/log-safe timestamp string.
 

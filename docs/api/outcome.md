@@ -1,8 +1,8 @@
-[**@pencroff-lab/kore**](index.md)
+[**@pencroff-lab/kore**](README.md)
 
 ***
 
-[@pencroff-lab/kore](index.md) / outcome
+[@pencroff-lab/kore](README.md) / outcome
 
 # outcome
 
@@ -53,7 +53,7 @@ console.log(user.name);
 
 ### Outcome
 
-Defined in: [types/outcome.ts:166](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L166)
+Defined in: [types/outcome.ts:166](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L166)
 
 A monadic container for handling success and error states.
 
@@ -105,7 +105,7 @@ The type of the success value
 
 > `readonly` **isOk**: `boolean`
 
-Defined in: [types/outcome.ts:171](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L171)
+Defined in: [types/outcome.ts:171](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L171)
 
 Discriminator property for type narrowing.
 `true` for success outcomes, `false` for error outcomes.
@@ -118,7 +118,7 @@ Discriminator property for type narrowing.
 
 > **get** **error**(): [`Err`](err.md#err) \| `null`
 
-Defined in: [types/outcome.ts:713](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L713)
+Defined in: [types/outcome.ts:713](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L713)
 
 The error, or null if in success state.
 
@@ -142,7 +142,7 @@ console.log(failure.error?.message); // 'Failed'
 
 > **get** **isErr**(): `boolean`
 
-Defined in: [types/outcome.ts:681](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L681)
+Defined in: [types/outcome.ts:681](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L681)
 
 Whether this Outcome is in error state.
 
@@ -166,7 +166,7 @@ console.log(failure.isErr); // true
 
 > **get** **value**(): `T` \| `null`
 
-Defined in: [types/outcome.ts:697](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L697)
+Defined in: [types/outcome.ts:697](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L697)
 
 The success value, or null if in error state.
 
@@ -192,7 +192,7 @@ console.log(failure.value); // null
 
 > **defaultTo**(`fallback`): `T`
 
-Defined in: [types/outcome.ts:995](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L995)
+Defined in: [types/outcome.ts:995](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L995)
 
 Extract the success value, or use a fallback value on error.
 
@@ -237,7 +237,7 @@ const config = loadConfig().defaultTo({ port: 3000, host: 'localhost' });
 
 > **defaultTo**(`handler`): `T`
 
-Defined in: [types/outcome.ts:1022](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1022)
+Defined in: [types/outcome.ts:1022](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1022)
 
 Extract the success value, or compute a fallback from the error.
 
@@ -281,7 +281,7 @@ const data = loadData().defaultTo(err => {
 
 > **defaultTo**(`fallback`, `asValue`): `T`
 
-Defined in: [types/outcome.ts:1040](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1040)
+Defined in: [types/outcome.ts:1040](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1040)
 
 Extract the success value, or use the provided fallback value.
 
@@ -319,7 +319,7 @@ const handler = getHandler().defaultTo(defaultHandler, true);
 
 > **effect**(`fn`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:929](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L929)
+Defined in: [types/outcome.ts:929](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L929)
 
 Execute a side effect with access to the full tuple.
 
@@ -370,7 +370,7 @@ outcome.effect(([val, err]) => {
 
 > **effectAsync**(`fn`): `Promise`\<[`Outcome`](#outcome)\<`T`\>\>
 
-Defined in: [types/outcome.ts:955](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L955)
+Defined in: [types/outcome.ts:955](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L955)
 
 Async version of `effect()`.
 
@@ -405,7 +405,7 @@ const outcome = await Outcome.ok(data)
 
 > **either**\<`U`\>(`onOk`, `onErr`): `U`
 
-Defined in: [types/outcome.ts:1108](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1108)
+Defined in: [types/outcome.ts:1108](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1108)
 
 Transform the Outcome into a final value by handling both cases.
 
@@ -487,7 +487,7 @@ const status: 'success' | 'error' = outcomeEntity.either(
 
 > **map**\<`U`\>(`fn`): [`Outcome`](#outcome)\<`U`\>
 
-Defined in: [types/outcome.ts:763](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L763)
+Defined in: [types/outcome.ts:763](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L763)
 
 Transform the success value using a callback.
 
@@ -552,7 +552,7 @@ console.log(outcome.error?.message); // 'Original error'
 
 > **mapAsync**\<`U`\>(`fn`): `Promise`\<[`Outcome`](#outcome)\<`U`\>\>
 
-Defined in: [types/outcome.ts:792](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L792)
+Defined in: [types/outcome.ts:792](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L792)
 
 Async version of `map()`.
 
@@ -594,7 +594,7 @@ const outcome = await Outcome.ok(userId)
 
 > **mapErr**\<`U`\>(`fn`): [`Outcome`](#outcome)\<`T` \| `U`\>
 
-Defined in: [types/outcome.ts:846](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L846)
+Defined in: [types/outcome.ts:846](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L846)
 
 Transform or recover from an error using a callback.
 
@@ -657,7 +657,7 @@ const outcome = Outcome.err('Something failed')
 
 > **mapErrAsync**\<`U`\>(`fn`): `Promise`\<[`Outcome`](#outcome)\<`T` \| `U`\>\>
 
-Defined in: [types/outcome.ts:877](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L877)
+Defined in: [types/outcome.ts:877](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L877)
 
 Async version of `mapErr()`.
 
@@ -702,7 +702,7 @@ const outcome = await Outcome.err('Primary failed')
 
 > **pipe**\<`A`\>(`f1`): [`Outcome`](#outcome)\<`A`\>
 
-Defined in: [types/outcome.ts:1163](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1163)
+Defined in: [types/outcome.ts:1163](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1163)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -769,7 +769,7 @@ const result = Outcome.ok(input).pipe(
 
 > **pipe**\<`A`, `B`\>(`f1`, `f2`): [`Outcome`](#outcome)\<`B`\>
 
-Defined in: [types/outcome.ts:1164](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1164)
+Defined in: [types/outcome.ts:1164](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1164)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -844,7 +844,7 @@ const result = Outcome.ok(input).pipe(
 
 > **pipe**\<`A`, `B`, `C`\>(`f1`, `f2`, `f3`): [`Outcome`](#outcome)\<`C`\>
 
-Defined in: [types/outcome.ts:1165](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1165)
+Defined in: [types/outcome.ts:1165](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1165)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -927,7 +927,7 @@ const result = Outcome.ok(input).pipe(
 
 > **pipe**\<`A`, `B`, `C`, `D`\>(`f1`, `f2`, `f3`, `f4`): [`Outcome`](#outcome)\<`D`\>
 
-Defined in: [types/outcome.ts:1170](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1170)
+Defined in: [types/outcome.ts:1170](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1170)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -1018,7 +1018,7 @@ const result = Outcome.ok(input).pipe(
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`\>(`f1`, `f2`, `f3`, `f4`, `f5`): [`Outcome`](#outcome)\<`E`\>
 
-Defined in: [types/outcome.ts:1176](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1176)
+Defined in: [types/outcome.ts:1176](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1176)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -1117,7 +1117,7 @@ const result = Outcome.ok(input).pipe(
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`): [`Outcome`](#outcome)\<`F`\>
 
-Defined in: [types/outcome.ts:1183](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1183)
+Defined in: [types/outcome.ts:1183](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1183)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -1224,7 +1224,7 @@ const result = Outcome.ok(input).pipe(
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`): [`Outcome`](#outcome)\<`G`\>
 
-Defined in: [types/outcome.ts:1191](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1191)
+Defined in: [types/outcome.ts:1191](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1191)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -1339,7 +1339,7 @@ const result = Outcome.ok(input).pipe(
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`): [`Outcome`](#outcome)\<`H`\>
 
-Defined in: [types/outcome.ts:1200](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1200)
+Defined in: [types/outcome.ts:1200](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1200)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -1462,7 +1462,7 @@ const result = Outcome.ok(input).pipe(
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`, `f9`): [`Outcome`](#outcome)\<`I`\>
 
-Defined in: [types/outcome.ts:1210](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1210)
+Defined in: [types/outcome.ts:1210](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1210)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -1593,7 +1593,7 @@ const result = Outcome.ok(input).pipe(
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`, `f9`, `f10`): [`Outcome`](#outcome)\<`J`\>
 
-Defined in: [types/outcome.ts:1221](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1221)
+Defined in: [types/outcome.ts:1221](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1221)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -1734,7 +1734,7 @@ const result = Outcome.ok(input).pipe(
 
 > **pipeAsync**\<`A`\>(`f1`): `Promise`\<[`Outcome`](#outcome)\<`A`\>\>
 
-Defined in: [types/outcome.ts:1296](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1296)
+Defined in: [types/outcome.ts:1296](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1296)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -1800,7 +1800,7 @@ const result = await Outcome.ok(id).pipeAsync(
 
 > **pipeAsync**\<`A`, `B`\>(`f1`, `f2`): `Promise`\<[`Outcome`](#outcome)\<`B`\>\>
 
-Defined in: [types/outcome.ts:1297](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1297)
+Defined in: [types/outcome.ts:1297](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1297)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -1874,7 +1874,7 @@ const result = await Outcome.ok(id).pipeAsync(
 
 > **pipeAsync**\<`A`, `B`, `C`\>(`f1`, `f2`, `f3`): `Promise`\<[`Outcome`](#outcome)\<`C`\>\>
 
-Defined in: [types/outcome.ts:1301](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1301)
+Defined in: [types/outcome.ts:1301](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1301)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -1956,7 +1956,7 @@ const result = await Outcome.ok(id).pipeAsync(
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`\>(`f1`, `f2`, `f3`, `f4`): `Promise`\<[`Outcome`](#outcome)\<`D`\>\>
 
-Defined in: [types/outcome.ts:1306](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1306)
+Defined in: [types/outcome.ts:1306](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1306)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -2046,7 +2046,7 @@ const result = await Outcome.ok(id).pipeAsync(
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`\>(`f1`, `f2`, `f3`, `f4`, `f5`): `Promise`\<[`Outcome`](#outcome)\<`E`\>\>
 
-Defined in: [types/outcome.ts:1312](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1312)
+Defined in: [types/outcome.ts:1312](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1312)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -2144,7 +2144,7 @@ const result = await Outcome.ok(id).pipeAsync(
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`): `Promise`\<[`Outcome`](#outcome)\<`F`\>\>
 
-Defined in: [types/outcome.ts:1319](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1319)
+Defined in: [types/outcome.ts:1319](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1319)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -2250,7 +2250,7 @@ const result = await Outcome.ok(id).pipeAsync(
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`): `Promise`\<[`Outcome`](#outcome)\<`G`\>\>
 
-Defined in: [types/outcome.ts:1327](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1327)
+Defined in: [types/outcome.ts:1327](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1327)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -2364,7 +2364,7 @@ const result = await Outcome.ok(id).pipeAsync(
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`): `Promise`\<[`Outcome`](#outcome)\<`H`\>\>
 
-Defined in: [types/outcome.ts:1336](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1336)
+Defined in: [types/outcome.ts:1336](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1336)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -2486,7 +2486,7 @@ const result = await Outcome.ok(id).pipeAsync(
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`, `f9`): `Promise`\<[`Outcome`](#outcome)\<`I`\>\>
 
-Defined in: [types/outcome.ts:1346](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1346)
+Defined in: [types/outcome.ts:1346](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1346)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -2616,7 +2616,7 @@ const result = await Outcome.ok(id).pipeAsync(
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`, `f9`, `f10`): `Promise`\<[`Outcome`](#outcome)\<`J`\>\>
 
-Defined in: [types/outcome.ts:1357](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1357)
+Defined in: [types/outcome.ts:1357](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1357)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -2754,7 +2754,7 @@ const result = await Outcome.ok(id).pipeAsync(
 
 > **toJSON**(): \[`T`, `null`\] \| \[`null`, [`ErrJSON`](err.md#errjson)\]
 
-Defined in: [types/outcome.ts:1440](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1440)
+Defined in: [types/outcome.ts:1440](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1440)
 
 Convert to JSON-serializable tuple.
 
@@ -2786,7 +2786,7 @@ const restored = Outcome.fromJSON(JSON.parse(json));
 
 > **toString**(): `string`
 
-Defined in: [types/outcome.ts:1461](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1461)
+Defined in: [types/outcome.ts:1461](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1461)
 
 Convert to a human-readable string.
 
@@ -2810,7 +2810,7 @@ console.log(Outcome.err('Failed').toString());
 
 > **toTuple**(): [`ResultTuple`](#resulttuple)\<`T`\>
 
-Defined in: [types/outcome.ts:1415](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L1415)
+Defined in: [types/outcome.ts:1415](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L1415)
 
 Extract the internal tuple.
 
@@ -2844,7 +2844,7 @@ console.log('Value:', value); // 42
 
 > `static` **all**\<`T`\>(`outcomes`): [`Outcome`](#outcome)\<`T`[]\>
 
-Defined in: [types/outcome.ts:579](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L579)
+Defined in: [types/outcome.ts:579](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L579)
 
 Combines multiple Outcomes, succeeding if all succeed with an array of values.
 If any Outcome fails, returns an Err containing all failures aggregated via Err.aggregate().
@@ -2917,7 +2917,7 @@ console.log(combined.value); // []
 
 > `static` **any**\<`T`\>(`outcomes`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:648](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L648)
+Defined in: [types/outcome.ts:648](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L648)
 
 Return the first successful Outcome from an array.
 
@@ -2985,7 +2985,7 @@ console.log(result.error?.message); // 'No outcomes provided'
 
 > `static` **err**(`error`): [`Outcome`](#outcome)\<`never`\>
 
-Defined in: [types/outcome.ts:248](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L248)
+Defined in: [types/outcome.ts:248](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L248)
 
 Create an error Outcome from an existing Err.
 
@@ -3014,7 +3014,7 @@ const outcome = Outcome.err(err);
 
 > `static` **err**(`message`, `code?`): [`Outcome`](#outcome)\<`never`\>
 
-Defined in: [types/outcome.ts:264](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L264)
+Defined in: [types/outcome.ts:264](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L264)
 
 Create an error Outcome from a message with optional code.
 
@@ -3050,7 +3050,7 @@ console.log(err?.code); // 'NOT_FOUND'
 
 > `static` **err**(`message`, `options`): [`Outcome`](#outcome)\<`never`\>
 
-Defined in: [types/outcome.ts:281](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L281)
+Defined in: [types/outcome.ts:281](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L281)
 
 Create an error Outcome from a message with options.
 
@@ -3087,7 +3087,7 @@ const outcome = Outcome.err('Timeout', {
 
 > `static` **err**(`message`, `error`, `options?`): [`Outcome`](#outcome)\<`never`\>
 
-Defined in: [types/outcome.ts:300](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L300)
+Defined in: [types/outcome.ts:300](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L300)
 
 Create an error Outcome by wrapping another error.
 
@@ -3131,7 +3131,7 @@ try {
 
 > `static` **from**\<`T`\>(`fn`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:400](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L400)
+Defined in: [types/outcome.ts:400](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L400)
 
 Create an Outcome from a callback that returns `CallbackReturn<T>`.
 
@@ -3195,7 +3195,7 @@ const outcome = Outcome.from(() => {
 
 > `static` **fromAsync**\<`T`\>(`fn`): `Promise`\<[`Outcome`](#outcome)\<`T`\>\>
 
-Defined in: [types/outcome.ts:447](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L447)
+Defined in: [types/outcome.ts:447](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L447)
 
 Create an Outcome from an async callback that returns `Promise<CallbackReturn<T>>`.
 
@@ -3257,7 +3257,7 @@ const outcome = await Outcome.fromAsync(async () => {
 
 > `static` **fromJSON**\<`T`\>(`payload`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:505](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L505)
+Defined in: [types/outcome.ts:505](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L505)
 
 Create an Outcome from a JSON tuple produced by `toJSON()`.
 
@@ -3299,7 +3299,7 @@ const restored = Outcome.fromJSON(JSON.parse(json));
 
 > `static` **fromTuple**\<`T`\>(`tuple`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:484](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L484)
+Defined in: [types/outcome.ts:484](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L484)
 
 Create an Outcome from an existing ResultTuple.
 
@@ -3349,7 +3349,7 @@ console.log(restored.value); // 42
 
 > `static` **ok**\<`T`\>(`value`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:232](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L232)
+Defined in: [types/outcome.ts:232](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L232)
 
 Create a success Outcome with the given value.
 
@@ -3388,7 +3388,7 @@ const [val, err] = outcome.toTuple();
 
 > `static` **unit**(): [`Outcome`](#outcome)\<`null`\>
 
-Defined in: [types/outcome.ts:355](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L355)
+Defined in: [types/outcome.ts:355](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L355)
 
 Create a success Outcome with null value (void success).
 
@@ -3425,7 +3425,7 @@ console.log(outcome.value); // null
 
 > **CallbackReturn**\<`T`\> = [`ResultTuple`](#resulttuple)\<`T`\> \| [`NullErr`](#nullerr)
 
-Defined in: [types/outcome.ts:105](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L105)
+Defined in: [types/outcome.ts:105](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L105)
 
 Combined callback return type for `Outcome.from()` and `Outcome.fromAsync()`.
 Supports all patterns:
@@ -3459,7 +3459,7 @@ Outcome.from(() => {
 
 > **NullErr** = `null` \| [`Err`](err.md#err)
 
-Defined in: [types/outcome.ts:64](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L64)
+Defined in: [types/outcome.ts:64](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L64)
 
 Direct return types for errors or void success.
 - `null`: void success (function completed, no value to return)
@@ -3481,7 +3481,7 @@ function saveConfig(config: Config): NullErr {
 
 > **PipeFn**\<`In`, `Out`\> = (`tuple`) => [`CallbackReturn`](#callbackreturn)\<`Out`\>
 
-Defined in: [types/outcome.ts:114](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L114)
+Defined in: [types/outcome.ts:114](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L114)
 
 Synchronous pipe function type.
 Receives a ResultTuple and returns a CallbackReturn.
@@ -3516,7 +3516,7 @@ Output value type
 
 > **PipeFnAsync**\<`In`, `Out`\> = (`tuple`) => `Promise`\<[`CallbackReturn`](#callbackreturn)\<`Out`\>\>
 
-Defined in: [types/outcome.ts:123](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L123)
+Defined in: [types/outcome.ts:123](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L123)
 
 Asynchronous pipe function type.
 Receives a ResultTuple and returns a Promise of CallbackReturn.
@@ -3551,7 +3551,7 @@ Output value type
 
 > **ResultTuple**\<`T`\> = \[`T`, `null`\] \| \[`null`, [`Err`](err.md#err)\]
 
-Defined in: [types/outcome.ts:83](https://github.com/pencroff-lab/kore/blob/00b62ec68bfff9d4947401cc5a90c56603ece8c5/src/types/outcome.ts#L83)
+Defined in: [types/outcome.ts:83](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/outcome.ts#L83)
 
 Tuple-based result with positional semantics.
 - `[T, null]`: success with value

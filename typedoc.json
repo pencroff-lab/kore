@@ -14,7 +14,7 @@
 	"readme": "none",
 	"outputFileStrategy": "modules",
 	"flattenOutputFiles": false,
-	"entryFileName": "index.md",
+	"entryFileName": "README.md",
 	"hidePageHeader": false,
 	"hideBreadcrumbs": false,
 	"excludePrivate": true,
