@@ -1,5 +1,5 @@
 /**
- * @fileoverview Error-as-value implementation for TypeScript applications.
+ * Error-as-value implementation for TypeScript applications.
  *
  * This module provides a Go-style error handling approach where errors are
  * passed as values rather than thrown as exceptions. The `Err` class supports

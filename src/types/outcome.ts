@@ -1,5 +1,4 @@
 /**
- * @fileoverview
  * Monadic container for handling success and error states using tuple-first API design.
  *
  * This module provides the `Outcome<T>` class and related types for implementing
@@ -42,6 +41,8 @@
  * }
  * console.log(user.name);
  * ```
+ *
+ * @module outcome
  */
 
 import { Err, type ErrCode, type ErrOptions } from "./err";
@@ -302,10 +303,7 @@ export class Outcome<T> {
 		options?: ErrOptions,
 	): Outcome<never>;
 
-	/**
-	 * Implementation signature for err().
-	 * @internal
-	 */
+	/* Implementation signature for err(). */
 	static err(
 		messageOrErr: string | Err,
 		codeOrOptionsOrErr?: ErrCode | ErrOptions | Err | Error,
@@ -1041,10 +1039,7 @@ export class Outcome<T> {
 	 */
 	defaultTo(fallback: T, asValue: true): T;
 
-	/**
-	 * Implementation for defaultTo overloads.
-	 * @internal
-	 */
+	/* Implementation for defaultTo overloads. */
 	defaultTo(fallbackOrHandler: T | ((error: Err) => T), asValue?: boolean): T {
 		if (this.isOk) {
 			return this._tuple[0] as T;
@@ -1236,10 +1231,7 @@ export class Outcome<T> {
 		f10: PipeFn<I, J>,
 	): Outcome<J>;
 
-	/**
-	 * Implementation for pipe overloads.
-	 * @internal
-	 */
+	/* Implementation for pipe overloads. */
 	// biome-ignore lint/suspicious/noExplicitAny: implementation signature needs any
 	pipe(...fns: PipeFn<any, any>[]): Outcome<any> {
 		// biome-ignore lint/suspicious/noExplicitAny: implementation signature needs any
@@ -1375,10 +1367,7 @@ export class Outcome<T> {
 		f10: PipeFnAsync<I, J>,
 	): Promise<Outcome<J>>;
 
-	/**
-	 * Implementation for pipeAsync overloads.
-	 * @internal
-	 */
+	/* Implementation for pipeAsync overloads. */
 	// biome-ignore lint/suspicious/noExplicitAny: implementation signature needs any
 	async pipeAsync(...fns: PipeFnAsync<any, any>[]): Promise<Outcome<any>> {
 		// biome-ignore lint/suspicious/noExplicitAny: implementation signature needs any

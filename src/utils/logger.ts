@@ -1,5 +1,5 @@
 /**
- * @fileoverview Structured logging utility with transport DI and Err integration.
+ * Structured logging utility with transport DI and Err integration.
  *
  * This module provides a flexible, callable logger with a transport abstraction,
  * built-in pretty console transport, and zero external runtime dependencies

@@ -1,0 +1,22 @@
+{
+	"$schema": "https://typedoc.org/schema.json",
+	"plugin": ["typedoc-plugin-markdown"],
+	"entryPoints": [
+		"./src/types/err.ts",
+		"./src/types/outcome.ts",
+		"./src/utils/format_dt.ts",
+		"./src/utils/logger.ts"
+	],
+	"out": "docs/api",
+	"tsconfig": "tsconfig.json",
+	"basePath": "./src",
+	"name": "@pencroff-lab/kore",
+	"readme": "none",
+	"outputFileStrategy": "modules",
+	"flattenOutputFiles": false,
+	"entryFileName": "index.md",
+	"hidePageHeader": false,
+	"hideBreadcrumbs": false,
+	"excludePrivate": true,
+	"excludeInternal": true
+}
