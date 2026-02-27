@@ -233,7 +233,7 @@ describe("Outcome", () => {
 				expect(result.value).toEqual([1, 2, 3]);
 			});
 
-			it("should return first error when any fails", () => {
+			it("should return aggregate error when any fails", () => {
 				const outcomes = [
 					Outcome.ok(1),
 					Outcome.err("second failed"),
@@ -241,7 +241,8 @@ describe("Outcome", () => {
 				];
 				const result = Outcome.all(outcomes);
 				expect(result.isErr).toBe(true);
-				expect(result.error?.message).toBe("second failed");
+				expect(result.error?.isAggregate).toBe(true);
+				expect(result.error?.message).toBe("Multiple failed");
 			});
 
 			it("should return ok([]) for empty array", () => {

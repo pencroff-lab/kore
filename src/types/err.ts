@@ -1,5 +1,5 @@
 /**
- * @fileoverview Error-as-value implementation for TypeScript applications.
+ * Error-as-value implementation for TypeScript applications.
  *
  * This module provides a Go-style error handling approach where errors are
  * passed as values rather than thrown as exceptions. The `Err` class supports
@@ -1480,7 +1480,7 @@ export class Err {
 	 * console.log(deep.toString({ maxDepth: 2 }));
 	 * // [ERROR] Level 3
 	 * //   Caused by: [ERROR] Level 2
-	 * //     ... (2 more causes)
+	 * //     ... (1 more cause)
 	 * ```
 	 */
 	toString(options?: ToStringOptions): string {

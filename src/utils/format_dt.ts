@@ -1,4 +1,8 @@
 /**
+ * @module format_dt
+ */
+
+/**
  * Options for configuring `dtStamp()` output format.
  */
 export interface DtStampOptions {

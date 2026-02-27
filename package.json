@@ -1,6 +1,6 @@
 {
 	"name": "@pencroff-lab/kore",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Core utilities library",
 	"license": "Apache-2.0",
 	"author": "Pencroff",
@@ -43,14 +43,17 @@
 		"build:cjs": "tsc --project tsconfig.cjs.json && bun scripts/fix-cjs.sh.ts",
 		"postbuild": "bun scripts/verify-build.sh.ts",
 		"prepublish_pkg": "bun scripts/check-version.sh.ts && bun run build",
-		"publish_pkg": "bun publish --access public"
+		"publish_pkg": "bun publish --access public",
+		"gen_docs": "typedoc"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.2",
 		"@types/bun": "1.3.9",
 		"@types/sinon": "21.0.0",
 		"mitata": "1.0.34",
-		"sinon": "21.0.1"
+		"sinon": "21.0.1",
+		"typedoc": "0.28.17",
+		"typedoc-plugin-markdown": "4.10.0"
 	},
 	"peerDependencies": {
 		"typescript": "5.9.3"
