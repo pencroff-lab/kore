@@ -1480,7 +1480,7 @@ export class Err {
 	 * console.log(deep.toString({ maxDepth: 2 }));
 	 * // [ERROR] Level 3
 	 * //   Caused by: [ERROR] Level 2
-	 * //     ... (2 more causes)
+	 * //     ... (1 more cause)
 	 * ```
 	 */
 	toString(options?: ToStringOptions): string {

@@ -45,7 +45,7 @@
  * @module outcome
  */
 
-import { Err, type ErrCode, type ErrOptions } from "./err";
+import { Err, type ErrCode, type ErrOptions } from './err';
 
 /**
  * Direct return types for errors or void success.
@@ -183,35 +183,56 @@ export class Outcome<T> {
 	}
 
 	/**
-	 * Process a CallbackReturn value into an Outcome.
-	 * Handles discrimination: Err → null (void) → tuple destructure.
-	 * @internal
+	 * Whether this Outcome is in error state.
+	 *
+	 * @example
+	 * ```typescript
+	 * const success = Outcome.ok(42);
+	 * const failure = Outcome.err('Failed');
+	 *
+	 * console.log(success.isErr); // false
+	 * console.log(failure.isErr); // true
+	 * ```
 	 */
-	private static _processCallbackReturn<T>(
-		result: CallbackReturn<T>,
-	): Outcome<T> {
-		// Case 1: Direct Err return (shorthand)
-		if (Err.isErr(result)) {
-			return new Outcome<T>([null, result]);
-		}
-
-		// Case 2: null = void success
-		if (result === null) {
-			return new Outcome<T>([null as T, null]);
-		}
-
-		// Case 3: Tuple [T, null] | [null, Err]
-		const [value, error] = result;
-		if (Err.isErr(error)) {
-			return new Outcome<T>([null, error]);
-		}
-
-		return new Outcome<T>([value as T, null]);
+	get isErr(): boolean {
+		return !this.isOk;
 	}
 
 	// ══════════════════════════════════════════════════════════════════════════
 	// Static Constructors
 	// ══════════════════════════════════════════════════════════════════════════
+
+	/**
+	 * The success value, or null if in error state.
+	 *
+	 * @example
+	 * ```typescript
+	 * const success = Outcome.ok(42);
+	 * const failure = Outcome.err('Failed');
+	 *
+	 * console.log(success.value); // 42
+	 * console.log(failure.value); // null
+	 * ```
+	 */
+	get value(): T | null {
+		return this._tuple[0];
+	}
+
+	/**
+	 * The error, or null if in success state.
+	 *
+	 * @example
+	 * ```typescript
+	 * const success = Outcome.ok(42);
+	 * const failure = Outcome.err('Failed');
+	 *
+	 * console.log(success.error); // null
+	 * console.log(failure.error?.message); // 'Failed'
+	 * ```
+	 */
+	get error(): Err | null {
+		return this._tuple[1];
+	}
 
 	/**
 	 * Create a success Outcome with the given value.
@@ -480,16 +501,24 @@ export class Outcome<T> {
 	 * const restored = Outcome.fromTuple(JSON.parse(json));
 	 * console.log(restored.value); // 42
 	 * ```
+	 *
 	 */
 	static fromTuple<T>(tuple: ResultTuple<T>): Outcome<T> {
-		return new Outcome<T>(tuple);
+		return new Outcome<T>([tuple[0], tuple[1]]);
 	}
+
+	// ══════════════════════════════════════════════════════════════════════════
+	// Combinators
+	// ══════════════════════════════════════════════════════════════════════════
 
 	/**
 	 * Create an Outcome from a JSON tuple produced by `toJSON()`.
 	 *
 	 * Accepts `[value, null]` for success or `[null, errJSON]` for errors.
 	 * Errors are rehydrated with `Err.fromJSON()`.
+	 *
+	 * Invalid payloads (non-array or wrong length) return an error Outcome
+	 * rather than throwing — validate the source when consuming untrusted JSON.
 	 *
 	 * @param payload - JSON tuple from `Outcome.toJSON()`
 	 * @returns Outcome<T>
@@ -501,14 +530,22 @@ export class Outcome<T> {
 	 * const json = JSON.stringify(outcome.toJSON());
 	 * const restored = Outcome.fromJSON(JSON.parse(json));
 	 * ```
+	 *
+	 * @example Invalid payload
+	 * ```typescript
+	 * const result = Outcome.fromJSON({ not: 'a tuple' });
+	 * console.log(result.isErr); // true
+	 * console.log(result.error?.message); // 'Invalid Outcome JSON'
+	 * ```
 	 */
 	static fromJSON<T>(
-		payload: [T, null] | [null, ReturnType<Err["toJSON"]>],
+		payload: [T, null] | [null, ReturnType<Err['toJSON']>],
 	): Outcome<T>;
+
 	static fromJSON<T>(payload: unknown): Outcome<T> {
 		return Outcome.from(() => {
 			if (!Array.isArray(payload) || payload.length !== 2) {
-				return Err.from("Invalid Outcome JSON");
+				return Err.from('Invalid Outcome JSON');
 			}
 
 			const [value, error] = payload as [T, unknown];
@@ -521,12 +558,12 @@ export class Outcome<T> {
 	}
 
 	// ══════════════════════════════════════════════════════════════════════════
-	// Combinators
+	// Instance Accessors
 	// ══════════════════════════════════════════════════════════════════════════
 
 	/**
 	 * Combines multiple Outcomes, succeeding if all succeed with an array of values.
-	 * If any Outcome fails, returns an Err containing all failures aggregated via Err.aggregate().
+	 * If any Outcome fails, returns all failures aggregated via `Err.aggregate()`.
 	 *
 	 * This is useful for validation scenarios where you need to collect all errors.
 	 *
@@ -555,7 +592,8 @@ export class Outcome<T> {
 	 * ];
 	 * const combined = Outcome.all(outcomes);
 	 * console.log(combined.isErr); // true
-	 * console.log(combined.error?.message); // 'Failed'
+	 * console.log(combined.error?.isAggregate); // true
+	 * console.log(combined.error?.message); // 'Multiple failed'
 	 * ```
 	 *
 	 * @example Many fails
@@ -590,12 +628,8 @@ export class Outcome<T> {
 			values.push(outcome._tuple[0] as T);
 		}
 
-		if (errors.length === 1) {
-			return new Outcome<T[]>([null, errors[0] as Err]);
-		}
-
 		if (errors.length > 0) {
-			return Outcome.err(Err.aggregate("Multiple failed", errors));
+			return Outcome.err(Err.aggregate('Multiple failed', errors));
 		}
 
 		return new Outcome<T[]>([values, null]);
@@ -643,11 +677,12 @@ export class Outcome<T> {
 	 * const result = Outcome.any([]);
 	 * console.log(result.isErr); // true
 	 * console.log(result.error?.message); // 'No outcomes provided'
+	 * console.log(result.error?.code); // 'EMPTY_INPUT'
 	 * ```
 	 */
 	static any<T>(outcomes: Outcome<T>[]): Outcome<T> {
 		if (outcomes.length === 0) {
-			return Outcome.err("No outcomes provided", "EMPTY_INPUT");
+			return Outcome.err('No outcomes provided', 'EMPTY_INPUT');
 		}
 
 		const errors: Err[] = [];
@@ -658,60 +693,35 @@ export class Outcome<T> {
 			}
 			errors.push(outcome._tuple[1] as Err);
 		}
-		const aggregate = Err.aggregate("All failed", errors);
+		const aggregate = Err.aggregate('All failed', errors);
 		return new Outcome<T>([null, aggregate]);
 	}
 
-	// ══════════════════════════════════════════════════════════════════════════
-	// Instance Accessors
-	// ══════════════════════════════════════════════════════════════════════════
-
 	/**
-	 * Whether this Outcome is in error state.
-	 *
-	 * @example
-	 * ```typescript
-	 * const success = Outcome.ok(42);
-	 * const failure = Outcome.err('Failed');
-	 *
-	 * console.log(success.isErr); // false
-	 * console.log(failure.isErr); // true
-	 * ```
+	 * Process a CallbackReturn value into an Outcome.
+	 * Handles discrimination: Err → null (void) → tuple destructure.
+	 * @internal
 	 */
-	get isErr(): boolean {
-		return !this.isOk;
-	}
+	private static _processCallbackReturn<T>(
+		result: CallbackReturn<T>,
+	): Outcome<T> {
+		// Case 1: Direct Err return (shorthand)
+		if (Err.isErr(result)) {
+			return new Outcome<T>([null, result]);
+		}
 
-	/**
-	 * The success value, or null if in error state.
-	 *
-	 * @example
-	 * ```typescript
-	 * const success = Outcome.ok(42);
-	 * const failure = Outcome.err('Failed');
-	 *
-	 * console.log(success.value); // 42
-	 * console.log(failure.value); // null
-	 * ```
-	 */
-	get value(): T | null {
-		return this._tuple[0];
-	}
+		// Case 2: null = void success
+		if (result === null) {
+			return new Outcome<T>([null as T, null]);
+		}
 
-	/**
-	 * The error, or null if in success state.
-	 *
-	 * @example
-	 * ```typescript
-	 * const success = Outcome.ok(42);
-	 * const failure = Outcome.err('Failed');
-	 *
-	 * console.log(success.error); // null
-	 * console.log(failure.error?.message); // 'Failed'
-	 * ```
-	 */
-	get error(): Err | null {
-		return this._tuple[1];
+		// Case 3: Tuple [T, null] | [null, Err]
+		const [value, error] = result;
+		if (Err.isErr(error)) {
+			return new Outcome<T>([null, error]);
+		}
+
+		return new Outcome<T>([value as T, null]);
 	}
 
 	// ══════════════════════════════════════════════════════════════════════════
@@ -1047,7 +1057,7 @@ export class Outcome<T> {
 		if (asValue === true) {
 			return fallbackOrHandler as T;
 		}
-		if (typeof fallbackOrHandler === "function") {
+		if (typeof fallbackOrHandler === 'function') {
 			return (fallbackOrHandler as (error: Err) => T)(this._tuple[1] as Err);
 		}
 		return fallbackOrHandler as T;
@@ -1232,6 +1242,7 @@ export class Outcome<T> {
 	): Outcome<J>;
 
 	/* Implementation for pipe overloads. */
+
 	// biome-ignore lint/suspicious/noExplicitAny: implementation signature needs any
 	pipe(...fns: PipeFn<any, any>[]): Outcome<any> {
 		// biome-ignore lint/suspicious/noExplicitAny: implementation signature needs any
@@ -1368,6 +1379,7 @@ export class Outcome<T> {
 	): Promise<Outcome<J>>;
 
 	/* Implementation for pipeAsync overloads. */
+
 	// biome-ignore lint/suspicious/noExplicitAny: implementation signature needs any
 	async pipeAsync(...fns: PipeFnAsync<any, any>[]): Promise<Outcome<any>> {
 		// biome-ignore lint/suspicious/noExplicitAny: implementation signature needs any
@@ -1437,7 +1449,7 @@ export class Outcome<T> {
 	 * const restored = Outcome.fromJSON(JSON.parse(json));
 	 * ```
 	 */
-	toJSON(): [T, null] | [null, ReturnType<Err["toJSON"]>] {
+	toJSON(): [T, null] | [null, ReturnType<Err['toJSON']>] {
 		if (this.isOk) {
 			return [this._tuple[0] as T, null];
 		}
@@ -1466,10 +1478,17 @@ export class Outcome<T> {
 	}
 }
 
+/**
+ * Format a value for display in `Outcome.toString()` output.
+ *
+ * @param v - Value to format
+ * @returns JSON string representation, or `String(v)` if serialization fails
+ * @internal
+ */
 function fmt(v: unknown) {
-	if (v === null) return "null";
-	if (v === undefined) return "undefined";
-	if (typeof v === "string") return JSON.stringify(v);
+	if (v === null) return 'null';
+	if (v === undefined) return 'undefined';
+	if (typeof v === 'string') return JSON.stringify(v);
 	try {
 		return JSON.stringify(v);
 	} catch {
