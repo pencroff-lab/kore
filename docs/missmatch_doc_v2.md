@@ -70,10 +70,10 @@ Public symbols missing JSDoc:
 | `Outcome.unit` | method | public static | 355 | Correct | Docstring and implementation behavior are aligned. |
 | `Outcome.from` | method | public static | 400 | Correct | Docstring and implementation behavior are aligned. |
 | `Outcome.fromAsync` | method | public static | 447 | Correct | Docstring and implementation behavior are aligned. |
-| `Outcome.fromTuple` | method | public static | 484 | Logic mismatch | Class-level doc says all Outcome instances are immutable, but `fromTuple` stores caller tuple by reference (`new Outcome(tuple)`), so later tuple mutation is observable. Refs: src/types/outcome.ts:131, src/types/outcome.ts:484, src/types/outcome.ts:485 |
-| `Outcome.fromJSON` | method | public static | 508 | Correct | Implementation signature is documented via preceding overload JSDoc and behavior aligns. |
-| `Outcome.all` | method | public static | 579 | Logic mismatch | Doc says any failure returns aggregated errors via `Err.aggregate()`, but implementation returns the single original error directly when exactly one failure exists. Refs: src/types/outcome.ts:529, src/types/outcome.ts:593, src/types/outcome.ts:598 |
-| `Outcome.any` | method | public static | 648 | Correct | Docstring and implementation behavior are aligned. |
+| `Outcome.fromTuple` | method | public static | 484 | Logic mismatch | Class-level doc says all Outcome instances are immutable, but `fromTuple` stores caller tuple by reference (`new Outcome(tuple)`), so later tuple mutation is observable. Refs: src/types/outcome.ts:131, src/types/outcome.ts:484, src/types/outcome.ts:485, fix - Clone input tuple in `fromTuple()` (`return new Outcome([tuple[0], tuple[1]])`) |
+| `Outcome.fromJSON` | method | public static | 508 | Correct | Implementation signature is documented via preceding overload JSDoc and behavior aligns. Fix - Users integrating untrusted JSON may miss a key failure mode |
+| `Outcome.all` | method | public static | 579 | Logic mismatch | Doc says any failure returns aggregated errors via `Err.aggregate()`, but implementation returns the single original error directly when exactly one failure exists. Refs: src/types/outcome.ts:529, src/types/outcome.ts:593, src/types/outcome.ts:598. Fix - always array even for one error, update types |
+| `Outcome.any` | method | public static | 648 | Correct | Docstring and implementation behavior are aligned. Update doc strings about empty input - message, code |
 | `Outcome.map` | method | public | 763 | Correct | Docstring and implementation behavior are aligned. |
 | `Outcome.mapAsync` | method | public | 792 | Correct | Docstring and implementation behavior are aligned. |
 | `Outcome.mapErr` | method | public | 846 | Correct | Docstring and implementation behavior are aligned. |
