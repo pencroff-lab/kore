@@ -16,11 +16,13 @@ Requires TypeScript 5.9+ as a peer dependency.
 
 Detailed API documentation for each module:
 
-- [Err](docs/err.md) -- Immutable, value-based error type with wrapping, aggregation, and serialization
-- [Outcome\<T\>](docs/outcome.md) -- Monadic container for type-safe error handling with tuple-first API
-- [dtStamp](docs/format_dt.md) -- Filesystem/log-safe date formatting utility
-- [Logger](docs/logger.md) -- Structured logging with transport DI and Err integration
+- [Err](docs/api/err.md) -- Immutable, value-based error type with wrapping, aggregation, and serialization
+- [Outcome\<T\>](docs/api/outcome.md) -- Monadic container for type-safe error handling with tuple-first API
+- [dtStamp](docs/api/format_dt.md) -- Filesystem/log-safe date formatting utility
+- [Logger](docs/api/logger.md) -- Structured logging with transport DI and Err integration
 - [Logging Guide](docs/logging_guide.md) -- Patterns, conventions, and integration strategies
+- [TS docstrings general guide](docs/docs_guide.md)
+  - [TS Docs formating rules](docs/tsdoc_guide.md)
 
 ## API
 

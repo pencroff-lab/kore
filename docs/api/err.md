@@ -114,7 +114,7 @@ res.json({ error: err.toJSON({ stack: false }) });
 
 ### Err
 
-Defined in: [types/err.ts:262](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L262)
+Defined in: [types/err.ts:262](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L262)
 
 A value-based error type that supports wrapping and aggregation.
 
@@ -176,7 +176,7 @@ console.log(errors.flatten()); // Array of all individual errors
 
 > `readonly` `optional` **code**: `string`
 
-Defined in: [types/err.ts:296](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L296)
+Defined in: [types/err.ts:296](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L296)
 
 Error code for programmatic handling
 
@@ -184,7 +184,7 @@ Error code for programmatic handling
 
 > `readonly` **isErr**: `true`
 
-Defined in: [types/err.ts:290](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L290)
+Defined in: [types/err.ts:290](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L290)
 
 Discriminator property for type narrowing.
 Always `true` for Err instances.
@@ -211,7 +211,7 @@ if (Err.isErr(value)) {
 
 > `readonly` **kind**: `"Err"` = `"Err"`
 
-Defined in: [types/err.ts:267](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L267)
+Defined in: [types/err.ts:267](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L267)
 
 Discriminator property for type narrowing.
 Always "Err" for Err instances.
@@ -220,7 +220,7 @@ Always "Err" for Err instances.
 
 > `readonly` **message**: `string`
 
-Defined in: [types/err.ts:293](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L293)
+Defined in: [types/err.ts:293](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L293)
 
 Human-readable error message
 
@@ -228,7 +228,7 @@ Human-readable error message
 
 > `readonly` `optional` **metadata**: `Record`\<`string`, `unknown`\>
 
-Defined in: [types/err.ts:299](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L299)
+Defined in: [types/err.ts:299](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L299)
 
 Additional contextual data
 
@@ -236,7 +236,7 @@ Additional contextual data
 
 > `readonly` **timestamp**: `string`
 
-Defined in: [types/err.ts:306](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L306)
+Defined in: [types/err.ts:306](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L306)
 
 Timestamp when the error was created (ISO 8601 string).
 
@@ -250,7 +250,7 @@ Stored as string for easy serialization and comparison.
 
 > **get** **count**(): `number`
 
-Defined in: [types/err.ts:974](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L974)
+Defined in: [types/err.ts:974](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L974)
 
 Total count of errors (including nested aggregates).
 
@@ -280,7 +280,7 @@ console.log(nested.count); // 3
 
 > **get** **errors**(): readonly [`Err`](#err)[]
 
-Defined in: [types/err.ts:999](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L999)
+Defined in: [types/err.ts:999](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L999)
 
 Direct child errors (for aggregates).
 
@@ -310,7 +310,7 @@ readonly [`Err`](#err)[]
 
 > **get** **isAggregate**(): `boolean`
 
-Defined in: [types/err.ts:952](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L952)
+Defined in: [types/err.ts:952](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L952)
 
 Whether this error is an aggregate containing multiple errors.
 
@@ -334,7 +334,7 @@ console.log(multi.isAggregate);  // true
 
 > **get** **root**(): [`Err`](#err)
 
-Defined in: [types/err.ts:1021](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L1021)
+Defined in: [types/err.ts:1021](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1021)
 
 The root/original error in a wrapped error chain.
 
@@ -364,7 +364,7 @@ console.log(wrapped.root.stack);   // Stack pointing to original error
 
 > **get** **stack**(): `string` \| `undefined`
 
-Defined in: [types/err.ts:1611](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L1611)
+Defined in: [types/err.ts:1611](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1611)
 
 Get the captured stack trace.
 
@@ -384,7 +384,7 @@ Stack trace string or undefined
 
 > **add**(`error`): [`Err`](#err)
 
-Defined in: [types/err.ts:900](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L900)
+Defined in: [types/err.ts:900](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L900)
 
 Add an error to this aggregate.
 
@@ -423,7 +423,7 @@ if (!password) {
 
 > **addAll**(`errors`): [`Err`](#err)
 
-Defined in: [types/err.ts:932](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L932)
+Defined in: [types/err.ts:932](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L932)
 
 Add multiple errors to this aggregate at once.
 
@@ -459,7 +459,7 @@ const aggregate = Err.aggregate('Validation failed').addAll(validationErrors);
 
 > **chain**(): [`Err`](#err)[]
 
-Defined in: [types/err.ts:1073](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L1073)
+Defined in: [types/err.ts:1073](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1073)
 
 Get the full chain of wrapped errors from root to current.
 
@@ -497,7 +497,7 @@ console.log(chain.map(e => e.message));
 
 > **filter**(`predicate`): [`Err`](#err)[]
 
-Defined in: [types/err.ts:1255](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L1255)
+Defined in: [types/err.ts:1255](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1255)
 
 Find all errors matching a predicate.
 
@@ -533,7 +533,7 @@ console.log(required.length); // 2
 
 > **find**(`predicate`): [`Err`](#err) \| `undefined`
 
-Defined in: [types/err.ts:1222](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L1222)
+Defined in: [types/err.ts:1222](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1222)
 
 Find the first error matching a predicate.
 
@@ -568,7 +568,7 @@ console.log(timeout?.message); // "Timeout"
 
 > **flatten**(): [`Err`](#err)[]
 
-Defined in: [types/err.ts:1109](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L1109)
+Defined in: [types/err.ts:1109](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1109)
 
 Flatten all errors into a single array.
 
@@ -605,7 +605,7 @@ console.log(flat.map(e => e.message));
 
 > **hasCode**(`code`): `boolean`
 
-Defined in: [types/err.ts:1138](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L1138)
+Defined in: [types/err.ts:1138](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1138)
 
 Check if this error or any error in its chain/aggregate has a specific code.
 
@@ -640,7 +640,7 @@ console.log(err.hasCode('NETWORK_ERROR')); // false
 
 > **hasCodePrefix**(`prefix`, `boundary?`): `boolean`
 
-Defined in: [types/err.ts:1189](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L1189)
+Defined in: [types/err.ts:1189](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1189)
 
 Check if this error or any error in its chain/aggregate has a code
 matching the given prefix with boundary awareness.
@@ -704,7 +704,7 @@ err.hasCodePrefix('SERVICE');  // true (found in current)
 
 > **toError**(): `Error`
 
-Defined in: [types/err.ts:1586](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L1586)
+Defined in: [types/err.ts:1586](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1586)
 
 Convert to a native Error for interop with throw-based APIs.
 
@@ -741,7 +741,7 @@ throw err.toError();
 
 > **toJSON**(`options?`): [`ErrJSON`](#errjson)
 
-Defined in: [types/err.ts:1320](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L1320)
+Defined in: [types/err.ts:1320](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1320)
 
 Convert to a JSON-serializable object.
 
@@ -807,7 +807,7 @@ err.toJSON({ stack: false, metadata: false });
 
 > **toString**(`options?`): `string`
 
-Defined in: [types/err.ts:1486](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L1486)
+Defined in: [types/err.ts:1486](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1486)
 
 Convert to a formatted string for logging/display.
 
@@ -878,14 +878,14 @@ const deep = Err.from('Root')
 console.log(deep.toString({ maxDepth: 2 }));
 // [ERROR] Level 3
 //   Caused by: [ERROR] Level 2
-//     ... (2 more causes)
+//     ... (1 more cause)
 ```
 
 ##### unwrap()
 
 > **unwrap**(): [`Err`](#err) \| `undefined`
 
-Defined in: [types/err.ts:1042](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L1042)
+Defined in: [types/err.ts:1042](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1042)
 
 Get the directly wrapped error (one level up).
 
@@ -912,7 +912,7 @@ console.log(inner.unwrap());     // undefined
 
 > **withCode**(`code`): [`Err`](#err)
 
-Defined in: [types/err.ts:833](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L833)
+Defined in: [types/err.ts:833](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L833)
 
 Create a new Err with a different or added error code.
 
@@ -946,7 +946,7 @@ if (err.code === 'NOT_FOUND') {
 
 > **withMetadata**(`metadata`): [`Err`](#err)
 
-Defined in: [types/err.ts:863](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L863)
+Defined in: [types/err.ts:863](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L863)
 
 Create a new Err with additional metadata.
 
@@ -982,7 +982,7 @@ console.log(err.metadata);
 
 > **wrap**(`context`): [`Err`](#err)
 
-Defined in: [types/err.ts:806](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L806)
+Defined in: [types/err.ts:806](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L806)
 
 Wrap this error with additional context.
 
@@ -1042,7 +1042,7 @@ console.log(wrapped.root.stack);  // Points to original error location
 
 > `static` **aggregate**(`message`, `errors?`, `options?`): [`Err`](#err)
 
-Defined in: [types/err.ts:594](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L594)
+Defined in: [types/err.ts:594](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L594)
 
 Create an aggregate error for collecting multiple errors.
 
@@ -1113,7 +1113,7 @@ async function processAll(items: Item[]): [null, Err] | [void, null] {
 
 > `static` **from**(`message`, `code?`): [`Err`](#err)
 
-Defined in: [types/err.ts:370](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L370)
+Defined in: [types/err.ts:370](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L370)
 
 Create an Err from a string message with optional code.
 
@@ -1147,7 +1147,7 @@ const err = Err.from('User not found', 'NOT_FOUND');
 
 > `static` **from**(`message`, `options`): [`Err`](#err)
 
-Defined in: [types/err.ts:387](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L387)
+Defined in: [types/err.ts:387](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L387)
 
 Create an Err from a string message with full options.
 
@@ -1184,7 +1184,7 @@ const err = Err.from('Connection timeout', {
 
 > `static` **from**(`error`, `options?`): [`Err`](#err)
 
-Defined in: [types/err.ts:410](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L410)
+Defined in: [types/err.ts:410](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L410)
 
 Create an Err from a native Error.
 
@@ -1227,7 +1227,7 @@ try {
 
 > `static` **from**(`error`, `options?`): [`Err`](#err)
 
-Defined in: [types/err.ts:425](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L425)
+Defined in: [types/err.ts:425](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L425)
 
 Create an Err from another Err instance (clone with optional overrides).
 
@@ -1262,7 +1262,7 @@ const modified = Err.from(original, { code: 'NEW_CODE' });
 
 > `static` **from**(`error`, `options?`): [`Err`](#err)
 
-Defined in: [types/err.ts:447](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L447)
+Defined in: [types/err.ts:447](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L447)
 
 Create an Err from an unknown value (safe for catch blocks).
 
@@ -1304,7 +1304,7 @@ try {
 
 > `static` **fromJSON**(`json`): [`Err`](#err)
 
-Defined in: [types/err.ts:642](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L642)
+Defined in: [types/err.ts:642](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L642)
 
 Deserialize an Err from JSON representation.
 
@@ -1360,7 +1360,7 @@ queue.on('error', (message) => {
 
 > `static` **isErr**(`value`): `value is Err`
 
-Defined in: [types/err.ts:748](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L748)
+Defined in: [types/err.ts:748](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L748)
 
 Type guard to check if a value is an Err instance.
 
@@ -1411,7 +1411,7 @@ console.log(user.name);
 
 > `static` **wrap**(`message`, `error`, `options?`): [`Err`](#err)
 
-Defined in: [types/err.ts:538](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L538)
+Defined in: [types/err.ts:538](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L538)
 
 Static convenience method to wrap an error with a context message.
 
@@ -1473,7 +1473,7 @@ try {
 
 ### ErrJSON
 
-Defined in: [types/err.ts:194](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L194)
+Defined in: [types/err.ts:194](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L194)
 
 JSON representation of an Err for serialization.
 
@@ -1483,61 +1483,61 @@ JSON representation of an Err for serialization.
 
 > `optional` **cause**: [`ErrJSON`](#errjson)
 
-Defined in: [types/err.ts:202](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L202)
+Defined in: [types/err.ts:202](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L202)
 
 ##### code?
 
 > `optional` **code**: `string`
 
-Defined in: [types/err.ts:198](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L198)
+Defined in: [types/err.ts:198](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L198)
 
 ##### errors
 
 > **errors**: [`ErrJSON`](#errjson)[]
 
-Defined in: [types/err.ts:203](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L203)
+Defined in: [types/err.ts:203](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L203)
 
 ##### isErr?
 
 > `optional` **isErr**: `boolean`
 
-Defined in: [types/err.ts:197](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L197)
+Defined in: [types/err.ts:197](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L197)
 
 ##### kind?
 
 > `optional` **kind**: `"Err"`
 
-Defined in: [types/err.ts:196](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L196)
+Defined in: [types/err.ts:196](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L196)
 
 ##### message
 
 > **message**: `string`
 
-Defined in: [types/err.ts:195](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L195)
+Defined in: [types/err.ts:195](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L195)
 
 ##### metadata?
 
 > `optional` **metadata**: `Record`\<`string`, `unknown`\>
 
-Defined in: [types/err.ts:199](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L199)
+Defined in: [types/err.ts:199](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L199)
 
 ##### stack?
 
 > `optional` **stack**: `string`
 
-Defined in: [types/err.ts:201](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L201)
+Defined in: [types/err.ts:201](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L201)
 
 ##### timestamp
 
 > **timestamp**: `string`
 
-Defined in: [types/err.ts:200](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L200)
+Defined in: [types/err.ts:200](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L200)
 
 ***
 
 ### ErrJSONOptions
 
-Defined in: [types/err.ts:142](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L142)
+Defined in: [types/err.ts:142](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L142)
 
 Options for JSON serialization.
 
@@ -1547,7 +1547,7 @@ Options for JSON serialization.
 
 > `optional` **metadata**: `boolean`
 
-Defined in: [types/err.ts:154](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L154)
+Defined in: [types/err.ts:154](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L154)
 
 Include metadata in output.
 Set to `false` to omit potentially sensitive data.
@@ -1562,7 +1562,7 @@ true
 
 > `optional` **stack**: `boolean`
 
-Defined in: [types/err.ts:148](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L148)
+Defined in: [types/err.ts:148](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L148)
 
 Include stack trace in output.
 Set to `false` for public API responses.
@@ -1577,7 +1577,7 @@ true
 
 ### ErrOptions
 
-Defined in: [types/err.ts:130](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L130)
+Defined in: [types/err.ts:130](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L130)
 
 Options for creating or modifying an Err instance.
 
@@ -1587,7 +1587,7 @@ Options for creating or modifying an Err instance.
 
 > `optional` **code**: `string`
 
-Defined in: [types/err.ts:132](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L132)
+Defined in: [types/err.ts:132](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L132)
 
 Error code for programmatic error handling
 
@@ -1595,7 +1595,7 @@ Error code for programmatic error handling
 
 > `optional` **message**: `string`
 
-Defined in: [types/err.ts:134](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L134)
+Defined in: [types/err.ts:134](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L134)
 
 Human-readable error message
 
@@ -1603,7 +1603,7 @@ Human-readable error message
 
 > `optional` **metadata**: `Record`\<`string`, `unknown`\>
 
-Defined in: [types/err.ts:136](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L136)
+Defined in: [types/err.ts:136](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L136)
 
 Additional contextual data
 
@@ -1611,7 +1611,7 @@ Additional contextual data
 
 ### ToStringOptions
 
-Defined in: [types/err.ts:160](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L160)
+Defined in: [types/err.ts:160](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L160)
 
 Options for toString() output formatting.
 
@@ -1621,7 +1621,7 @@ Options for toString() output formatting.
 
 > `optional` **date**: `boolean`
 
-Defined in: [types/err.ts:172](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L172)
+Defined in: [types/err.ts:172](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L172)
 
 Include timestamp in output (ISO 8601 format).
 
@@ -1635,7 +1635,7 @@ false
 
 > `optional` **indent**: `string`
 
-Defined in: [types/err.ts:188](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L188)
+Defined in: [types/err.ts:188](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L188)
 
 Indentation string for nested output.
 
@@ -1649,7 +1649,7 @@ Indentation string for nested output.
 
 > `optional` **maxDepth**: `number`
 
-Defined in: [types/err.ts:183](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L183)
+Defined in: [types/err.ts:183](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L183)
 
 Maximum depth for cause chain traversal.
 When exceeded, shows "... (N more causes)".
@@ -1664,7 +1664,7 @@ undefined (unlimited)
 
 > `optional` **metadata**: `boolean`
 
-Defined in: [types/err.ts:177](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L177)
+Defined in: [types/err.ts:177](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L177)
 
 Include metadata object in output.
 
@@ -1678,7 +1678,7 @@ false
 
 > `optional` **stack**: `number` \| `boolean`
 
-Defined in: [types/err.ts:167](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L167)
+Defined in: [types/err.ts:167](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L167)
 
 Include stack trace in output.
 - `true`: Include full stack trace
@@ -1696,7 +1696,7 @@ undefined (no stack)
 
 > **ErrCode** = `string`
 
-Defined in: [types/err.ts:125](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/types/err.ts#L125)
+Defined in: [types/err.ts:125](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L125)
 
 Error code type - typically uppercase snake_case identifiers.
 

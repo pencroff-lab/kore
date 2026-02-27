@@ -123,7 +123,7 @@ src/types/err.types.ts   ← full JSDoc on ErrCode, ErrOptions, ErrJSON, ToStrin
 src/types/err.ts         ← imports types, implements Err class, minimal inline comments
 ```
 
-`err.types.example.ts` in this folder shows the target structure. Key observations from
+`err.types.example.ts` ([ref](err.types.example.ts)) in this folder shows the target structure. Key observations from
 that example:
 
 - Each group is delimited by a named separator comment — scannable at a glance

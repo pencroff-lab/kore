@@ -70,7 +70,7 @@ The logger reads configuration from environment variables:
 
 ### LogEntry
 
-Defined in: [utils/logger.ts:98](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L98)
+Defined in: [utils/logger.ts:98](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L98)
 
 A single structured log entry passed to transports.
 
@@ -80,7 +80,7 @@ A single structured log entry passed to transports.
 
 > **context**: `Record`\<`string`, `unknown`\>
 
-Defined in: [utils/logger.ts:106](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L106)
+Defined in: [utils/logger.ts:106](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L106)
 
 Merged bindings + call-site context
 
@@ -88,7 +88,7 @@ Merged bindings + call-site context
 
 > **level**: [`LevelValue`](#levelvalue)
 
-Defined in: [utils/logger.ts:100](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L100)
+Defined in: [utils/logger.ts:100](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L100)
 
 Log level
 
@@ -96,7 +96,7 @@ Log level
 
 > **message**: `string`
 
-Defined in: [utils/logger.ts:104](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L104)
+Defined in: [utils/logger.ts:104](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L104)
 
 Log message
 
@@ -104,7 +104,7 @@ Log message
 
 > **modules**: `string`[]
 
-Defined in: [utils/logger.ts:108](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L108)
+Defined in: [utils/logger.ts:108](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L108)
 
 Module chain accumulated by child() calls
 
@@ -112,7 +112,7 @@ Module chain accumulated by child() calls
 
 > **timestamp**: `number`
 
-Defined in: [utils/logger.ts:102](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L102)
+Defined in: [utils/logger.ts:102](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L102)
 
 Unix timestamp in milliseconds (Date.now())
 
@@ -120,7 +120,7 @@ Unix timestamp in milliseconds (Date.now())
 
 ### Logger()
 
-Defined in: [utils/logger.ts:180](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L180)
+Defined in: [utils/logger.ts:180](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L180)
 
 Callable logger interface with overloaded signatures.
 
@@ -138,7 +138,7 @@ constants and the `child` method).
 
 > **Logger**(`message`): `void`
 
-Defined in: [utils/logger.ts:195](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L195)
+Defined in: [utils/logger.ts:195](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L195)
 
 Log a message at INFO level.
 
@@ -156,7 +156,7 @@ Log a message at INFO level.
 
 > **Logger**(`message`, `context`): `void`
 
-Defined in: [utils/logger.ts:197](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L197)
+Defined in: [utils/logger.ts:197](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L197)
 
 Log a message at INFO level with context.
 
@@ -178,7 +178,7 @@ Log a message at INFO level with context.
 
 > **Logger**(`message`, `detail`): `void`
 
-Defined in: [utils/logger.ts:199](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L199)
+Defined in: [utils/logger.ts:199](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L199)
 
 Log a message at INFO level with detail string.
 
@@ -200,7 +200,7 @@ Log a message at INFO level with detail string.
 
 > **Logger**(`level`, `message`): `void`
 
-Defined in: [utils/logger.ts:201](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L201)
+Defined in: [utils/logger.ts:201](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L201)
 
 Log a message at a specific level.
 
@@ -222,7 +222,7 @@ Log a message at a specific level.
 
 > **Logger**(`level`, `message`, `context`): `void`
 
-Defined in: [utils/logger.ts:203](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L203)
+Defined in: [utils/logger.ts:203](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L203)
 
 Log a message at a specific level with context.
 
@@ -250,7 +250,7 @@ Log a message at a specific level with context.
 
 > `readonly` **DEBUG**: `"debug"`
 
-Defined in: [utils/logger.ts:184](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L184)
+Defined in: [utils/logger.ts:184](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L184)
 
 Debug level constant
 
@@ -258,7 +258,7 @@ Debug level constant
 
 > `readonly` **ERROR**: `"error"`
 
-Defined in: [utils/logger.ts:190](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L190)
+Defined in: [utils/logger.ts:190](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L190)
 
 Error level constant
 
@@ -266,7 +266,7 @@ Error level constant
 
 > `readonly` **FATAL**: `"fatal"`
 
-Defined in: [utils/logger.ts:192](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L192)
+Defined in: [utils/logger.ts:192](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L192)
 
 Fatal level constant
 
@@ -274,7 +274,7 @@ Fatal level constant
 
 > `readonly` **INFO**: `"info"`
 
-Defined in: [utils/logger.ts:186](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L186)
+Defined in: [utils/logger.ts:186](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L186)
 
 Info level constant
 
@@ -282,7 +282,7 @@ Info level constant
 
 > `readonly` **TRACE**: `"trace"`
 
-Defined in: [utils/logger.ts:182](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L182)
+Defined in: [utils/logger.ts:182](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L182)
 
 Trace level constant
 
@@ -290,7 +290,7 @@ Trace level constant
 
 > `readonly` **WARN**: `"warn"`
 
-Defined in: [utils/logger.ts:188](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L188)
+Defined in: [utils/logger.ts:188](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L188)
 
 Warning level constant
 
@@ -300,7 +300,7 @@ Warning level constant
 
 > **child**(`module`, `bindings?`): [`Logger`](#logger)
 
-Defined in: [utils/logger.ts:212](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L212)
+Defined in: [utils/logger.ts:212](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L212)
 
 Create a child logger with module-specific context.
 
@@ -328,7 +328,7 @@ New Logger instance
 
 ### LoggerOptions
 
-Defined in: [utils/logger.ts:160](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L160)
+Defined in: [utils/logger.ts:160](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L160)
 
 Options for `createLogger`.
 
@@ -338,7 +338,7 @@ Options for `createLogger`.
 
 > `optional` **level**: [`LevelValue`](#levelvalue)
 
-Defined in: [utils/logger.ts:162](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L162)
+Defined in: [utils/logger.ts:162](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L162)
 
 Minimum log level. Default: from `LOG_LEVEL` env or `'info'`
 
@@ -346,7 +346,7 @@ Minimum log level. Default: from `LOG_LEVEL` env or `'info'`
 
 > `optional` **transports**: [`LogTransport`](#logtransport)[]
 
-Defined in: [utils/logger.ts:164](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L164)
+Defined in: [utils/logger.ts:164](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L164)
 
 Transports to write entries to. Default: `[prettyTransport()]`
 
@@ -354,7 +354,7 @@ Transports to write entries to. Default: `[prettyTransport()]`
 
 ### LogTransport
 
-Defined in: [utils/logger.ts:129](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L129)
+Defined in: [utils/logger.ts:129](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L129)
 
 Transport interface — receives a `LogEntry` for each log call that passes
 the level filter. Implement this to integrate any logging backend.
@@ -380,7 +380,7 @@ const pinoTransport: LogTransport = {
 
 > **write**(`entry`): `void`
 
-Defined in: [utils/logger.ts:130](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L130)
+Defined in: [utils/logger.ts:130](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L130)
 
 ###### Parameters
 
@@ -396,7 +396,7 @@ Defined in: [utils/logger.ts:130](https://github.com/pencroff-lab/kore/blob/ee2e
 
 ### PrettyOptions
 
-Defined in: [utils/logger.ts:136](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L136)
+Defined in: [utils/logger.ts:136](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L136)
 
 Options for the built-in pretty console transport.
 
@@ -406,7 +406,7 @@ Options for the built-in pretty console transport.
 
 > `optional` **colors**: `boolean` \| `"auto"`
 
-Defined in: [utils/logger.ts:145](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L145)
+Defined in: [utils/logger.ts:145](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L145)
 
 Enable ANSI colors.
 - `'auto'` (default): enable when output is a TTY
@@ -417,7 +417,7 @@ Enable ANSI colors.
 
 > `optional` **levelColors**: `Partial`\<`Record`\<[`LevelValue`](#levelvalue), `string`\>\>
 
-Defined in: [utils/logger.ts:147](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L147)
+Defined in: [utils/logger.ts:147](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L147)
 
 Override default level colors (ANSI escape sequences)
 
@@ -425,7 +425,7 @@ Override default level colors (ANSI escape sequences)
 
 > `optional` **output**: `object`
 
-Defined in: [utils/logger.ts:138](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L138)
+Defined in: [utils/logger.ts:138](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L138)
 
 Output stream. Default: `process.stderr`
 
@@ -447,7 +447,7 @@ Output stream. Default: `process.stderr`
 
 > `optional` **timestamp**: `"short"` \| `"iso"` \| (`ts`) => `string`
 
-Defined in: [utils/logger.ts:154](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L154)
+Defined in: [utils/logger.ts:154](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L154)
 
 Timestamp format.
 - `'short'` (default): `HH:MM:SS.mmm` local time
@@ -460,7 +460,7 @@ Timestamp format.
 
 > **LevelValue** = *typeof* [`lvl`](#lvl)\[keyof *typeof* [`lvl`](#lvl)\]
 
-Defined in: [utils/logger.ts:93](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L93)
+Defined in: [utils/logger.ts:93](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L93)
 
 Type representing valid log level values.
 
@@ -470,7 +470,7 @@ Type representing valid log level values.
 
 > `const` **log**: [`Logger`](#logger)
 
-Defined in: [utils/logger.ts:506](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L506)
+Defined in: [utils/logger.ts:573](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L573)
 
 Default logger instance for application-wide logging.
 
@@ -495,7 +495,7 @@ dbLogger('Connection pool initialized');
 
 > `const` **lvl**: `object`
 
-Defined in: [utils/logger.ts:81](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L81)
+Defined in: [utils/logger.ts:81](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L81)
 
 Log level constants for type-safe level specification.
 
@@ -539,7 +539,7 @@ Log level constants for type-safe level specification.
 
 > **createLogger**(`module?`, `options?`): [`Logger`](#logger)
 
-Defined in: [utils/logger.ts:481](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L481)
+Defined in: [utils/logger.ts:548](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L548)
 
 Create a logger instance with optional module name and configuration.
 
@@ -589,7 +589,7 @@ const testLogger = createLogger('test', { transports: [spy], level: lvl.TRACE })
 
 > **prettyTransport**(`options?`): [`LogTransport`](#logtransport)
 
-Defined in: [utils/logger.ts:338](https://github.com/pencroff-lab/kore/blob/ee2e861774a3ba0cc8df25e47cebc4ace0a9d821/src/utils/logger.ts#L338)
+Defined in: [utils/logger.ts:382](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/logger.ts#L382)
 
 Create a built-in pretty console transport.
 

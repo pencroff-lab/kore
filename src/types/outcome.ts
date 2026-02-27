@@ -45,7 +45,7 @@
  * @module outcome
  */
 
-import { Err, type ErrCode, type ErrOptions } from './err';
+import { Err, type ErrCode, type ErrOptions } from "./err";
 
 /**
  * Direct return types for errors or void success.
@@ -504,7 +504,7 @@ export class Outcome<T> {
 	 *
 	 */
 	static fromTuple<T>(tuple: ResultTuple<T>): Outcome<T> {
-		return new Outcome<T>([tuple[0], tuple[1]]);
+		return new Outcome<T>([tuple[0], tuple[1]] as ResultTuple<T>);
 	}
 
 	// ══════════════════════════════════════════════════════════════════════════
@@ -539,13 +539,13 @@ export class Outcome<T> {
 	 * ```
 	 */
 	static fromJSON<T>(
-		payload: [T, null] | [null, ReturnType<Err['toJSON']>],
+		payload: [T, null] | [null, ReturnType<Err["toJSON"]>],
 	): Outcome<T>;
 
 	static fromJSON<T>(payload: unknown): Outcome<T> {
 		return Outcome.from(() => {
 			if (!Array.isArray(payload) || payload.length !== 2) {
-				return Err.from('Invalid Outcome JSON');
+				return Err.from("Invalid Outcome JSON");
 			}
 
 			const [value, error] = payload as [T, unknown];
@@ -629,7 +629,7 @@ export class Outcome<T> {
 		}
 
 		if (errors.length > 0) {
-			return Outcome.err(Err.aggregate('Multiple failed', errors));
+			return Outcome.err(Err.aggregate("Multiple failed", errors));
 		}
 
 		return new Outcome<T[]>([values, null]);
@@ -682,7 +682,7 @@ export class Outcome<T> {
 	 */
 	static any<T>(outcomes: Outcome<T>[]): Outcome<T> {
 		if (outcomes.length === 0) {
-			return Outcome.err('No outcomes provided', 'EMPTY_INPUT');
+			return Outcome.err("No outcomes provided", "EMPTY_INPUT");
 		}
 
 		const errors: Err[] = [];
@@ -693,7 +693,7 @@ export class Outcome<T> {
 			}
 			errors.push(outcome._tuple[1] as Err);
 		}
-		const aggregate = Err.aggregate('All failed', errors);
+		const aggregate = Err.aggregate("All failed", errors);
 		return new Outcome<T>([null, aggregate]);
 	}
 
@@ -1057,7 +1057,7 @@ export class Outcome<T> {
 		if (asValue === true) {
 			return fallbackOrHandler as T;
 		}
-		if (typeof fallbackOrHandler === 'function') {
+		if (typeof fallbackOrHandler === "function") {
 			return (fallbackOrHandler as (error: Err) => T)(this._tuple[1] as Err);
 		}
 		return fallbackOrHandler as T;
@@ -1449,7 +1449,7 @@ export class Outcome<T> {
 	 * const restored = Outcome.fromJSON(JSON.parse(json));
 	 * ```
 	 */
-	toJSON(): [T, null] | [null, ReturnType<Err['toJSON']>] {
+	toJSON(): [T, null] | [null, ReturnType<Err["toJSON"]>] {
 		if (this.isOk) {
 			return [this._tuple[0] as T, null];
 		}
@@ -1486,9 +1486,9 @@ export class Outcome<T> {
  * @internal
  */
 function fmt(v: unknown) {
-	if (v === null) return 'null';
-	if (v === undefined) return 'undefined';
-	if (typeof v === 'string') return JSON.stringify(v);
+	if (v === null) return "null";
+	if (v === undefined) return "undefined";
+	if (typeof v === "string") return JSON.stringify(v);
 	try {
 		return JSON.stringify(v);
 	} catch {
