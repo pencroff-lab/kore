@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Features
+
+- Add git-cliff (0dbef87)
+
 ## [0.2.1] - 2026-02-27
 
 ### Other
