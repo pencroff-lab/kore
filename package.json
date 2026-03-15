@@ -27,7 +27,8 @@
 	"files": [
 		"dist",
 		"docs",
-		"llms.txt"
+		"llms.txt",
+		"CHANGELOG.md"
 	],
 	"scripts": {
 		"test": "bun test",
@@ -44,12 +45,15 @@
 		"postbuild": "bun scripts/verify-build.sh.ts",
 		"prepublish_pkg": "bun scripts/check-version.sh.ts && bun run build",
 		"publish_pkg": "bun publish --access public",
-		"gen_docs": "typedoc"
+		"gen_docs": "typedoc",
+		"changelog": "git-cliff -o CHANGELOG.md",
+		"changelog:latest": "git-cliff --latest --strip header"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.2",
 		"@types/bun": "1.3.9",
 		"@types/sinon": "21.0.0",
+		"git-cliff": "2.12.0",
 		"mitata": "1.0.34",
 		"sinon": "21.0.1",
 		"typedoc": "0.28.17",
