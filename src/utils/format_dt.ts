@@ -91,8 +91,7 @@ export function dtStamp(
 	date?: Date | number | null,
 	options?: DtStampOptions,
 ): string {
-	const d =
-		typeof date === "number" ? new Date(date) : (date ?? new Date());
+	const d = typeof date === "number" ? new Date(date) : (date ?? new Date());
 	const {
 		delimiter = "_",
 		ms = false,
