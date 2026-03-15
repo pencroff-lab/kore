@@ -27,7 +27,8 @@
 	"files": [
 		"dist",
 		"docs",
-		"llms.txt"
+		"llms.txt",
+		"CHANGELOG.md"
 	],
 	"scripts": {
 		"test": "bun test",
