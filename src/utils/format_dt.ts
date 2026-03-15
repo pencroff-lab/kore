@@ -46,13 +46,20 @@ export interface DtStampOptions {
  * Produces compact, sortable stamps suitable for file names, log prefixes,
  * and anywhere a human-readable but machine-sortable date/time is needed.
  *
- * @param date - Date to format. Defaults to `new Date()` when `null` or omitted.
+ * @param date - Date to format. Accepts a `Date`, a Unix timestamp in milliseconds
+ *   (number), or `null`/omitted (defaults to `new Date()`).
  * @param options - Formatting options (delimiter, milliseconds, timezone, parts, readable)
  * @returns Formatted timestamp string
  *
  * @example Default (UTC datetime with underscore delimiter)
  * ```typescript
  * dtStamp(new Date("2024-03-15T10:30:45.123Z"));
+ * // "20240315_103045"
+ * ```
+ *
+ * @example Unix timestamp as number
+ * ```typescript
+ * dtStamp(1710499845123);
  * // "20240315_103045"
  * ```
  *
@@ -80,8 +87,12 @@ export interface DtStampOptions {
  * // "20240315-103045"
  * ```
  */
-export function dtStamp(date?: Date | null, options?: DtStampOptions): string {
-	const d = date ?? new Date();
+export function dtStamp(
+	date?: Date | number | null,
+	options?: DtStampOptions,
+): string {
+	const d =
+		typeof date === "number" ? new Date(date) : (date ?? new Date());
 	const {
 		delimiter = "_",
 		ms = false,
