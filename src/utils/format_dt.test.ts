@@ -27,6 +27,18 @@ describe("dtStamp", () => {
 		expect(dtStamp(null)).toBe("20240218_143052");
 	});
 
+	test("accepts unix timestamp as number", () => {
+		// 2024-03-15T10:30:45.123Z
+		expect(dtStamp(1710498645123)).toBe("20240315_103045");
+	});
+
+	test("accepts unix timestamp as number with options", () => {
+		// 2024-03-15T10:30:45.123Z
+		expect(dtStamp(1710498645123, { readable: true, ms: true })).toBe(
+			"2024-03-15_10:30:45_123",
+		);
+	});
+
 	test("defaults to UTC", () => {
 		// 2024-02-18T23:30:00Z — in UTC it's the 18th, in UTC+2 it would be the 19th
 		const date = new Date("2024-02-18T23:30:00.000Z");
