@@ -347,7 +347,9 @@ export class Err {
 			this._stack = options.stack;
 		} else {
 			const rawStack = new Error().stack;
-			this._stack = rawStack ? Err._filterInternalFrames(rawStack) : undefined;
+			this._stack = rawStack
+				? Err._filterInternalFrames(rawStack)
+				: undefined;
 		}
 	}
 
@@ -751,7 +753,8 @@ export class Err {
 			(!!value &&
 				typeof value === "object" &&
 				// biome-ignore lint/suspicious/noExplicitAny: value can be any in this check
-				((value as any).isErr === true || (value as any).kind === "Err"))
+				((value as any).isErr === true ||
+					(value as any).kind === "Err"))
 		);
 	}
 
@@ -804,7 +807,8 @@ export class Err {
 	 */
 	// biome-ignore lint/suspicious/useAdjacentOverloadSignatures: bug, notice static and non-static signatures as of 31/12/2025
 	wrap(context: string | ErrOptions): Err {
-		const opts = typeof context === "string" ? { message: context } : context;
+		const opts =
+			typeof context === "string" ? { message: context } : context;
 		return new Err(opts.message ?? this.message, {
 			code: opts.code,
 			cause: this,
@@ -866,6 +870,151 @@ export class Err {
 			cause: this._cause,
 			errors: [...this._errors],
 			metadata: { ...this.metadata, ...metadata },
+			stack: this._stack,
+			timestamp: this.timestamp,
+		});
+	}
+
+	// ══════════════════════════════════════════════════════════════════════════
+	// Metadata Access
+	// ══════════════════════════════════════════════════════════════════════════
+
+	/**
+	 * Check if metadata exists for a given key.
+	 *
+	 * By default, returns `true` only if the key exists and the value is not
+	 * `null` or `undefined`. With `keyCheck: true`, returns `true` if the key
+	 * exists in the metadata object, regardless of value.
+	 *
+	 * Only checks the current instance metadata, not the cause chain.
+	 *
+	 * @param key - The metadata key to check
+	 * @param options - Optional configuration
+	 * @param options.keyCheck - If true, only checks key existence (default: false)
+	 * @returns true if metadata exists according to the selected mode
+	 *
+	 * @example
+	 * ```typescript
+	 * const err = Err.from("Test").withMetadata({ url: "/api", status: null });
+	 *
+	 * err.hasMetadata("url"); // true (value exists)
+	 * err.hasMetadata("status"); // false (null value)
+	 * err.hasMetadata("status", { keyCheck: true }); // true (key exists)
+	 * err.hasMetadata("missing"); // false
+	 * ```
+	 */
+	hasMetadata(key: string, options?: { keyCheck?: boolean }): boolean {
+		if (this.metadata === undefined) {
+			return false;
+		}
+
+		const keyExists = key in this.metadata;
+		if (!keyExists) {
+			return false;
+		}
+
+		if (options?.keyCheck === true) {
+			return true;
+		}
+
+		const value = this.metadata[key];
+		return value !== null && value !== undefined;
+	}
+
+	/**
+	 * Get metadata value for a given key.
+	 *
+	 * Returns the value if the key exists, otherwise returns the `defaultValue`
+	 * if provided, or `undefined`. No type validation is performed at runtime.
+	 *
+	 * Only checks the current instance metadata, not the cause chain.
+	 *
+	 * @template T - The expected type of the metadata value
+	 * @param key - The metadata key to retrieve
+	 * @param defaultValue - Optional default value if key is missing
+	 * @returns The metadata value or default, cast to type T
+	 *
+	 * @example
+	 * ```typescript
+	 * const err = Err.from("Test").withMetadata({
+	 *   url: "/api/users",
+	 *   count: 42,
+	 *   tags: ["important", "retry"],
+	 * });
+	 *
+	 * const url = err.getMetadata<string>("url"); // "/api/users"
+	 * const count = err.getMetadata<number>("count"); // 42
+	 * const missing = err.getMetadata("missing"); // undefined
+	 * const withDefault = err.getMetadata("missing", "default"); // "default"
+	 * ```
+	 */
+	getMetadata<T = unknown>(key: string): T | undefined;
+	getMetadata<T = unknown>(key: string, defaultValue: T): T;
+	getMetadata<T = unknown>(key: string, defaultValue?: T): T | undefined {
+		if (this.metadata === undefined) {
+			return defaultValue ?? undefined;
+		}
+
+		if (!(key in this.metadata)) {
+			return defaultValue ?? undefined;
+		}
+
+		return this.metadata[key] as T;
+	}
+
+	/**
+	 * Create a new Err instance with specified metadata keys removed.
+	 *
+	 * Returns a new Err with the specified key(s) deleted from metadata.
+	 * If removing keys results in empty metadata, metadata is set to `undefined`.
+	 * Preserves cause chain, code, timestamp, stack, and aggregated errors.
+	 *
+	 * @param key - Single key or array of keys to remove
+	 * @returns New Err instance with keys omitted
+	 *
+	 * @example
+	 * ```typescript
+	 * const err = Err.from("Test", {
+	 *   metadata: { url: "/api", token: "secret", retryable: true },
+	 * });
+	 *
+	 * const sanitized = err.omitMetadata("token");
+	 * // sanitized.metadata = { url: "/api", retryable: true }
+	 *
+	 * const minimal = err.omitMetadata(["url", "retryable"]);
+	 * // minimal.metadata = { token: "secret" }
+	 *
+	 * const empty = err.omitMetadata(["url", "token", "retryable"]);
+	 * // empty.metadata = undefined
+	 * ```
+	 */
+	omitMetadata(key: string | string[]): Err {
+		const keysToRemove = Array.isArray(key) ? key : [key];
+
+		if (this.metadata === undefined) {
+			return new Err(this.message, {
+				code: this.code,
+				cause: this._cause,
+				errors: [...this._errors],
+				metadata: undefined,
+				stack: this._stack,
+				timestamp: this.timestamp,
+			});
+		}
+
+		const newMetadata = { ...this.metadata };
+		for (const k of keysToRemove) {
+			delete newMetadata[k];
+		}
+
+		const finalMetadata =
+			Object.keys(newMetadata).length === 0 ? undefined : newMetadata;
+
+		return new Err(this.message, {
+			code: this.code,
+			cause: this._cause,
+			errors: [...this._errors],
+			metadata: finalMetadata,
 			stack: this._stack,
 			timestamp: this.timestamp,
 		});
