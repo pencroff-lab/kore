@@ -22,6 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Fix CJS compatibility | `bun scripts/fix-cjs.sh.ts` (runs automatically in build) |
 | Verify build artifacts | `bun scripts/verify-build.sh.ts` (runs automatically in build) |
 | Check version on npm | `bun scripts/check-version.sh.ts` |
+| Check docs | `bun run check:docs` |
 | Publish | `bun run publish_pkg` |
 
 ## Testing
@@ -116,3 +117,30 @@ Build entry is `index.ts` at root which re-exports from `src/`. Tests, benchmark
 - Pipeline: install -> test -> publish (on push to main) -> git tag
 - Exact dependency versions (no `^` or `~`)
 - `bun.lock` committed, `bun install --frozen-lockfile` in CI
+
+## Documentation Rules
+
+### Doc Budget (enforced in CI)
+
+| File type | Max JSDoc ratio | Notes |
+|-----------|----------------|-------|
+| `*.types.ts` | ≤ 40% of non-blank lines | Types are the API contract |
+| Implementation `*.ts` | ≤ 20% of non-blank lines | Logic self-evident from types |
+| `*.test.ts` | 0% | Tests are documentation |
+
+### What goes where
+
+| Content | Location |
+|---------|----------|
+| `@param`, `@returns`, `@throws`, 1-line description | Inline JSDoc (Layer 1) |
+| Class/module invariants (e.g., "immutable") | Once at class level, not per method |
+| Usage examples, patterns, how-to | `*.examples.test.ts` files |
+| Architecture, design rationale | CLAUDE.md / Layer 4 docs |
+
+### Inline JSDoc rules
+
+- Module header: ≤ 3 lines summary + `@see` links. No `@example` blocks
+- No `@example` in implementation files — use `@see` to examples test
+- `@example` in `*.types.ts` only if non-obvious from signature, max 5 lines
+- Never repeat invariants per method — state once at class/module level
+- Delete examples that restate the type signature
