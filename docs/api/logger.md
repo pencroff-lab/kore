@@ -125,7 +125,7 @@ Log a message at INFO level with context.
 
 ###### context
 
-`object` | [`Err`](types/err.md#err)
+`object` | [`Err`](err.md#err)
 
 ##### Returns
 
@@ -195,7 +195,7 @@ Log a message at a specific level with context.
 
 ###### context
 
-`object` | [`Err`](types/err.md#err)
+`object` | [`Err`](err.md#err)
 
 ##### Returns
 

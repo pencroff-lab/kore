@@ -141,8 +141,8 @@ Tiered by file size (threshold: 100 non-blank lines). The first `@module` JSDoc 
 
 ### Inline JSDoc rules
 
-- **`@module` placement (types-first rule):** When a `*.types.ts` companion exists, place the `@module` block there (TypeDoc associates it with the module). Otherwise place it in the implementation file.
-- `@module` block: summary + key concepts + `@see` reference. `@example` allowed only in `*.types.ts` module blocks (max 5 lines).
+- **`@module` placement:** Always in the TypeDoc entry point file (the implementation file, e.g., `err.ts`, `outcome.ts`). TypeDoc only renders `@module` from entry points — placing it in `*.types.ts` won't appear in generated docs.
+- `@module` block: summary + key concepts + `@see` reference. No `@example` in implementation files.
 - No `@example` in implementation files — use `@see [file.examples.test.ts](../../src/.../file.examples.test.ts)`
 - `{@link}` only for TypeScript symbols (classes, methods). Never for `.ts` file paths — TypeDoc copies them to `_media/` and breaks builds
 - `@example` in `*.types.ts` only if non-obvious from signature, max 5 lines
