@@ -46,83 +46,21 @@
  */
 
 import { Err, type ErrCode, type ErrOptions } from "./err";
+import type {
+	CallbackReturn,
+	NullErr,
+	PipeFn,
+	PipeFnAsync,
+	ResultTuple,
+} from "./outcome.types";
 
-/**
- * Direct return types for errors or void success.
- * - `null`: void success (function completed, no value to return)
- * - `Err`: error (shorthand for `[null, Err]`)
- *
- * @example
- * ```typescript
- * function saveConfig(config: Config): NullErr {
- *   if (!config.valid) return Err.from('Invalid config');
- *   fs.writeFileSync('config.json', JSON.stringify(config));
- *   return null; // void success
- * }
- * ```
- */
-export type NullErr = null | Err;
-
-/**
- * Tuple-based result with positional semantics.
- * - `[T, null]`: success with value
- * - `[null, Err]`: error
- *
- * @example
- * ```typescript
- * function divide(a: number, b: number): ResultTuple<number> {
- *   if (b === 0) return [null, Err.from('Division by zero')];
- *   return [a / b, null];
- * }
- *
- * const [result, err] = divide(10, 2);
- * if (err) console.error(err.message);
- * else console.log(result); // 5
- * ```
- */
-export type ResultTuple<T> = [T, null] | [null, Err];
-
-/**
- * Combined callback return type for `Outcome.from()` and `Outcome.fromAsync()`.
- * Supports all patterns:
- * - `[T, null]`: success with value (tuple)
- * - `[null, Err]`: error (tuple)
- * - `null`: void success
- * - `Err`: error (shorthand)
- *
- * Discrimination order: `Err.isErr()` → `=== null` → destructure tuple
- *
- * @example
- * ```typescript
- * Outcome.from(() => {
- *   if (badInput) return Err.from('Bad input');     // Err shorthand
- *   if (noResult) return null;                       // void success
- *   if (hasError) return [null, Err.from('Error')]; // tuple error
- *   return [value, null];                            // tuple success
- * });
- * ```
- */
-export type CallbackReturn<T> = ResultTuple<T> | NullErr;
-
-/**
- * Synchronous pipe function type.
- * Receives a ResultTuple and returns a CallbackReturn.
- *
- * @typeParam In - Input value type
- * @typeParam Out - Output value type
- */
-export type PipeFn<In, Out> = (tuple: ResultTuple<In>) => CallbackReturn<Out>;
-
-/**
- * Asynchronous pipe function type.
- * Receives a ResultTuple and returns a Promise of CallbackReturn.
- *
- * @typeParam In - Input value type
- * @typeParam Out - Output value type
- */
-export type PipeFnAsync<In, Out> = (
-	tuple: ResultTuple<In>,
-) => Promise<CallbackReturn<Out>>;
+export type {
+	CallbackReturn,
+	NullErr,
+	PipeFn,
+	PipeFnAsync,
+	ResultTuple,
+};
 
 /**
  * A monadic container for handling success and error states.

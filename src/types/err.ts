@@ -109,99 +109,15 @@
  * @module err
  */
 
-/**
- * Error code type - typically uppercase snake_case identifiers.
- *
- * @example
- * ```typescript
- * const codes: ErrCode[] = [
- *   'NOT_FOUND',
- *   'VALIDATION_ERROR',
- *   'DB_CONNECTION_FAILED',
- *   'AUTH_EXPIRED',
- * ];
- * ```
- */
-export type ErrCode = string;
+import type {
+	ErrCode,
+	ErrJSON,
+	ErrJSONOptions,
+	ErrOptions,
+	ToStringOptions,
+} from "./err.types";
 
-/**
- * Options for creating or modifying an Err instance.
- */
-export interface ErrOptions {
-	/** Error code for programmatic error handling */
-	code?: ErrCode;
-	/** Human-readable error message */
-	message?: string;
-	/** Additional contextual data */
-	metadata?: Record<string, unknown>;
-}
-
-/**
- * Options for JSON serialization.
- */
-export interface ErrJSONOptions {
-	/**
-	 * Include stack trace in output.
-	 * Set to `false` for public API responses.
-	 * @default true
-	 */
-	stack?: boolean;
-	/**
-	 * Include metadata in output.
-	 * Set to `false` to omit potentially sensitive data.
-	 * @default true
-	 */
-	metadata?: boolean;
-}
-
-/**
- * Options for toString() output formatting.
- */
-export interface ToStringOptions {
-	/**
-	 * Include stack trace in output.
-	 * - `true`: Include full stack trace
-	 * - `number`: Include only top N frames (default: 3 when number)
-	 * @default undefined (no stack)
-	 */
-	stack?: boolean | number;
-	/**
-	 * Include timestamp in output (ISO 8601 format).
-	 * @default false
-	 */
-	date?: boolean;
-	/**
-	 * Include metadata object in output.
-	 * @default false
-	 */
-	metadata?: boolean;
-	/**
-	 * Maximum depth for cause chain traversal.
-	 * When exceeded, shows "... (N more causes)".
-	 * @default undefined (unlimited)
-	 */
-	maxDepth?: number;
-	/**
-	 * Indentation string for nested output.
-	 * @default "  " (two spaces)
-	 */
-	indent?: string;
-}
-
-/**
- * JSON representation of an Err for serialization.
- */
-export interface ErrJSON {
-	message: string;
-	kind?: "Err";
-	isErr?: boolean;
-	code?: ErrCode;
-	metadata?: Record<string, unknown>;
-	timestamp: string;
-	stack?: string;
-	cause?: ErrJSON;
-	errors: ErrJSON[];
-}
+export type { ErrCode, ErrJSON, ErrJSONOptions, ErrOptions, ToStringOptions };
 
 /**
  * A value-based error type that supports wrapping and aggregation.
