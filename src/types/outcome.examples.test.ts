@@ -49,7 +49,7 @@ describe("Creating outcomes", () => {
 		expect(outcome.isErr).toBe(true);
 		expect(outcome.error?.message).toBe("Parse failed");
 		expect(outcome.error?.code).toBe("PARSE_ERROR");
-		expect(outcome.error?.cause).not.toBeNull();
+		expect(outcome.error?.unwrap()).not.toBeUndefined();
 	});
 
 	test("Outcome.unit() creates a void success", () => {
@@ -179,7 +179,10 @@ describe("Factory methods", () => {
 	});
 
 	test("Outcome.fromJSON() with invalid payload", () => {
-		const result = Outcome.fromJSON({ not: "a tuple" } as unknown);
+		const result = Outcome.fromJSON({ not: "a tuple" } as unknown as [
+			unknown,
+			null,
+		]);
 		expect(result.isErr).toBe(true);
 		expect(result.error?.message).toBe("Invalid Outcome JSON");
 	});
@@ -272,7 +275,7 @@ describe("Transformations", () => {
 		);
 		expect(outcome.isErr).toBe(true);
 		expect(outcome.error?.message).toBe("High-level context");
-		expect(outcome.error?.cause).not.toBeNull();
+		expect(outcome.error?.unwrap()).not.toBeUndefined();
 	});
 
 	test("mapErr() passes through on success", () => {
@@ -395,7 +398,8 @@ describe("Terminal operations", () => {
 	});
 
 	test("defaultTo() with static fallback", () => {
-		const count = Outcome.err("bad input").defaultTo(0);
+		const errOutcome = Outcome.err("bad input") as Outcome<number>;
+		const count = errOutcome.defaultTo(0);
 		expect(count).toBe(0);
 	});
 
@@ -405,15 +409,17 @@ describe("Terminal operations", () => {
 	});
 
 	test("defaultTo() with object fallback", () => {
-		const config = Outcome.err("no config").defaultTo({
-			port: 3000,
-			host: "localhost",
-		});
+		const errOutcome = Outcome.err("no config") as Outcome<{
+			port: number;
+			host: string;
+		}>;
+		const config = errOutcome.defaultTo({ port: 3000, host: "localhost" });
 		expect(config).toEqual({ port: 3000, host: "localhost" });
 	});
 
 	test("defaultTo() with computed fallback from error", () => {
-		const name = Outcome.err("Not found", "NOT_FOUND").defaultTo((err) =>
+		const errOutcome = Outcome.err("Not found", "NOT_FOUND") as Outcome<string>;
+		const name = errOutcome.defaultTo((err) =>
 			err.hasCode("NOT_FOUND") ? "Guest" : "Unknown",
 		);
 		expect(name).toBe("Guest");
@@ -421,10 +427,8 @@ describe("Terminal operations", () => {
 
 	test("defaultTo() with function as value using asValue flag", () => {
 		const defaultHandler = () => "default";
-		const handler = Outcome.err<() => string>("no handler").defaultTo(
-			defaultHandler,
-			true,
-		);
+		const errOutcome = Outcome.err("no handler") as Outcome<() => string>;
+		const handler = errOutcome.defaultTo(defaultHandler, true);
 		expect(handler).toBe(defaultHandler);
 		expect(handler()).toBe("default");
 	});
@@ -436,7 +440,10 @@ describe("Terminal operations", () => {
 		);
 		expect(successMessage).toBe("Welcome, John!");
 
-		const errorMessage = Outcome.err("Connection lost").either(
+		const errOutcome = Outcome.err("Connection lost") as Outcome<{
+			name: string;
+		}>;
+		const errorMessage = errOutcome.either(
 			() => "ok",
 			(err) => `Error: ${err.message}`,
 		);
@@ -444,7 +451,8 @@ describe("Terminal operations", () => {
 	});
 
 	test("either() default value on error", () => {
-		const count = Outcome.err("bad").either(
+		const errOutcome = Outcome.err("bad") as Outcome<number>;
+		const count = errOutcome.either(
 			(n) => n,
 			() => 0,
 		);
@@ -458,7 +466,8 @@ describe("Terminal operations", () => {
 		);
 		expect(successStatus).toBe("success");
 
-		const errorStatus: "success" | "error" = Outcome.err("fail").either(
+		const errOutcome = Outcome.err("fail") as Outcome<number>;
+		const errorStatus: "success" | "error" = errOutcome.either(
 			() => "success" as const,
 			() => "error" as const,
 		);
@@ -466,10 +475,12 @@ describe("Terminal operations", () => {
 	});
 
 	test("either() HTTP response building pattern", () => {
+		type HttpResponse = { status: number; body: Record<string, unknown> };
+
 		const successResponse = Outcome.ok({
 			id: "ord-1",
 			total: 99.99,
-		}).either(
+		}).either<HttpResponse>(
 			(order) => ({
 				status: 200,
 				body: { id: order.id, total: order.total },
@@ -482,7 +493,10 @@ describe("Terminal operations", () => {
 		expect(successResponse.status).toBe(200);
 		expect(successResponse.body).toEqual({ id: "ord-1", total: 99.99 });
 
-		const errorResponse = Outcome.err("Not found", "NOT_FOUND").either(
+		const errOutcome = Outcome.err("Not found", "NOT_FOUND") as Outcome<{
+			id: string;
+		}>;
+		const errorResponse = errOutcome.either<HttpResponse>(
 			() => ({ status: 200, body: { id: "x" } }),
 			(err) => ({
 				status: err.hasCode("NOT_FOUND") ? 404 : 500,
@@ -500,7 +514,7 @@ describe("Terminal operations", () => {
 
 describe("Side effects", () => {
 	test("effect() runs side effect on success and chains", () => {
-		let logged: string | null = null;
+		let logged = "";
 
 		const outcome = Outcome.ok(42)
 			.effect(([val, err]) => {
@@ -514,7 +528,7 @@ describe("Side effects", () => {
 	});
 
 	test("effect() runs side effect on error", () => {
-		let logged: string | null = null;
+		let logged = "";
 
 		Outcome.err("Something broke").effect(([val, err]) => {
 			if (err) logged = `Failed: ${err.message}`;

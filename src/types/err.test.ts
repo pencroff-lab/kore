@@ -561,14 +561,14 @@ describe("Err", () => {
 					const obj = { nested: { value: 42 } };
 					const err = Err.from("Test").withMetadata({ obj });
 
-					expect(err.getMetadata("obj")).toEqual(obj);
+					expect(err.getMetadata<typeof obj>("obj")).toEqual(obj);
 				});
 
 				test("returns array value", () => {
 					const arr = [1, 2, 3];
 					const err = Err.from("Test").withMetadata({ arr });
 
-					expect(err.getMetadata("arr")).toEqual(arr);
+					expect(err.getMetadata<typeof arr>("arr")).toEqual(arr);
 				});
 			});
 
@@ -580,7 +580,7 @@ describe("Err", () => {
 					ownMeta: "from err",
 				});
 
-				expect(err.getMetadata("ownMeta")).toBe("from err");
+				expect(err.getMetadata<string>("ownMeta")).toBe("from err");
 				expect(err.getMetadata("causeMeta")).toBeUndefined();
 			});
 		});

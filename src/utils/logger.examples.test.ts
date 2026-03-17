@@ -28,8 +28,8 @@ describe("Basic logging", () => {
 		log("Application started");
 
 		expect(entries).toHaveLength(1);
-		expect(entries[0]!.level).toBe("info");
-		expect(entries[0]!.message).toBe("Application started");
+		expect(entries[0]?.level).toBe("info");
+		expect(entries[0]?.message).toBe("Application started");
 	});
 
 	test("logs at explicit level", () => {
@@ -42,8 +42,8 @@ describe("Basic logging", () => {
 		log(log.WARN, "Connection slow");
 
 		expect(entries).toHaveLength(1);
-		expect(entries[0]!.level).toBe("warn");
-		expect(entries[0]!.message).toBe("Connection slow");
+		expect(entries[0]?.level).toBe("warn");
+		expect(entries[0]?.message).toBe("Connection slow");
 	});
 
 	test("logs with context object", () => {
@@ -56,8 +56,8 @@ describe("Basic logging", () => {
 		log(log.ERROR, "Failed to save", { userId: "123" });
 
 		expect(entries).toHaveLength(1);
-		expect(entries[0]!.level).toBe("error");
-		expect(entries[0]!.context).toEqual({ userId: "123" });
+		expect(entries[0]?.level).toBe("error");
+		expect(entries[0]?.context).toEqual({ userId: "123" });
 	});
 
 	test("filters messages below configured level", () => {
@@ -72,7 +72,7 @@ describe("Basic logging", () => {
 		log(log.WARN, "Warning message");
 
 		expect(entries).toHaveLength(1);
-		expect(entries[0]!.level).toBe("warn");
+		expect(entries[0]?.level).toBe("warn");
 	});
 });
 
@@ -88,8 +88,8 @@ describe("Err integration", () => {
 		log(log.ERROR, "Data fetch failed", err);
 
 		expect(entries).toHaveLength(1);
-		expect(entries[0]!.context).toHaveProperty("err");
-		expect(Err.isErr(entries[0]!.context.err)).toBe(true);
+		expect(entries[0]?.context).toHaveProperty("err");
+		expect(Err.isErr(entries[0]?.context.err)).toBe(true);
 	});
 });
 
@@ -105,8 +105,8 @@ describe("Child loggers", () => {
 		dbLogger("Connected to postgres");
 
 		expect(entries).toHaveLength(1);
-		expect(entries[0]!.modules).toEqual(["test", "database"]);
-		expect(entries[0]!.context).toEqual({ version: "1.0" });
+		expect(entries[0]?.modules).toEqual(["test", "database"]);
+		expect(entries[0]?.context).toEqual({ version: "1.0" });
 	});
 
 	test("nested child loggers accumulate modules", () => {
@@ -121,7 +121,7 @@ describe("Child loggers", () => {
 		userLogger("User created");
 
 		expect(entries).toHaveLength(1);
-		expect(entries[0]!.modules).toEqual(["test", "database", "users"]);
+		expect(entries[0]?.modules).toEqual(["test", "database", "users"]);
 	});
 });
 
@@ -142,8 +142,8 @@ describe("Custom transports", () => {
 		testLogger(testLogger.ERROR, "Second message");
 
 		expect(entries).toHaveLength(2);
-		expect(entries[0]!.level).toBe("info");
-		expect(entries[1]!.level).toBe("error");
+		expect(entries[0]?.level).toBe("info");
+		expect(entries[1]?.level).toBe("error");
 	});
 });
 
