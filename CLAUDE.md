@@ -140,8 +140,19 @@ Build entry is `index.ts` at root which re-exports from `src/`. Tests, benchmark
 ### Inline JSDoc rules
 
 - Module header: ≤ 3 lines summary + `@see` reference. No `@example` blocks
-- No `@example` in implementation files — use `@see filename.examples.test.ts` (plain text, no `{@link}`)
-- Never use `{@link}` to reference `.ts` files — TypeDoc copies them to `_media/` and fails
+- No `@example` in implementation files — use `@see [file.examples.test.ts](../../src/.../file.examples.test.ts)`
+- `{@link}` only for TypeScript symbols (classes, methods). Never for `.ts` file paths — TypeDoc copies them to `_media/` and breaks builds
 - `@example` in `*.types.ts` only if non-obvious from signature, max 5 lines
 - Never repeat invariants per method — state once at class/module level
 - Delete examples that restate the type signature
+
+### TypeDoc / generated docs rules
+
+- No hardcoded GitHub commit URLs — `typedoc.json` uses `sourceLinkTemplate` with relative paths and `disableGit: true`
+- `gen_docs` pipeline: `pregen_docs` cleans `_media/` → `typedoc` generates → `fix-docs-links.sh.ts` replaces `_media/` links with relative `src/` paths
+- All "Defined in" links must be relative from `docs/api/` (e.g., `../../src/types/err.ts#L23`)
+
+### TypeScript patterns
+
+- `Outcome.err()` returns `Outcome<never>` — when testing `defaultTo`/`either`, cast first: `const o = Outcome.err("msg") as Outcome<number>`
+- Do not use `Outcome.err<T>()` — the static method accepts 0 type parameters
