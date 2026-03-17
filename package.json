@@ -1,6 +1,6 @@
 {
 	"name": "@pencroff-lab/kore",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"description": "Core utilities library",
 	"license": "Apache-2.0",
 	"author": "Pencroff",
@@ -49,7 +49,10 @@
 		"pregen_docs": "rm -rf docs/api/_media",
 		"gen_docs": "typedoc && bun scripts/fix-docs-links.sh.ts",
 		"changelog": "git-cliff -o CHANGELOG.md",
-		"changelog:latest": "git-cliff --latest --strip header"
+		"changelog:latest": "git-cliff --latest --strip header",
+		"bump_version": "git-cliff --bump -o CHANGELOG.md",
+		"bump_echo": "echo 'Update package.json to version' && git-cliff --bumped-version",
+		"release": "bun run test:coverage && bun run lint && bun run build && bun run gen_docs && bun run bump_version && bun run bump_echo"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.2",
