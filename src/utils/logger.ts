@@ -1,66 +1,7 @@
 /**
  * Structured logging utility with transport DI and Err integration.
  *
- * This module provides a flexible, callable logger with a transport abstraction,
- * built-in pretty console transport, and zero external runtime dependencies
- * beyond `fast-safe-stringify`.
- *
- * ## Design Philosophy
- *
- * The logger is designed as a callable function with overloaded signatures.
- * Transports are injectable, making the logger testable without streams or
- * process-level side effects. The built-in pretty transport renders to stderr
- * with ANSI colors and automatic Err formatting.
- *
- * ## Basic Usage
- *
- * @example Simple logging
- * ```typescript
- * import { log } from './utils/logger';
- *
- * log('Application started');                           // INFO level by default
- * log(log.WARN, 'Connection slow');                     // Explicit level
- * log(log.ERROR, 'Failed to save', { userId: '123' });  // With context
- * ```
- *
- * @example Logging with Err instances
- * ```typescript
- * import { Err } from './types/err';
- * import { log } from './utils/logger';
- *
- * const [data, err] = fetchData();
- * if (err) {
- *   log(log.ERROR, 'Data fetch failed', err);
- *   return;
- * }
- * ```
- *
- * @example Child loggers with module context
- * ```typescript
- * const dbLogger = log.child('database', { version: '1.0' });
- * dbLogger('Connected to postgres');
- * // Output: [database] Connected to postgres
- *
- * const userLogger = dbLogger.child('users');
- * userLogger('User created');
- * // Output: [database] [users] User created
- * ```
- *
- * @example Custom transport for testing
- * ```typescript
- * import { createLogger, lvl } from './utils/logger';
- * import type { LogEntry, LogTransport } from './utils/logger';
- *
- * const entries: LogEntry[] = [];
- * const spy: LogTransport = { write(e) { entries.push(e); } };
- * const testLogger = createLogger('test', { transports: [spy], level: lvl.TRACE });
- * ```
- *
- * ## Configuration
- *
- * The logger reads configuration from environment variables:
- * - `LOG_LEVEL`: Minimum level to log (trace|debug|info|warn|error|fatal). Default: 'info'
- *
+ * @see {@link logger.examples.test.ts} for usage patterns
  * @module logger
  */
 
@@ -111,20 +52,6 @@ interface LogEntry {
 /**
  * Transport interface — receives a `LogEntry` for each log call that passes
  * the level filter. Implement this to integrate any logging backend.
- *
- * @example Pino transport
- * ```typescript
- * import pino from 'pino';
- * import type { LogTransport, LogEntry } from '@pencroff-lab/kore';
- *
- * const pinoInstance = pino();
- * const pinoTransport: LogTransport = {
- *   write(entry: LogEntry) {
- *     const prefix = entry.modules.map(m => `[${m}] `).join('');
- *     pinoInstance[entry.level](entry.context, prefix + entry.message);
- *   }
- * };
- * ```
  */
 interface LogTransport {
 	write(entry: LogEntry): void;
@@ -523,27 +450,6 @@ function buildLogger(
  * @param module - Optional module name added as the first entry in `modules`
  * @param options - Optional configuration
  * @returns New Logger instance
- *
- * @example Basic usage
- * ```typescript
- * const logger = createLogger();
- * logger('Application ready');
- * ```
- *
- * @example Module-specific logger
- * ```typescript
- * const dbLogger = createLogger('database');
- * dbLogger('Connected');
- * ```
- *
- * @example Testing with spy transport
- * ```typescript
- * import type { LogEntry, LogTransport } from './utils/logger';
- *
- * const entries: LogEntry[] = [];
- * const spy: LogTransport = { write(e) { entries.push(e); } };
- * const testLogger = createLogger('test', { transports: [spy], level: lvl.TRACE });
- * ```
  */
 function createLogger(module?: string, options?: LoggerOptions): Logger {
 	const level = options?.level ?? getLogLevel();
@@ -554,21 +460,6 @@ function createLogger(module?: string, options?: LoggerOptions): Logger {
 
 /**
  * Default logger instance for application-wide logging.
- *
- * @example Basic usage
- * ```typescript
- * import { log } from './utils/logger';
- *
- * log('Application started');
- * log(log.INFO, 'Server listening', { port: 3000 });
- * log(log.ERROR, 'Startup failed', err);
- * ```
- *
- * @example Module-specific logging via child
- * ```typescript
- * const dbLogger = log.child('database');
- * dbLogger('Connection pool initialized');
- * ```
  */
 export const log = createLogger();
 

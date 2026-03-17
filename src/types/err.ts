@@ -1,111 +1,7 @@
 /**
- * Error-as-value implementation for TypeScript applications.
+ * Immutable, value-based error type with wrapping and aggregation.
  *
- * This module provides a Go-style error handling approach where errors are
- * passed as values rather than thrown as exceptions. The `Err` class supports
- * both single error wrapping with context and error aggregation.
- *
- * ## Immutability Contract
- *
- * All `Err` instances are immutable. Methods that appear to modify an error
- * (like `wrap`, `withCode`, `withMetadata`, `add`) return new instances.
- * The original error is never mutated. This means:
- *
- * - Safe to pass errors across boundaries without defensive copying
- * - Method chaining always produces new instances
- * - No "spooky action at a distance" bugs
- *
- * @example Basic usage with tuple pattern
- * ```typescript
- * import { Err } from './err';
- *
- * function divide(a: number, b: number): [number, null] | [null, Err] {
- *   if (b === 0) {
- *     return [null, Err.from('Division by zero', 'MATH_ERROR')];
- *   }
- *   return [a / b, null];
- * }
- *
- * const [result, err] = divide(10, 0);
- * if (err) {
- *   console.error(err.toString());
- *   return;
- * }
- * console.log(result); // result is number here
- * ```
- *
- * @example Error wrapping with context
- * ```typescript
- * function readConfig(path: string): [Config, null] | [null, Err] {
- *   const [content, readErr] = readFile(path);
- *   if (readErr) {
- *     return [null, readErr.wrap(`Failed to read config from ${path}`)];
- *   }
- *
- *   const [parsed, parseErr] = parseJSON(content);
- *   if (parseErr) {
- *     return [null, parseErr
- *       .wrap('Invalid config format')
- *       .withCode('CONFIG_ERROR')
- *       .withMetadata({ path })];
- *   }
- *
- *   return [parsed as Config, null];
- * }
- * ```
- *
- * @example Static wrap for catching native errors
- * ```typescript
- * function parseData(raw: string): [Data, null] | [null, Err] {
- *   try {
- *     return [JSON.parse(raw), null];
- *   } catch (e) {
- *     return [null, Err.wrap('Failed to parse data', e as Error)];
- *   }
- * }
- * ```
- *
- * @example Aggregating multiple errors
- * ```typescript
- * function validateUser(input: UserInput): [User, null] | [null, Err] {
- *   let errors = Err.aggregate('Validation failed');
- *
- *   if (!input.name?.trim()) {
- *     errors = errors.add('Name is required');
- *   }
- *   if (!input.email?.includes('@')) {
- *     errors = errors.add(Err.from('Invalid email', 'INVALID_EMAIL'));
- *   }
- *   if (input.age !== undefined && input.age < 0) {
- *     errors = errors.add('Age cannot be negative');
- *   }
- *
- *   if (errors.count > 0) {
- *     return [null, errors.withCode('VALIDATION_ERROR')];
- *   }
- *
- *   return [input as User, null];
- * }
- * ```
- *
- * @example Serialization for service-to-service communication
- * ```typescript
- * // Backend: serialize error for API response
- * const err = Err.from('User not found', 'NOT_FOUND');
- * res.status(404).json({ error: err.toJSON() });
- *
- * // Frontend: deserialize error from API response
- * const response = await fetch('/api/user/123');
- * if (!response.ok) {
- *   const { error } = await response.json();
- *   const err = Err.fromJSON(error);
- *   console.log(err.code); // 'NOT_FOUND'
- * }
- *
- * // Public API: omit stack traces
- * res.json({ error: err.toJSON({ stack: false }) });
- * ```
- *
+ * @see {@link err.examples.test.ts} for usage patterns
  * @module err
  */
 
@@ -120,60 +16,9 @@ import type {
 export type { ErrCode, ErrJSON, ErrJSONOptions, ErrOptions, ToStringOptions };
 
 /**
- * A value-based error type that supports wrapping and aggregation.
- *
- * `Err` is designed to be returned from functions instead of throwing exceptions,
- * following the Go-style error handling pattern. It supports:
- *
- * - **Single errors**: Created via `Err.from()` with optional code and metadata
- * - **Error wrapping**: Adding context to errors as they propagate up the call stack
- * - **Error aggregation**: Collecting multiple errors under a single parent (e.g., validation)
- * - **Serialization**: Convert to/from JSON for service-to-service communication
+ * A value-based error type that supports wrapping, aggregation, and serialization.
  *
  * All instances are immutable - methods return new instances rather than mutating.
- *
- * @example Creating errors
- * ```typescript
- * // From string with code (most common)
- * const err1 = Err.from('User not found', 'NOT_FOUND');
- *
- * // From string with full options
- * const err2 = Err.from('Connection timeout', {
- *   code: 'TIMEOUT',
- *   metadata: { host: 'api.example.com' }
- * });
- *
- * // From native Error (preserves original stack and cause chain)
- * try {
- *   riskyOperation();
- * } catch (e) {
- *   const err = Err.from(e).withCode('OPERATION_FAILED');
- *   return [null, err];
- * }
- *
- * // From unknown (safe for catch blocks)
- * const err3 = Err.from(unknownValue);
- * ```
- *
- * @example Wrapping errors with static method
- * ```typescript
- * try {
- *   await db.query(sql);
- * } catch (e) {
- *   return [null, Err.wrap('Database query failed', e as Error)];
- * }
- * ```
- *
- * @example Aggregating errors
- * ```typescript
- * let errors = Err.aggregate('Multiple operations failed')
- *   .add(Err.from('Database write failed'))
- *   .add(Err.from('Cache invalidation failed'))
- *   .add('Notification send failed'); // strings are auto-wrapped
- *
- * console.log(errors.count); // 3
- * console.log(errors.flatten()); // Array of all individual errors
- * ```
  */
 export class Err {
 	/**
@@ -185,23 +30,6 @@ export class Err {
 	/**
 	 * Discriminator property for type narrowing.
 	 * Always `true` for Err instances.
-	 *
-	 * Useful when checking values from external sources (API responses,
-	 * message queues) where `instanceof` may not work.
-	 *
-	 * @example
-	 * ```typescript
-	 * // Checking unknown values from API
-	 * const data = await response.json();
-	 * if (data.error?.isErr) {
-	 *   // Likely an Err-like object
-	 * }
-	 *
-	 * // For type narrowing, prefer Err.isErr()
-	 * if (Err.isErr(value)) {
-	 *   console.error(value.message);
-	 * }
-	 * ```
 	 */
 	readonly isErr = true as const;
 
@@ -263,9 +91,7 @@ export class Err {
 			this._stack = options.stack;
 		} else {
 			const rawStack = new Error().stack;
-			this._stack = rawStack
-				? Err._filterInternalFrames(rawStack)
-				: undefined;
+			this._stack = rawStack ? Err._filterInternalFrames(rawStack) : undefined;
 		}
 	}
 
@@ -279,11 +105,6 @@ export class Err {
 	 * @param message - Error message
 	 * @param code - Optional error code
 	 * @returns New Err instance
-	 *
-	 * @example
-	 * ```typescript
-	 * const err = Err.from('User not found', 'NOT_FOUND');
-	 * ```
 	 */
 	static from(message: string, code?: ErrCode): Err;
 
@@ -293,37 +114,17 @@ export class Err {
 	 * @param message - Error message
 	 * @param options - Code and metadata options
 	 * @returns New Err instance
-	 *
-	 * @example
-	 * ```typescript
-	 * const err = Err.from('Connection timeout', {
-	 *   code: 'TIMEOUT',
-	 *   metadata: { host: 'api.example.com', timeoutMs: 5000 }
-	 * });
-	 * ```
 	 */
 	static from(message: string, options: ErrOptions): Err;
 
 	/**
 	 * Create an Err from a native Error.
 	 *
-	 * Preserves the original error's:
-	 * - Stack trace (as primary stack for debugging)
-	 * - Cause chain (if `error.cause` is Error or string)
-	 * - Name (in metadata as `originalName`)
+	 * Preserves the original error's stack trace, cause chain, and name.
 	 *
 	 * @param error - Native Error instance
 	 * @param options - Optional overrides for message, code, and metadata
 	 * @returns New Err instance
-	 *
-	 * @example
-	 * ```typescript
-	 * try {
-	 *   JSON.parse(invalidJson);
-	 * } catch (e) {
-	 *   return Err.from(e as Error, { code: 'PARSE_ERROR' });
-	 * }
-	 * ```
 	 */
 	static from(error: Error, options?: ErrOptions): Err;
 
@@ -333,34 +134,15 @@ export class Err {
 	 * @param error - Existing Err instance
 	 * @param options - Optional overrides
 	 * @returns New Err instance with merged properties
-	 *
-	 * @example
-	 * ```typescript
-	 * const original = Err.from('Original error');
-	 * const modified = Err.from(original, { code: 'NEW_CODE' });
-	 * ```
 	 */
 	static from(error: Err, options?: ErrOptions): Err;
 
 	/**
 	 * Create an Err from an unknown value (safe for catch blocks).
 	 *
-	 * Handles any value that might be thrown, including non-Error objects,
-	 * strings, numbers, null, and undefined.
-	 *
 	 * @param error - Any value
 	 * @param options - Optional code and metadata
 	 * @returns New Err instance
-	 *
-	 * @example
-	 * ```typescript
-	 * try {
-	 *   await riskyAsyncOperation();
-	 * } catch (e) {
-	 *   // Safe - handles any thrown value
-	 *   return Err.from(e).wrap('Operation failed');
-	 * }
-	 * ```
 	 */
 	static from(error: unknown, options?: ErrOptions): Err;
 
@@ -422,36 +204,12 @@ export class Err {
 	/**
 	 * Static convenience method to wrap an error with a context message.
 	 *
-	 * Creates a new Err with the provided message, having the original
-	 * error as its cause. This is the recommended pattern for catch blocks.
-	 *
 	 * @param message - Context message explaining what operation failed
 	 * @param error - The original error (Err, Error, or string)
 	 * @param options - Optional code and metadata for the wrapper
 	 * @returns New Err instance with the original as cause
 	 *
 	 * @see {@link Err.prototype.wrap} for the instance method
-	 *
-	 * @example Basic usage in catch block
-	 * ```typescript
-	 * try {
-	 *   await db.query(sql);
-	 * } catch (e) {
-	 *   return Err.wrap('Database query failed', e as Error);
-	 * }
-	 * ```
-	 *
-	 * @example With code and metadata
-	 * ```typescript
-	 * try {
-	 *   const user = await fetchUser(id);
-	 * } catch (e) {
-	 *   return Err.wrap('Failed to fetch user', e as Error, {
-	 *     code: 'USER_FETCH_ERROR',
-	 *     metadata: { userId: id }
-	 *   });
-	 * }
-	 * ```
 	 */
 	static wrap(
 		message: string,
@@ -469,45 +227,10 @@ export class Err {
 	/**
 	 * Create an aggregate error for collecting multiple errors.
 	 *
-	 * Useful for validation, batch operations, or any scenario where
-	 * multiple errors should be collected and reported together.
-	 *
 	 * @param message - Parent error message describing the aggregate
 	 * @param errors - Optional initial list of errors
 	 * @param options - Optional code and metadata for the aggregate
 	 * @returns New aggregate Err instance
-	 *
-	 * @example Validation
-	 * ```typescript
-	 * function validate(data: Input): [Valid, null] | [null, Err] {
-	 *   let errors = Err.aggregate('Validation failed');
-	 *
-	 *   if (!data.email) errors = errors.add('Email is required');
-	 *   if (!data.name) errors = errors.add('Name is required');
-	 *
-	 *   if (errors.count > 0) {
-	 *     return [null, errors.withCode('VALIDATION_ERROR')];
-	 *   }
-	 *   return [data as Valid, null];
-	 * }
-	 * ```
-	 *
-	 * @example Batch operations
-	 * ```typescript
-	 * async function processAll(items: Item[]): [null, Err] | [void, null] {
-	 *   let errors = Err.aggregate('Batch processing failed');
-	 *
-	 *   for (const item of items) {
-	 *     const [, err] = await processItem(item);
-	 *     if (err) {
-	 *       errors = errors.add(err.withMetadata({ itemId: item.id }));
-	 *     }
-	 *   }
-	 *
-	 *   if (errors.count > 0) return [null, errors];
-	 *   return [undefined, null];
-	 * }
-	 * ```
 	 */
 	static aggregate(
 		message: string,
@@ -525,37 +248,11 @@ export class Err {
 	/**
 	 * Deserialize an Err from JSON representation.
 	 *
-	 * Reconstructs an Err instance from its JSON form, including
-	 * cause chains and aggregated errors. Validates the input structure.
-	 *
 	 * @param json - JSON object matching ErrJSON structure
 	 * @returns Reconstructed Err instance
 	 * @throws Error if json is invalid or missing required fields
 	 *
 	 * @see {@link toJSON} for serializing an Err to JSON
-	 *
-	 * @example API response handling
-	 * ```typescript
-	 * const response = await fetch('/api/users/123');
-	 * if (!response.ok) {
-	 *   const body = await response.json();
-	 *   if (body.error) {
-	 *     const err = Err.fromJSON(body.error);
-	 *     if (err.hasCode('NOT_FOUND')) {
-	 *       return showNotFound();
-	 *     }
-	 *     return showError(err);
-	 *   }
-	 * }
-	 * ```
-	 *
-	 * @example Message queue processing
-	 * ```typescript
-	 * queue.on('error', (message) => {
-	 *   const err = Err.fromJSON(message.payload);
-	 *   logger.error('Task failed', { error: err.toJSON() });
-	 * });
-	 * ```
 	 */
 	static fromJSON(json: unknown): Err {
 		// Validate input is an object
@@ -631,37 +328,8 @@ export class Err {
 	/**
 	 * Type guard to check if a value is an Err instance.
 	 *
-	 * Useful for checking values from external sources where
-	 * `instanceof` may not work (different realms, serialization).
-	 *
 	 * @param value - Any value to check
 	 * @returns `true` if value is an Err instance
-	 *
-	 * @example Checking external/unknown values
-	 * ```typescript
-	 * // Useful for values from external sources
-	 * function handleApiResponse(data: unknown): void {
-	 *   if (Err.isErr(data)) {
-	 *     console.error('Received error:', data.message);
-	 *     return;
-	 *   }
-	 *   // Process data...
-	 * }
-	 * ```
-	 *
-	 * @example With tuple pattern (preferred for known types)
-	 * ```typescript
-	 * function getUser(id: string): [User, null] | [null, Err] {
-	 *   // ...
-	 * }
-	 *
-	 * const [user, err] = getUser('123');
-	 * if (err) {
-	 *   console.error(err.message);
-	 *   return;
-	 * }
-	 * console.log(user.name);
-	 * ```
 	 */
 	static isErr(value: unknown): value is Err {
 		return (
@@ -669,8 +337,7 @@ export class Err {
 			(!!value &&
 				typeof value === "object" &&
 				// biome-ignore lint/suspicious/noExplicitAny: value can be any in this check
-				((value as any).isErr === true ||
-					(value as any).kind === "Err"))
+				((value as any).isErr === true || (value as any).kind === "Err"))
 		);
 	}
 
@@ -681,50 +348,14 @@ export class Err {
 	/**
 	 * Wrap this error with additional context.
 	 *
-	 * Creates a new error that has this error as its cause. The original error
-	 * is preserved and accessible via `unwrap()` or `chain()`.
-	 *
-	 * ## Stack Trace Behavior
-	 *
-	 * The new wrapper captures a fresh stack trace pointing to where `wrap()`
-	 * was called. This is intentional - it shows the propagation path. The
-	 * original error's stack is preserved and accessible via:
-	 * - `err.unwrap()?.stack` - immediate cause's stack
-	 * - `err.root.stack` - original error's stack
-	 *
 	 * @param context - Either a message string or full options object
 	 * @returns New Err instance with this error as cause
 	 *
 	 * @see {@link Err.wrap} for the static version (useful in catch blocks)
-	 *
-	 * @example Simple wrapping
-	 * ```typescript
-	 * const dbErr = queryDatabase();
-	 * if (Err.isErr(dbErr)) {
-	 *   return dbErr.wrap('Failed to fetch user');
-	 * }
-	 * ```
-	 *
-	 * @example Wrapping with full options
-	 * ```typescript
-	 * return originalErr.wrap({
-	 *   message: 'Service unavailable',
-	 *   code: 'SERVICE_ERROR',
-	 *   metadata: { service: 'user-service', retryAfter: 30 }
-	 * });
-	 * ```
-	 *
-	 * @example Accessing original stack
-	 * ```typescript
-	 * const wrapped = original.wrap('Context 1').wrap('Context 2');
-	 * console.log(wrapped.stack);       // Points to second wrap() call
-	 * console.log(wrapped.root.stack);  // Points to original error location
-	 * ```
 	 */
 	// biome-ignore lint/suspicious/useAdjacentOverloadSignatures: bug, notice static and non-static signatures as of 31/12/2025
 	wrap(context: string | ErrOptions): Err {
-		const opts =
-			typeof context === "string" ? { message: context } : context;
+		const opts = typeof context === "string" ? { message: context } : context;
 		return new Err(opts.message ?? this.message, {
 			code: opts.code,
 			cause: this,
@@ -736,19 +367,8 @@ export class Err {
 	/**
 	 * Create a new Err with a different or added error code.
 	 *
-	 * Preserves the original stack trace and timestamp.
-	 *
 	 * @param code - The error code to set
 	 * @returns New Err instance with the specified code
-	 *
-	 * @example
-	 * ```typescript
-	 * const err = Err.from('Record not found').withCode('NOT_FOUND');
-	 *
-	 * if (err.code === 'NOT_FOUND') {
-	 *   return res.status(404).json(err.toJSON());
-	 * }
-	 * ```
 	 */
 	withCode(code: ErrCode): Err {
 		return new Err(this.message, {
@@ -764,21 +384,8 @@ export class Err {
 	/**
 	 * Create a new Err with additional metadata.
 	 *
-	 * New metadata is merged with existing metadata. Preserves the original
-	 * stack trace and timestamp.
-	 *
 	 * @param metadata - Key-value pairs to add to metadata
 	 * @returns New Err instance with merged metadata
-	 *
-	 * @example
-	 * ```typescript
-	 * const err = Err.from('Request failed')
-	 *   .withMetadata({ url: '/api/users' })
-	 *   .withMetadata({ statusCode: 500, retryable: true });
-	 *
-	 * console.log(err.metadata);
-	 * // { url: '/api/users', statusCode: 500, retryable: true }
-	 * ```
 	 */
 	withMetadata(metadata: Record<string, unknown>): Err {
 		return new Err(this.message, {
@@ -798,26 +405,10 @@ export class Err {
 	/**
 	 * Check if metadata exists for a given key.
 	 *
-	 * By default, returns `true` only if the key exists and the value is not
-	 * `null` or `undefined`. With `keyCheck: true`, returns `true` if the key
-	 * exists in the metadata object, regardless of value.
-	 *
-	 * Only checks the current instance metadata, not the cause chain.
-	 *
 	 * @param key - The metadata key to check
 	 * @param options - Optional configuration
 	 * @param options.keyCheck - If true, only checks key existence (default: false)
 	 * @returns true if metadata exists according to the selected mode
-	 *
-	 * @example
-	 * ```typescript
-	 * const err = Err.from("Test").withMetadata({ url: "/api", status: null });
-	 *
-	 * err.hasMetadata("url"); // true (value exists)
-	 * err.hasMetadata("status"); // false (null value)
-	 * err.hasMetadata("status", { keyCheck: true }); // true (key exists)
-	 * err.hasMetadata("missing"); // false
-	 * ```
 	 */
 	hasMetadata(key: string, options?: { keyCheck?: boolean }): boolean {
 		if (this.metadata === undefined) {
@@ -840,29 +431,10 @@ export class Err {
 	/**
 	 * Get metadata value for a given key.
 	 *
-	 * Returns the value if the key exists, otherwise returns the `defaultValue`
-	 * if provided, or `undefined`. No type validation is performed at runtime.
-	 *
-	 * Only checks the current instance metadata, not the cause chain.
-	 *
 	 * @template T - The expected type of the metadata value
 	 * @param key - The metadata key to retrieve
 	 * @param defaultValue - Optional default value if key is missing
 	 * @returns The metadata value or default, cast to type T
-	 *
-	 * @example
-	 * ```typescript
-	 * const err = Err.from("Test").withMetadata({
-	 *   url: "/api/users",
-	 *   count: 42,
-	 *   tags: ["important", "retry"],
-	 * });
-	 *
-	 * const url = err.getMetadata<string>("url"); // "/api/users"
-	 * const count = err.getMetadata<number>("count"); // 42
-	 * const missing = err.getMetadata("missing"); // undefined
-	 * const withDefault = err.getMetadata("missing", "default"); // "default"
-	 * ```
 	 */
 	getMetadata<T = unknown>(key: string): T | undefined;
 	getMetadata<T = unknown>(key: string, defaultValue: T): T;
@@ -881,28 +453,8 @@ export class Err {
 	/**
 	 * Create a new Err instance with specified metadata keys removed.
 	 *
-	 * Returns a new Err with the specified key(s) deleted from metadata.
-	 * If removing keys results in empty metadata, metadata is set to `undefined`.
-	 * Preserves cause chain, code, timestamp, stack, and aggregated errors.
-	 *
 	 * @param key - Single key or array of keys to remove
 	 * @returns New Err instance with keys omitted
-	 *
-	 * @example
-	 * ```typescript
-	 * const err = Err.from("Test", {
-	 *   metadata: { url: "/api", token: "secret", retryable: true },
-	 * });
-	 *
-	 * const sanitized = err.omitMetadata("token");
-	 * // sanitized.metadata = { url: "/api", retryable: true }
-	 *
-	 * const minimal = err.omitMetadata(["url", "retryable"]);
-	 * // minimal.metadata = { token: "secret" }
-	 *
-	 * const empty = err.omitMetadata(["url", "token", "retryable"]);
-	 * // empty.metadata = undefined
-	 * ```
 	 */
 	omitMetadata(key: string | string[]): Err {
 		const keysToRemove = Array.isArray(key) ? key : [key];
@@ -943,24 +495,8 @@ export class Err {
 	/**
 	 * Add an error to this aggregate.
 	 *
-	 * Returns a new Err with the error added to the list (immutable).
-	 * If this is not an aggregate error, it will be treated as one with
-	 * the added error as the first child.
-	 *
 	 * @param error - Error to add (Err, Error, or string)
 	 * @returns New Err instance with the error added
-	 *
-	 * @example
-	 * ```typescript
-	 * let errors = Err.aggregate('Form validation failed');
-	 *
-	 * if (!email) {
-	 *   errors = errors.add('Email is required');
-	 * }
-	 * if (!password) {
-	 *   errors = errors.add(Err.from('Password is required').withCode('MISSING_PASSWORD'));
-	 * }
-	 * ```
 	 */
 	add(error: Err | Error | string): Err {
 		const wrapped = Err.isErr(error) ? error : Err.from(error);
@@ -978,21 +514,8 @@ export class Err {
 	/**
 	 * Add multiple errors to this aggregate at once.
 	 *
-	 * Returns a new Err with all errors added (immutable).
-	 *
 	 * @param errors - Array of errors to add
 	 * @returns New Err instance with all errors added
-	 *
-	 * @example
-	 * ```typescript
-	 * const validationErrors = [
-	 *   'Name too short',
-	 *   Err.from('Invalid email format').withCode('INVALID_EMAIL'),
-	 *   new Error('Age must be positive'),
-	 * ];
-	 *
-	 * const aggregate = Err.aggregate('Validation failed').addAll(validationErrors);
-	 * ```
 	 */
 	addAll(errors: Array<Err | Error | string>): Err {
 		return errors.reduce<Err>((acc, err) => acc.add(err), this);
@@ -1004,15 +527,6 @@ export class Err {
 
 	/**
 	 * Whether this error is an aggregate containing multiple errors.
-	 *
-	 * @example
-	 * ```typescript
-	 * const single = Err.from('Single error');
-	 * const multi = Err.aggregate('Multiple').add('One').add('Two');
-	 *
-	 * console.log(single.isAggregate); // false
-	 * console.log(multi.isAggregate);  // true
-	 * ```
 	 */
 	get isAggregate(): boolean {
 		return this._errors.length > 0;
@@ -1020,21 +534,6 @@ export class Err {
 
 	/**
 	 * Total count of errors (including nested aggregates).
-	 *
-	 * For single errors, returns 1.
-	 * For aggregates, recursively counts all child errors.
-	 *
-	 * @example
-	 * ```typescript
-	 * const single = Err.from('One error');
-	 * console.log(single.count); // 1
-	 *
-	 * const nested = Err.aggregate('Parent')
-	 *   .add('Error 1')
-	 *   .add(Err.aggregate('Child').add('Error 2').add('Error 3'));
-	 *
-	 * console.log(nested.count); // 3
-	 * ```
 	 */
 	get count(): number {
 		if (this.isAggregate) {
@@ -1045,21 +544,6 @@ export class Err {
 
 	/**
 	 * Direct child errors (for aggregates).
-	 *
-	 * Returns an empty array for non-aggregate errors.
-	 *
-	 * @example
-	 * ```typescript
-	 * const aggregate = Err.aggregate('Batch failed')
-	 *   .add('Task 1 failed')
-	 *   .add('Task 2 failed');
-	 *
-	 * for (const err of aggregate.errors) {
-	 *   console.log(err.message);
-	 * }
-	 * // "Task 1 failed"
-	 * // "Task 2 failed"
-	 * ```
 	 */
 	get errors(): ReadonlyArray<Err> {
 		return this._errors;
@@ -1067,21 +551,6 @@ export class Err {
 
 	/**
 	 * The root/original error in a wrapped error chain.
-	 *
-	 * Follows the cause chain to find the deepest error.
-	 * Returns `this` if there is no cause.
-	 *
-	 * @example
-	 * ```typescript
-	 * const root = Err.from('Original error');
-	 * const wrapped = root
-	 *   .wrap('Added context')
-	 *   .wrap('More context');
-	 *
-	 * console.log(wrapped.message);      // "More context"
-	 * console.log(wrapped.root.message); // "Original error"
-	 * console.log(wrapped.root.stack);   // Stack pointing to original error
-	 * ```
 	 */
 	get root(): Err {
 		return this._cause?.root ?? this;
@@ -1090,19 +559,7 @@ export class Err {
 	/**
 	 * Get the directly wrapped error (one level up).
 	 *
-	 * Returns `undefined` if this error has no cause.
-	 *
 	 * @returns The wrapped Err or undefined
-	 *
-	 * @example
-	 * ```typescript
-	 * const inner = Err.from('DB connection failed');
-	 * const outer = inner.wrap('Could not save user');
-	 *
-	 * const unwrapped = outer.unwrap();
-	 * console.log(unwrapped?.message); // "DB connection failed"
-	 * console.log(inner.unwrap());     // undefined
-	 * ```
 	 */
 	unwrap(): Err | undefined {
 		return this._cause;
@@ -1111,29 +568,7 @@ export class Err {
 	/**
 	 * Get the full chain of wrapped errors from root to current.
 	 *
-	 * The first element is the root/original error, the last is `this`.
-	 *
 	 * @returns Array of Err instances in causal order
-	 *
-	 * @remarks
-	 * Time complexity: O(n) where n is the depth of the cause chain.
-	 *
-	 * @example
-	 * ```typescript
-	 * const chain = Err.from('Network timeout')
-	 *   .wrap('API request failed')
-	 *   .wrap('Could not refresh token')
-	 *   .wrap('Authentication failed')
-	 *   .chain();
-	 *
-	 * console.log(chain.map(e => e.message));
-	 * // [
-	 * //   "Network timeout",
-	 * //   "API request failed",
-	 * //   "Could not refresh token",
-	 * //   "Authentication failed"
-	 * // ]
-	 * ```
 	 */
 	chain(): Err[] {
 		const result: Err[] = [];
@@ -1148,28 +583,7 @@ export class Err {
 	/**
 	 * Flatten all errors into a single array.
 	 *
-	 * For aggregates, recursively collects all leaf errors.
-	 * For single errors, returns an array containing just this error.
-	 *
 	 * @returns Flattened array of all individual errors
-	 *
-	 * @remarks
-	 * Time complexity: O(n) where n is the total number of errors in all nested aggregates.
-	 * Recursively traverses the error tree.
-	 *
-	 * @example
-	 * ```typescript
-	 * const nested = Err.aggregate('All errors')
-	 *   .add('Error A')
-	 *   .add(Err.aggregate('Group B')
-	 *     .add('Error B1')
-	 *     .add('Error B2'))
-	 *   .add('Error C');
-	 *
-	 * const flat = nested.flatten();
-	 * console.log(flat.map(e => e.message));
-	 * // ["Error A", "Error B1", "Error B2", "Error C"]
-	 * ```
 	 */
 	flatten(): Err[] {
 		if (!this.isAggregate) {
@@ -1185,20 +599,8 @@ export class Err {
 	/**
 	 * Check if this error or any error in its chain/aggregate has a specific code.
 	 *
-	 * Searches the cause chain and all aggregated errors.
-	 *
 	 * @param code - The error code to search for
 	 * @returns `true` if the code is found anywhere in the error tree
-	 *
-	 * @example
-	 * ```typescript
-	 * const err = Err.from('DB error', 'DB_ERROR')
-	 *   .wrap('Repository failed')
-	 *   .wrap('Service unavailable');
-	 *
-	 * console.log(err.hasCode('DB_ERROR'));      // true
-	 * console.log(err.hasCode('NETWORK_ERROR')); // false
-	 * ```
 	 */
 	hasCode(code: ErrCode): boolean {
 		// if (this.code === code) return true;
@@ -1208,48 +610,11 @@ export class Err {
 	}
 
 	/**
-	 * Check if this error or any error in its chain/aggregate has a code
-	 * matching the given prefix with boundary awareness.
-	 *
-	 * This enables hierarchical error code patterns like `AUTH:TOKEN:EXPIRED`
-	 * where libraries define base codes and consumers extend with subcodes.
-	 *
-	 * Matches if:
-	 * - Code equals prefix exactly (e.g., `"AUTH"` matches `"AUTH"`)
-	 * - Code starts with prefix + boundary (e.g., `"AUTH"` matches `"AUTH:EXPIRED"`)
-	 *
-	 * Does NOT match partial strings (e.g., `"AUTH"` does NOT match `"AUTHORIZATION"`).
+	 * Check if this error or any error in its chain/aggregate has a code matching the given prefix.
 	 *
 	 * @param prefix - The code prefix to search for
 	 * @param boundary - Separator character/string between code segments (default: ":")
 	 * @returns `true` if a matching code is found anywhere in the error tree
-	 *
-	 * @example Basic hierarchical codes
-	 * ```typescript
-	 * const err = Err.from('Token expired', { code: 'AUTH:TOKEN:EXPIRED' });
-	 *
-	 * err.hasCodePrefix('AUTH');           // true (matches AUTH:*)
-	 * err.hasCodePrefix('AUTH:TOKEN');     // true (matches AUTH:TOKEN:*)
-	 * err.hasCodePrefix('AUTHORIZATION');  // false (no boundary match)
-	 * ```
-	 *
-	 * @example Custom boundary
-	 * ```typescript
-	 * const err = Err.from('Not found', { code: 'HTTP.404.NOT_FOUND' });
-	 *
-	 * err.hasCodePrefix('HTTP', '.');      // true
-	 * err.hasCodePrefix('HTTP.404', '.');  // true
-	 * err.hasCodePrefix('HTTP', ':');      // false (wrong boundary)
-	 * ```
-	 *
-	 * @example Search in error tree
-	 * ```typescript
-	 * const err = Err.from('DB error', { code: 'DB:CONNECTION' })
-	 *   .wrap('Service failed', { code: 'SERVICE:UNAVAILABLE' });
-	 *
-	 * err.hasCodePrefix('DB');       // true (found in cause)
-	 * err.hasCodePrefix('SERVICE');  // true (found in current)
-	 * ```
 	 */
 	hasCodePrefix(prefix: string, boundary: string = ":"): boolean {
 		// // Check current error's code
@@ -1269,20 +634,8 @@ export class Err {
 	/**
 	 * Find the first error matching a predicate.
 	 *
-	 * Searches this error, its cause chain, and all aggregated errors.
-	 *
 	 * @param predicate - Function to test each error
 	 * @returns The first matching Err or undefined
-	 *
-	 * @example
-	 * ```typescript
-	 * const err = Err.aggregate('Multiple failures')
-	 *   .add(Err.from('Not found', 'NOT_FOUND'))
-	 *   .add(Err.from('Timeout', 'TIMEOUT'));
-	 *
-	 * const timeout = err.find(e => e.code === 'TIMEOUT');
-	 * console.log(timeout?.message); // "Timeout"
-	 * ```
 	 */
 	find(predicate: (e: Err) => boolean): Err | undefined {
 		if (predicate(this)) return this;
@@ -1301,21 +654,8 @@ export class Err {
 	/**
 	 * Find all errors matching a predicate.
 	 *
-	 * Searches this error, its cause chain, and all aggregated errors.
-	 *
 	 * @param predicate - Function to test each error
 	 * @returns Array of all matching Err instances
-	 *
-	 * @example
-	 * ```typescript
-	 * const err = Err.aggregate('Validation failed')
-	 *   .add(Err.from('Name required', 'REQUIRED'))
-	 *   .add(Err.from('Invalid email', 'INVALID'))
-	 *   .add(Err.from('Age required', 'REQUIRED'));
-	 *
-	 * const required = err.filter(e => e.code === 'REQUIRED');
-	 * console.log(required.length); // 2
-	 * ```
 	 */
 	filter(predicate: (e: Err) => boolean): Err[] {
 		const results: Err[] = [];
@@ -1336,51 +676,10 @@ export class Err {
 	/**
 	 * Convert to a JSON-serializable object.
 	 *
-	 * Useful for logging, API responses, and serialization.
-	 * Use options to control what's included (e.g., omit stack for public APIs).
-	 *
 	 * @param options - Control what fields are included
 	 * @returns Plain object representation
 	 *
 	 * @see {@link fromJSON} for deserializing an Err from JSON
-	 *
-	 * @example Full serialization (default)
-	 * ```typescript
-	 * const err = Err.from('Not found', {
-	 *   code: 'NOT_FOUND',
-	 *   metadata: { userId: '123' }
-	 * });
-	 *
-	 * console.log(JSON.stringify(err.toJSON(), null, 2));
-	 * // {
-	 * //   "message": "Not found",
-	 * //   "code": "NOT_FOUND",
-	 * //   "metadata": { "userId": "123" },
-	 * //   "timestamp": "2024-01-15T10:30:00.000Z",
-	 * //   "stack": "Error: ...",
-	 * //   "errors": []
-	 * // }
-	 * ```
-	 *
-	 * @example Public API response (no stack)
-	 * ```typescript
-	 * app.get('/user/:id', (req, res) => {
-	 *   const result = getUser(req.params.id);
-	 *   if (Err.isErr(result)) {
-	 *     const status = result.code === 'NOT_FOUND' ? 404 : 500;
-	 *     return res.status(status).json({
-	 *       error: result.toJSON({ stack: false })
-	 *     });
-	 *   }
-	 *   res.json(result);
-	 * });
-	 * ```
-	 *
-	 * @example Minimal payload
-	 * ```typescript
-	 * err.toJSON({ stack: false, metadata: false });
-	 * // Only includes: message, code, timestamp, cause, errors
-	 * ```
 	 */
 	toJSON(options: ErrJSONOptions = {}): ErrJSON {
 		const { stack = true, metadata = true } = options;
@@ -1487,66 +786,8 @@ export class Err {
 	/**
 	 * Convert to a formatted string for logging/display.
 	 *
-	 * Includes cause chain and aggregated errors with indentation.
-	 * When called with options, can include additional details like
-	 * stack traces, timestamps, and metadata.
-	 *
 	 * @param options - Formatting options (optional)
 	 * @returns Formatted error string
-	 *
-	 * @example Basic usage (no options - backward compatible)
-	 * ```typescript
-	 * const err = Err.from('DB error')
-	 *   .wrap('Repository failed')
-	 *   .wrap('Service unavailable');
-	 *
-	 * console.log(err.toString());
-	 * // [ERROR] Service unavailable
-	 * //   Caused by: [ERROR] Repository failed
-	 * //     Caused by: [ERROR] DB error
-	 * ```
-	 *
-	 * @example With options
-	 * ```typescript
-	 * const err = Err.from('Connection failed', {
-	 *   code: 'DB:CONNECTION',
-	 *   metadata: { host: 'localhost', port: 5432 }
-	 * });
-	 *
-	 * console.log(err.toString({ date: true, metadata: true, stack: 3 }));
-	 * // [2024-01-15T10:30:00.000Z] [DB:CONNECTION] Connection failed
-	 * //   metadata: {"host":"localhost","port":5432}
-	 * //   stack:
-	 * //     at Database.connect (src/db.ts:45)
-	 * //     at Repository.init (src/repo.ts:23)
-	 * //     at Service.start (src/service.ts:12)
-	 * ```
-	 *
-	 * @example Aggregate
-	 * ```typescript
-	 * const err = Err.aggregate('Validation failed', [], { code: 'VALIDATION' })
-	 *   .add('Name required')
-	 *   .add('Email invalid');
-	 *
-	 * console.log(err.toString());
-	 * // [VALIDATION] Validation failed
-	 * //   Errors (2):
-	 * //     - [ERROR] Name required
-	 * //     - [ERROR] Email invalid
-	 * ```
-	 *
-	 * @example With maxDepth limit
-	 * ```typescript
-	 * const deep = Err.from('Root')
-	 *   .wrap('Level 1')
-	 *   .wrap('Level 2')
-	 *   .wrap('Level 3');
-	 *
-	 * console.log(deep.toString({ maxDepth: 2 }));
-	 * // [ERROR] Level 3
-	 * //   Caused by: [ERROR] Level 2
-	 * //     ... (1 more cause)
-	 * ```
 	 */
 	toString(options?: ToStringOptions): string {
 		return this._toStringInternal(options, 0);
@@ -1624,29 +865,7 @@ export class Err {
 	/**
 	 * Convert to a native Error for interop with throw-based APIs.
 	 *
-	 * Creates an Error with:
-	 * - `message`: This error's message
-	 * - `name`: This error's code (or "Err")
-	 * - `stack`: This error's original stack trace
-	 * - `cause`: Converted cause chain (native Error)
-	 *
-	 * Note: Metadata is not included on the native Error.
-	 *
 	 * @returns Native Error instance
-	 *
-	 * @example
-	 * ```typescript
-	 * const err = Err.from('Something failed', 'MY_ERROR');
-	 *
-	 * // If you need to throw for some API
-	 * throw err.toError();
-	 *
-	 * // The thrown error will have:
-	 * // - error.message === "Something failed"
-	 * // - error.name === "MY_ERROR"
-	 * // - error.stack === (original stack trace)
-	 * // - error.cause === (if wrapped)
-	 * ```
 	 */
 	toError(): Error {
 		const err = new Error(this.message);

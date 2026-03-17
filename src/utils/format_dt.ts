@@ -50,42 +50,6 @@ export interface DtStampOptions {
  *   (number), or `null`/omitted (defaults to `new Date()`).
  * @param options - Formatting options (delimiter, milliseconds, timezone, parts, readable)
  * @returns Formatted timestamp string
- *
- * @example Default (UTC datetime with underscore delimiter)
- * ```typescript
- * dtStamp(new Date("2024-03-15T10:30:45.123Z"));
- * // "20240315_103045"
- * ```
- *
- * @example Unix timestamp as number
- * ```typescript
- * dtStamp(1710499845123);
- * // "20240315_103045"
- * ```
- *
- * @example Readable datetime with milliseconds
- * ```typescript
- * dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, ms: true });
- * // "2024-03-15_10:30:45_123"
- * ```
- *
- * @example Readable date only
- * ```typescript
- * dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, parts: "date" });
- * // "2024-03-15"
- * ```
- *
- * @example Readable time with milliseconds
- * ```typescript
- * dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, parts: "time", ms: true });
- * // "10:30:45.123"
- * ```
- *
- * @example Custom delimiter
- * ```typescript
- * dtStamp(new Date("2024-03-15T10:30:45.123Z"), { delimiter: "-" });
- * // "20240315-103045"
- * ```
  */
 export function dtStamp(
 	date?: Date | number | null,
