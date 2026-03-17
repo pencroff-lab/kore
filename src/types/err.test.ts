@@ -41,7 +41,9 @@ describe("Err", () => {
 				expect(err.isErr).toBe(true);
 				expect(err.message).toBe(message);
 				expect(err.code).toBe(options.code);
-				expect(err.metadata).toEqual(expect.objectContaining(options.metadata));
+				expect(err.metadata).toEqual(
+					expect.objectContaining(options.metadata),
+				);
 			});
 
 			test("creates Err from native Error", () => {
@@ -100,7 +102,9 @@ describe("Err", () => {
 				const wrapped = Err.wrap("Failed to fetch user", error);
 
 				expect(wrapped.message).toBe("Failed to fetch user");
-				expect(wrapped.unwrap()?.message).toBe("Database connection failed");
+				expect(wrapped.unwrap()?.message).toBe(
+					"Database connection failed",
+				);
 			});
 
 			test("wraps with code and metadata", () => {
@@ -374,6 +378,398 @@ describe("Err", () => {
 				expect(original.metadata).toEqual({ foo: "bar" });
 			});
 		});
+
+		describe("hasMetadata()", () => {
+			describe("default mode (value check)", () => {
+				test("returns true for key with non-null value", () => {
+					const err = Err.from("Test").withMetadata({ key: "value" });
+
+					expect(err.hasMetadata("key")).toBe(true);
+				});
+
+				test("returns false for key with null value", () => {
+					const err = Err.from("Test").withMetadata({ key: null });
+
+					expect(err.hasMetadata("key")).toBe(false);
+				});
+
+				test("returns false for key with undefined value", () => {
+					const err = Err.from("Test").withMetadata({
+						key: undefined,
+					});
+
+					expect(err.hasMetadata("key")).toBe(false);
+				});
+
+				test("returns false for missing key", () => {
+					const err = Err.from("Test").withMetadata({
+						other: "value",
+					});
+
+					expect(err.hasMetadata("key")).toBe(false);
+				});
+
+				test("returns false when no metadata on Err", () => {
+					const err = Err.from("Test");
+
+					expect(err.hasMetadata("key")).toBe(false);
+				});
+
+				test("returns true for falsy values (0, empty string, false)", () => {
+					const err = Err.from("Test").withMetadata({
+						zero: 0,
+						empty: "",
+						isFalse: false,
+					});
+
+					expect(err.hasMetadata("zero")).toBe(true);
+					expect(err.hasMetadata("empty")).toBe(true);
+					expect(err.hasMetadata("isFalse")).toBe(true);
+				});
+			});
+
+			describe("keyCheck mode", () => {
+				test("returns true for key with null value", () => {
+					const err = Err.from("Test").withMetadata({ key: null });
+
+					expect(err.hasMetadata("key", { keyCheck: true })).toBe(
+						true,
+					);
+				});
+
+				test("returns true for key with undefined value", () => {
+					const err = Err.from("Test").withMetadata({
+						key: undefined,
+					});
+
+					expect(err.hasMetadata("key", { keyCheck: true })).toBe(
+						true,
+					);
+				});
+
+				test("returns false for missing key", () => {
+					const err = Err.from("Test").withMetadata({
+						other: "value",
+					});
+
+					expect(err.hasMetadata("key", { keyCheck: true })).toBe(
+						false,
+					);
+				});
+
+				test("returns false when no metadata on Err", () => {
+					const err = Err.from("Test");
+
+					expect(err.hasMetadata("key", { keyCheck: true })).toBe(
+						false,
+					);
+				});
+			});
+
+			test("does not search cause chain", () => {
+				const cause = Err.from("Cause").withMetadata({
+					causeMeta: "value",
+				});
+				const err = cause.wrap("Test").withMetadata({
+					ownMeta: "value",
+				});
+
+				expect(err.hasMetadata("ownMeta")).toBe(true);
+				expect(err.hasMetadata("causeMeta")).toBe(false);
+			});
+		});
+
+		describe("getMetadata()", () => {
+			describe("basic retrieval", () => {
+				test("returns value for existing key", () => {
+					const err = Err.from("Test").withMetadata({ key: "value" });
+
+					expect(err.getMetadata<string>("key")).toBe("value");
+				});
+
+				test("returns undefined for missing key", () => {
+					const err = Err.from("Test").withMetadata({
+						other: "value",
+					});
+
+					expect(err.getMetadata("key")).toBeUndefined();
+				});
+
+				test("returns undefined when no metadata on Err", () => {
+					const err = Err.from("Test");
+
+					expect(err.getMetadata("key")).toBeUndefined();
+				});
+			});
+
+			describe("default value handling", () => {
+				test("returns default for missing key", () => {
+					const err = Err.from("Test").withMetadata({
+						other: "value",
+					});
+
+					expect(err.getMetadata("key", "default")).toBe("default");
+				});
+
+				test("returns existing value over default", () => {
+					const err = Err.from("Test").withMetadata({
+						key: "actual",
+					});
+
+					expect(err.getMetadata("key", "default")).toBe("actual");
+				});
+
+				test("returns default when no metadata on Err", () => {
+					const err = Err.from("Test");
+
+					expect(err.getMetadata("key", "default")).toBe("default");
+				});
+			});
+
+			describe("null and undefined stored values", () => {
+				test("returns null for key with null value", () => {
+					const err = Err.from("Test").withMetadata({ key: null });
+
+					expect(err.getMetadata("key")).toBeNull();
+				});
+
+				test("returns undefined for key with undefined value", () => {
+					const err = Err.from("Test").withMetadata({
+						key: undefined,
+					});
+
+					expect(err.getMetadata("key")).toBeUndefined();
+				});
+
+				test("returns null even when default provided", () => {
+					const err = Err.from("Test").withMetadata({ key: null });
+
+					expect(err.getMetadata("key", "default")).toBeNull();
+				});
+			});
+
+			describe("falsy values", () => {
+				test("returns 0 over provided default", () => {
+					const err = Err.from("Test").withMetadata({ num: 0 });
+
+					expect(err.getMetadata<number>("num", 42)).toBe(0);
+				});
+
+				test("returns empty string over provided default", () => {
+					const err = Err.from("Test").withMetadata({ str: "" });
+
+					expect(err.getMetadata<string>("str", "default")).toBe("");
+				});
+
+				test("returns false over provided default", () => {
+					const err = Err.from("Test").withMetadata({ flag: false });
+
+					expect(err.getMetadata<boolean>("flag", true)).toBe(false);
+				});
+			});
+
+			describe("complex types", () => {
+				test("returns object value", () => {
+					const obj = { nested: { value: 42 } };
+					const err = Err.from("Test").withMetadata({ obj });
+
+					expect(err.getMetadata("obj")).toEqual(obj);
+				});
+
+				test("returns array value", () => {
+					const arr = [1, 2, 3];
+					const err = Err.from("Test").withMetadata({ arr });
+
+					expect(err.getMetadata("arr")).toEqual(arr);
+				});
+			});
+
+			test("does not search cause chain", () => {
+				const cause = Err.from("Cause").withMetadata({
+					causeMeta: "from cause",
+				});
+				const err = cause.wrap("Test").withMetadata({
+					ownMeta: "from err",
+				});
+
+				expect(err.getMetadata("ownMeta")).toBe("from err");
+				expect(err.getMetadata("causeMeta")).toBeUndefined();
+			});
+		});
+
+		describe("omitMetadata()", () => {
+			describe("single key removal", () => {
+				test("removes a single key from metadata", () => {
+					const err = Err.from("Test").withMetadata({
+						keep: "yes",
+						remove: "no",
+					});
+
+					const result = err.omitMetadata("remove");
+
+					expect(result.metadata).toEqual({ keep: "yes" });
+				});
+
+				test("returns new instance", () => {
+					const err = Err.from("Test").withMetadata({ key: "value" });
+					const result = err.omitMetadata("key");
+
+					expect(result).not.toBe(err);
+				});
+
+				test("does not mutate original", () => {
+					const err = Err.from("Test").withMetadata({
+						keep: "yes",
+						remove: "no",
+					});
+					const originalMetadata = err.metadata;
+
+					err.omitMetadata("remove");
+
+					expect(err.metadata).toEqual(originalMetadata);
+					expect(err.metadata).toEqual({
+						keep: "yes",
+						remove: "no",
+					});
+				});
+			});
+
+			describe("multiple key removal", () => {
+				test("removes multiple keys from array", () => {
+					const err = Err.from("Test").withMetadata({
+						a: 1,
+						b: 2,
+						c: 3,
+						d: 4,
+					});
+
+					const result = err.omitMetadata(["a", "c"]);
+
+					expect(result.metadata).toEqual({ b: 2, d: 4 });
+				});
+			});
+
+			describe("all keys removed", () => {
+				test("returns undefined metadata when single key removes all", () => {
+					const err = Err.from("Test").withMetadata({ only: "one" });
+
+					const result = err.omitMetadata("only");
+
+					expect(result.metadata).toBeUndefined();
+				});
+
+				test("returns undefined metadata when array removes all keys", () => {
+					const err = Err.from("Test").withMetadata({
+						a: 1,
+						b: 2,
+						c: 3,
+					});
+
+					const result = err.omitMetadata(["a", "b", "c"]);
+
+					expect(result.metadata).toBeUndefined();
+				});
+			});
+
+			describe("no-op cases", () => {
+				test("handles non-existent key gracefully", () => {
+					const err = Err.from("Test").withMetadata({
+						existing: "value",
+					});
+
+					const result = err.omitMetadata("nonexistent");
+
+					expect(result.metadata).toEqual({ existing: "value" });
+				});
+
+				test("handles undefined metadata gracefully", () => {
+					const err = Err.from("Test");
+
+					const result = err.omitMetadata("key");
+
+					expect(result.metadata).toBeUndefined();
+				});
+
+				test("handles empty array gracefully", () => {
+					const err = Err.from("Test").withMetadata({ a: 1, b: 2 });
+
+					const result = err.omitMetadata([]);
+
+					expect(result.metadata).toEqual({ a: 1, b: 2 });
+				});
+			});
+
+			describe("preservation of other properties", () => {
+				test("preserves cause chain", () => {
+					const cause = Err.from("Cause");
+					const err = cause.wrap("Test").withMetadata({
+						a: 1,
+						b: 2,
+					});
+
+					const result = err.omitMetadata("a");
+
+					expect(result.unwrap()?.message).toBe("Cause");
+				});
+
+				test("preserves code", () => {
+					const err = Err.from("Test", "MY_CODE").withMetadata({
+						a: 1,
+						b: 2,
+					});
+
+					const result = err.omitMetadata("a");
+
+					expect(result.code).toBe("MY_CODE");
+				});
+
+				test("preserves timestamp", () => {
+					const err = Err.from("Test").withMetadata({ a: 1, b: 2 });
+					const originalTimestamp = err.timestamp;
+
+					const result = err.omitMetadata("a");
+
+					expect(result.timestamp).toBe(originalTimestamp);
+				});
+
+				test("preserves stack", () => {
+					const err = Err.from("Test").withMetadata({ a: 1, b: 2 });
+					const originalStack = err.stack;
+
+					const result = err.omitMetadata("a");
+
+					expect(result.stack).toBe(originalStack);
+				});
+
+				test("preserves aggregated errors", () => {
+					const aggregate = Err.aggregate("Aggregate")
+						.add("Error 1")
+						.add("Error 2")
+						.withMetadata({ a: 1, b: 2 });
+
+					const result = aggregate.omitMetadata("a");
+
+					expect(result.count).toBe(2);
+					expect(result.errors.length).toBe(2);
+				});
+			});
+
+			test("does not affect cause chain metadata", () => {
+				const cause = Err.from("Cause").withMetadata({
+					causeMeta: "keep",
+				});
+				const err = cause.wrap("Test").withMetadata({
+					ownMeta: "remove",
+				});
+
+				const result = err.omitMetadata("ownMeta");
+
+				expect(result.metadata).toBeUndefined();
+				expect(result.unwrap()?.metadata).toEqual({
+					causeMeta: "keep",
+				});
+			});
+		});
 	});
 
 	describe("Aggregate Operations", () => {
@@ -470,7 +866,11 @@ describe("Err", () => {
 			test("flattens nested aggregates", () => {
 				const nested = Err.aggregate("All failed")
 					.add("Error A")
-					.add(Err.aggregate("Group B").add("Error B1").add("Error B2"))
+					.add(
+						Err.aggregate("Group B")
+							.add("Error B1")
+							.add("Error B2"),
+					)
 					.add("Error C");
 
 				const flat = nested.flatten();
@@ -528,7 +928,9 @@ describe("Err", () => {
 			});
 
 			test("matches code with default boundary", () => {
-				const err = Err.from("Token expired", { code: "AUTH:TOKEN:EXPIRED" });
+				const err = Err.from("Token expired", {
+					code: "AUTH:TOKEN:EXPIRED",
+				});
 
 				expect(err.hasCodePrefix("AUTH")).toBe(true);
 				expect(err.hasCodePrefix("AUTH:TOKEN")).toBe(true);
@@ -544,7 +946,9 @@ describe("Err", () => {
 			});
 
 			test("works with custom boundary", () => {
-				const err = Err.from("HTTP error", { code: "HTTP.404.NOT_FOUND" });
+				const err = Err.from("HTTP error", {
+					code: "HTTP.404.NOT_FOUND",
+				});
 
 				expect(err.hasCodePrefix("HTTP", ".")).toBe(true);
 				expect(err.hasCodePrefix("HTTP.404", ".")).toBe(true);
@@ -552,7 +956,9 @@ describe("Err", () => {
 			});
 
 			test("finds prefix in cause chain", () => {
-				const err = Err.from("DB error", { code: "DB:CONNECTION" }).wrap({
+				const err = Err.from("DB error", {
+					code: "DB:CONNECTION",
+				}).wrap({
 					message: "Service failed",
 					code: "SERVICE:UNAVAILABLE",
 				});
@@ -564,7 +970,9 @@ describe("Err", () => {
 
 			test("finds prefix in aggregated errors", () => {
 				const agg = Err.aggregate("Multiple failures")
-					.add(Err.from("Auth failed", { code: "AUTH:INVALID_TOKEN" }))
+					.add(
+						Err.from("Auth failed", { code: "AUTH:INVALID_TOKEN" }),
+					)
 					.add(Err.from("DB failed", { code: "DB:TIMEOUT" }));
 
 				expect(agg.hasCodePrefix("AUTH")).toBe(true);
@@ -617,6 +1025,21 @@ describe("Err", () => {
 				const found = err.find((e) => e.code === "TEST");
 				expect(found).toBe(err);
 			});
+
+			test("finds error by metadata in cause chain", () => {
+				const root = Err.from("Root cause").withMetadata({
+					resourceId: "user-123",
+				});
+				const err = root.wrap("Service failed").withMetadata({
+					requestId: "req-1",
+				});
+
+				const found = err.find(
+					(e) => e.getMetadata("resourceId") === "user-123",
+				);
+
+				expect(found?.message).toBe("Root cause");
+			});
 		});
 
 		describe("filter()", () => {
@@ -640,6 +1063,34 @@ describe("Err", () => {
 				const agg = Err.aggregate("All").add("Test");
 				const filtered = agg.filter((e) => e.code === "MISSING");
 				expect(filtered).toEqual([]);
+			});
+
+			test("filters aggregated errors by metadata", () => {
+				const agg = Err.aggregate("All")
+					.add(
+						Err.from("Email required", "REQUIRED").withMetadata({
+							field: "email",
+						}),
+					)
+					.add(
+						Err.from("Name required", "REQUIRED").withMetadata({
+							field: "name",
+						}),
+					)
+					.add(
+						Err.from("Email invalid", "INVALID").withMetadata({
+							field: "email",
+						}),
+					);
+
+				const filtered = agg.filter(
+					(e) => e.getMetadata("field") === "email",
+				);
+
+				expect(filtered.map((e) => e.message)).toEqual([
+					"Email required",
+					"Email invalid",
+				]);
 			});
 		});
 	});
@@ -680,7 +1131,10 @@ describe("Err", () => {
 			});
 
 			test("serializes aggregate with cause", () => {
-				const rootCause = Err.from("Database connection failed", "DB_ERROR");
+				const rootCause = Err.from(
+					"Database connection failed",
+					"DB_ERROR",
+				);
 				const wrappedCause = rootCause.wrap("Repository failed");
 				const aggregate = Err.aggregate("Multiple operations failed")
 					.add("Task 1 failed")
@@ -688,11 +1142,14 @@ describe("Err", () => {
 
 				// Create an aggregate that itself has a cause
 				// biome-ignore lint/suspicious/noExplicitAny: testing private constructor
-				const aggregateWithCause = new (Err as any)("Batch operation failed", {
-					code: "BATCH_ERROR",
-					cause: wrappedCause,
-					errors: aggregate.errors,
-				});
+				const aggregateWithCause = new (Err as any)(
+					"Batch operation failed",
+					{
+						code: "BATCH_ERROR",
+						cause: wrappedCause,
+						errors: aggregate.errors,
+					},
+				);
 
 				const json = aggregateWithCause.toJSON();
 
@@ -755,7 +1212,10 @@ describe("Err", () => {
 					.add("Name required")
 					.add("Email invalid");
 
-				const str = Err.fromJSON(agg).toString({ stack: true, metadata: true });
+				const str = Err.fromJSON(agg).toString({
+					stack: true,
+					metadata: true,
+				});
 
 				expect(str).toContain("[AGGREGATE] Validation failed");
 				expect(str).toContain("Errors (2):");
@@ -769,7 +1229,9 @@ describe("Err", () => {
 					const str = err.toString({ date: true });
 
 					// Should have ISO timestamp at the start
-					expect(str).toMatch(/^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+					expect(str).toMatch(
+						/^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
+					);
 					expect(str).toContain("[TEST] Test error");
 				});
 
@@ -826,7 +1288,9 @@ describe("Err", () => {
 				});
 
 				test("shows singular 'cause' when only one remaining", () => {
-					const err = Err.from("Root").wrap("Level 1").wrap("Level 2");
+					const err = Err.from("Root")
+						.wrap("Level 1")
+						.wrap("Level 2");
 
 					const str = err.toString({ maxDepth: 1 });
 
@@ -877,8 +1341,9 @@ describe("Err", () => {
 					expect(str).toContain('"level":"outer"');
 					expect(str).toContain('"level":"inner"');
 					// Count timestamp occurrences (should be 2)
-					const timestampCount = (str.match(/\[\d{4}-\d{2}-\d{2}T/g) || [])
-						.length;
+					const timestampCount = (
+						str.match(/\[\d{4}-\d{2}-\d{2}T/g) || []
+					).length;
 					expect(timestampCount).toBe(2);
 				});
 
