@@ -41,9 +41,7 @@ describe("Err", () => {
 				expect(err.isErr).toBe(true);
 				expect(err.message).toBe(message);
 				expect(err.code).toBe(options.code);
-				expect(err.metadata).toEqual(
-					expect.objectContaining(options.metadata),
-				);
+				expect(err.metadata).toEqual(expect.objectContaining(options.metadata));
 			});
 
 			test("creates Err from native Error", () => {
@@ -102,9 +100,7 @@ describe("Err", () => {
 				const wrapped = Err.wrap("Failed to fetch user", error);
 
 				expect(wrapped.message).toBe("Failed to fetch user");
-				expect(wrapped.unwrap()?.message).toBe(
-					"Database connection failed",
-				);
+				expect(wrapped.unwrap()?.message).toBe("Database connection failed");
 			});
 
 			test("wraps with code and metadata", () => {
@@ -432,9 +428,7 @@ describe("Err", () => {
 				test("returns true for key with null value", () => {
 					const err = Err.from("Test").withMetadata({ key: null });
 
-					expect(err.hasMetadata("key", { keyCheck: true })).toBe(
-						true,
-					);
+					expect(err.hasMetadata("key", { keyCheck: true })).toBe(true);
 				});
 
 				test("returns true for key with undefined value", () => {
@@ -442,9 +436,7 @@ describe("Err", () => {
 						key: undefined,
 					});
 
-					expect(err.hasMetadata("key", { keyCheck: true })).toBe(
-						true,
-					);
+					expect(err.hasMetadata("key", { keyCheck: true })).toBe(true);
 				});
 
 				test("returns false for missing key", () => {
@@ -452,17 +444,13 @@ describe("Err", () => {
 						other: "value",
 					});
 
-					expect(err.hasMetadata("key", { keyCheck: true })).toBe(
-						false,
-					);
+					expect(err.hasMetadata("key", { keyCheck: true })).toBe(false);
 				});
 
 				test("returns false when no metadata on Err", () => {
 					const err = Err.from("Test");
 
-					expect(err.hasMetadata("key", { keyCheck: true })).toBe(
-						false,
-					);
+					expect(err.hasMetadata("key", { keyCheck: true })).toBe(false);
 				});
 			});
 
@@ -573,14 +561,14 @@ describe("Err", () => {
 					const obj = { nested: { value: 42 } };
 					const err = Err.from("Test").withMetadata({ obj });
 
-					expect(err.getMetadata("obj")).toEqual(obj);
+					expect(err.getMetadata<typeof obj>("obj")).toEqual(obj);
 				});
 
 				test("returns array value", () => {
 					const arr = [1, 2, 3];
 					const err = Err.from("Test").withMetadata({ arr });
 
-					expect(err.getMetadata("arr")).toEqual(arr);
+					expect(err.getMetadata<typeof arr>("arr")).toEqual(arr);
 				});
 			});
 
@@ -592,7 +580,7 @@ describe("Err", () => {
 					ownMeta: "from err",
 				});
 
-				expect(err.getMetadata("ownMeta")).toBe("from err");
+				expect(err.getMetadata<string>("ownMeta")).toBe("from err");
 				expect(err.getMetadata("causeMeta")).toBeUndefined();
 			});
 		});
@@ -866,11 +854,7 @@ describe("Err", () => {
 			test("flattens nested aggregates", () => {
 				const nested = Err.aggregate("All failed")
 					.add("Error A")
-					.add(
-						Err.aggregate("Group B")
-							.add("Error B1")
-							.add("Error B2"),
-					)
+					.add(Err.aggregate("Group B").add("Error B1").add("Error B2"))
 					.add("Error C");
 
 				const flat = nested.flatten();
@@ -970,9 +954,7 @@ describe("Err", () => {
 
 			test("finds prefix in aggregated errors", () => {
 				const agg = Err.aggregate("Multiple failures")
-					.add(
-						Err.from("Auth failed", { code: "AUTH:INVALID_TOKEN" }),
-					)
+					.add(Err.from("Auth failed", { code: "AUTH:INVALID_TOKEN" }))
 					.add(Err.from("DB failed", { code: "DB:TIMEOUT" }));
 
 				expect(agg.hasCodePrefix("AUTH")).toBe(true);
@@ -1083,9 +1065,7 @@ describe("Err", () => {
 						}),
 					);
 
-				const filtered = agg.filter(
-					(e) => e.getMetadata("field") === "email",
-				);
+				const filtered = agg.filter((e) => e.getMetadata("field") === "email");
 
 				expect(filtered.map((e) => e.message)).toEqual([
 					"Email required",
@@ -1131,10 +1111,7 @@ describe("Err", () => {
 			});
 
 			test("serializes aggregate with cause", () => {
-				const rootCause = Err.from(
-					"Database connection failed",
-					"DB_ERROR",
-				);
+				const rootCause = Err.from("Database connection failed", "DB_ERROR");
 				const wrappedCause = rootCause.wrap("Repository failed");
 				const aggregate = Err.aggregate("Multiple operations failed")
 					.add("Task 1 failed")
@@ -1142,14 +1119,11 @@ describe("Err", () => {
 
 				// Create an aggregate that itself has a cause
 				// biome-ignore lint/suspicious/noExplicitAny: testing private constructor
-				const aggregateWithCause = new (Err as any)(
-					"Batch operation failed",
-					{
-						code: "BATCH_ERROR",
-						cause: wrappedCause,
-						errors: aggregate.errors,
-					},
-				);
+				const aggregateWithCause = new (Err as any)("Batch operation failed", {
+					code: "BATCH_ERROR",
+					cause: wrappedCause,
+					errors: aggregate.errors,
+				});
 
 				const json = aggregateWithCause.toJSON();
 
@@ -1229,9 +1203,7 @@ describe("Err", () => {
 					const str = err.toString({ date: true });
 
 					// Should have ISO timestamp at the start
-					expect(str).toMatch(
-						/^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
-					);
+					expect(str).toMatch(/^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
 					expect(str).toContain("[TEST] Test error");
 				});
 
@@ -1288,9 +1260,7 @@ describe("Err", () => {
 				});
 
 				test("shows singular 'cause' when only one remaining", () => {
-					const err = Err.from("Root")
-						.wrap("Level 1")
-						.wrap("Level 2");
+					const err = Err.from("Root").wrap("Level 1").wrap("Level 2");
 
 					const str = err.toString({ maxDepth: 1 });
 
@@ -1341,9 +1311,8 @@ describe("Err", () => {
 					expect(str).toContain('"level":"outer"');
 					expect(str).toContain('"level":"inner"');
 					// Count timestamp occurrences (should be 2)
-					const timestampCount = (
-						str.match(/\[\d{4}-\d{2}-\d{2}T/g) || []
-					).length;
+					const timestampCount = (str.match(/\[\d{4}-\d{2}-\d{2}T/g) || [])
+						.length;
 					expect(timestampCount).toBe(2);
 				});
 

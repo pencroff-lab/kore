@@ -22,6 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Fix CJS compatibility | `bun scripts/fix-cjs.sh.ts` (runs automatically in build) |
 | Verify build artifacts | `bun scripts/verify-build.sh.ts` (runs automatically in build) |
 | Check version on npm | `bun scripts/check-version.sh.ts` |
+| Check docs | `bun run check:docs` |
 | Publish | `bun run publish_pkg` |
 
 ## Testing
@@ -116,3 +117,47 @@ Build entry is `index.ts` at root which re-exports from `src/`. Tests, benchmark
 - Pipeline: install -> test -> publish (on push to main) -> git tag
 - Exact dependency versions (no `^` or `~`)
 - `bun.lock` committed, `bun install --frozen-lockfile` in CI
+
+## Documentation Rules
+
+### Doc Budget (enforced in CI)
+
+Tiered by file size (threshold: 100 non-blank lines). The first `@module` JSDoc block is excluded from the ratio.
+
+| File type | Small (< 100 lines) | Normal (≥ 100 lines) |
+|-----------|---------------------|----------------------|
+| `*.types.ts` | ≤ 80% | ≤ 50% |
+| Implementation `*.ts` | ≤ 50% | ≤ 35% |
+| `*.test.ts` | 0% | 0% |
+
+### What goes where
+
+| Content | Location |
+|---------|----------|
+| `@param`, `@returns`, `@throws`, 1-line description | Inline JSDoc (Layer 1) |
+| Class/module invariants (e.g., "immutable") | Once at class level, not per method |
+| Usage examples, patterns, how-to | `*.examples.test.ts` files |
+| Architecture, design rationale | CLAUDE.md / Layer 4 docs |
+
+### Inline JSDoc rules
+
+- **`@module` placement:** Always in the TypeDoc entry point file (the implementation file, e.g., `err.ts`, `outcome.ts`). TypeDoc only renders `@module` from entry points — placing it in `*.types.ts` won't appear in generated docs.
+- **No file-level JSDoc in `*.types.ts`:** TypeDoc doesn't render file-level comments from non-entry-point files — they only waste doc budget. Per-symbol JSDoc (on types, interfaces, properties) renders correctly via re-exports.
+- `@module` block: summary + key concepts + `@see` reference. No `@example` in implementation files.
+- No `@example` in implementation files — use `@see [file.examples.test.ts](../../src/.../file.examples.test.ts)`
+- `{@link}` only for TypeScript symbols (classes, methods). Never for `.ts` file paths — TypeDoc copies them to `_media/` and breaks builds
+- `@example` in `*.types.ts` only if non-obvious from signature, max 5 lines
+- Never repeat invariants per method — state once at class/module level
+- Delete examples that restate the type signature
+- `@internal` and non-exported functions: one-line `//` comment only. Full JSDoc (`@param`/`@returns`) reserved for exported symbols.
+
+### TypeDoc / generated docs rules
+
+- No hardcoded GitHub commit URLs — `typedoc.json` uses `sourceLinkTemplate` with relative paths and `disableGit: true`
+- `gen_docs` pipeline: `pregen_docs` cleans `_media/` → `typedoc` generates → `fix-docs-links.sh.ts` replaces `_media/` links with relative `src/` paths
+- All "Defined in" links must be relative from `docs/api/` (e.g., `../../src/types/err.ts#L23`)
+
+### TypeScript patterns
+
+- `Outcome.err()` returns `Outcome<never>` — when testing `defaultTo`/`either`, cast first: `const o = Outcome.err("msg") as Outcome<number>`
+- Do not use `Outcome.err<T>()` — the static method accepts 0 type parameters

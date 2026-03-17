@@ -18,5 +18,7 @@
 	"hidePageHeader": false,
 	"hideBreadcrumbs": false,
 	"excludePrivate": true,
-	"excludeInternal": true
+	"excludeInternal": true,
+	"sourceLinkTemplate": "../../src/{path}#L{line}",
+	"disableGit": true
 }

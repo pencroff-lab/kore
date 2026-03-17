@@ -1,10 +1,3 @@
-/**
- * Core types for value-based error handling.
- * Implementation lives in err.ts which imports from here.
- *
- * @module err.types
- */
-
 // ─── Group: Creation ─────────────────────────────────────────────────────────
 
 /**

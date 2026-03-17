@@ -1,4 +1,12 @@
 /**
+ * Compact, sortable date/time stamps for file names, log prefixes, and IDs.
+ *
+ * `dtStamp()` produces strings like `20260317_143012` (default) or
+ * `2026-03-17_14:30:12` (readable mode). Supports UTC/local timezone,
+ * date-only/time-only parts, optional milliseconds, and a configurable
+ * delimiter — all controlled via a single `DtStampOptions` object.
+ *
+ * @see [format_dt.examples.test.ts](../../src/utils/format_dt.examples.test.ts) for usage patterns
  * @module format_dt
  */
 
@@ -16,12 +24,7 @@ export interface DtStampOptions {
 	 * @default false
 	 */
 	ms?: boolean;
-	/**
-	 * Timezone to use for extracting date/time components.
-	 * - `"utc"` -- use UTC methods (`getUTCFullYear`, etc.)
-	 * - `"local"` -- use local-time methods (`getFullYear`, etc.)
-	 * @default "utc"
-	 */
+	/** Timezone for date/time components. @default "utc" */
 	tz?: "utc" | "local";
 	/**
 	 * Which parts of the stamp to include.
@@ -31,12 +34,7 @@ export interface DtStampOptions {
 	 * @default "datetime"
 	 */
 	parts?: "datetime" | "date" | "time";
-	/**
-	 * When `true`, formats with human-readable separators:
-	 * dashes in date (`YYYY-MM-DD`), colons in time (`HH:MM:SS`),
-	 * and `.` before milliseconds in time-only mode (`HH:MM:SS.mmm`).
-	 * @default false
-	 */
+	/** Use human-readable separators (dashes, colons). @default false */
 	readable?: boolean;
 }
 
@@ -46,46 +44,9 @@ export interface DtStampOptions {
  * Produces compact, sortable stamps suitable for file names, log prefixes,
  * and anywhere a human-readable but machine-sortable date/time is needed.
  *
- * @param date - Date to format. Accepts a `Date`, a Unix timestamp in milliseconds
- *   (number), or `null`/omitted (defaults to `new Date()`).
- * @param options - Formatting options (delimiter, milliseconds, timezone, parts, readable)
+ * @param date - Date, Unix ms timestamp, or null (defaults to now)
+ * @param options - Formatting options
  * @returns Formatted timestamp string
- *
- * @example Default (UTC datetime with underscore delimiter)
- * ```typescript
- * dtStamp(new Date("2024-03-15T10:30:45.123Z"));
- * // "20240315_103045"
- * ```
- *
- * @example Unix timestamp as number
- * ```typescript
- * dtStamp(1710499845123);
- * // "20240315_103045"
- * ```
- *
- * @example Readable datetime with milliseconds
- * ```typescript
- * dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, ms: true });
- * // "2024-03-15_10:30:45_123"
- * ```
- *
- * @example Readable date only
- * ```typescript
- * dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, parts: "date" });
- * // "2024-03-15"
- * ```
- *
- * @example Readable time with milliseconds
- * ```typescript
- * dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, parts: "time", ms: true });
- * // "10:30:45.123"
- * ```
- *
- * @example Custom delimiter
- * ```typescript
- * dtStamp(new Date("2024-03-15T10:30:45.123Z"), { delimiter: "-" });
- * // "20240315-103045"
- * ```
  */
 export function dtStamp(
 	date?: Date | number | null,

@@ -106,9 +106,8 @@ What agents need:
 - **Type contracts** → inline JSDoc (Layer 1)
 - **Patterns** → concise guide (Layer 3)
 
-The `llms.txt` convention (similar to `robots.txt`) is the right format for AI context
-at the project root. It points agents at the right entry points rather than forcing
-them to read all source.
+The `llms.txt` convention (similar to `robots.txt`) at the project root points agents
+at the right entry points rather than forcing them to read all source.
 
 ## Preventing Source Size Explosion
 
@@ -123,20 +122,20 @@ src/types/err.types.ts   ← full JSDoc on ErrCode, ErrOptions, ErrJSON, ToStrin
 src/types/err.ts         ← imports types, implements Err class, minimal inline comments
 ```
 
-`err.types.example.ts` ([ref](err.types.example.ts)) in this folder shows the target structure. Key observations from
-that example:
+`src/types/err.types.ts` shows the target structure. Key observations:
 
 - Each group is delimited by a named separator comment — scannable at a glance
 - JSDoc per type is 1–3 lines of prose + field-level `@default` tags where relevant
 - No `@example` blocks — types are self-describing; examples belong in tests
 - `@see` links point to the method that gives the type its behavior contract
+- No file-level JSDoc — TypeDoc doesn't render file-level comments from non-entry-point files
 
 ### Group exports by concern, not by file size
 
 When a file grows, the reflex is to split it by line count. Instead, split by **concern**
 — a cohesive set of types that change together for the same reasons.
 
-In `err.types.example.ts` the three groups are:
+In `err.types.ts` the three groups are:
 
 | Group | Contents | Reason to change |
 |---|---|---|
@@ -151,11 +150,25 @@ be split just because the file hits an arbitrary line count.
 
 A measurable signal to catch drift during code review:
 
-| File type | JSDoc budget |
-|---|---|
-| `*.types.ts` | ≤ 40% of lines — types are the API contract, they need annotation |
-| Implementation (`*.ts`) | ≤ 20% of lines — logic should be self-evident from types |
-| Test files | 0% — tests are documentation; prose comments are noise |
+Tiered by file size (threshold: 100 non-blank lines). The first `@module` JSDoc block
+is excluded from the ratio.
+
+| File type | Small (< 100 lines) | Normal (≥ 100 lines) |
+|-----------|---------------------|----------------------|
+| `*.types.ts` | ≤ 80% | ≤ 50% |
+| Implementation `*.ts` | ≤ 50% | ≤ 35% |
+| `*.test.ts` | 0% | 0% |
+
+**`@module` placement:** Always in the TypeDoc entry point file (the implementation file,
+e.g., `err.ts`, `outcome.ts`). TypeDoc only renders `@module` from entry points — placing
+it in `*.types.ts` won't appear in generated docs.
+
+**No file-level JSDoc in `*.types.ts`:** TypeDoc doesn't render file-level comments from
+non-entry-point files — they only waste doc budget. Per-symbol JSDoc (on types, interfaces,
+properties) renders correctly via re-exports.
+
+**Layer 3 note:** For small libraries, `*.examples.test.ts` files serve as Layer 3. Separate
+`docs/guides/` when the library grows enough to need narrative guides.
 
 **How to measure** (approximate, good enough for review):
 

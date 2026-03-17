@@ -1,10 +1,53 @@
 # Changelog
 
-## [Unreleased]
+## [0.3.0] - 2026-03-17
+
+### Bug Fixes
+
+- Resolve lint warnings and type errors in test files (9484b3b)
+- Use relative links in TypeDoc and plain @see references (7addecf)
+- Add example test links in generated docs with relative paths (74a4e4b)
+
+### Documentation
+
+- Add plan for Err metadata methods (f639b90)
+- Add Git Worktree Guide (2d2e61a)
+- Remove metadata-methods plan file (990251a)
+- Add migration plan (a2423d8)
+- Update API docs with example references (e5a22d2)
+- Update JSDoc and TypeDoc guidelines (087816f)
+- Add docs migration step 2 plan (7c0c40a)
+- Update docs for types and utils (f485b31)
+- Add @module tags for err and outcome (300b745)
+- Enforce no file-level JSDoc in *.types.ts (585f3ba)
+- Add migration plan for docs step 3 (ae81358)
+- Add error handling and migration guides (118a7e3)
+- Remove legacy migration plan files (6ae0896)
 
 ### Features
 
 - Add git-cliff (0dbef87)
+- Add git-cliff changelog (452f121)
+- DtStamp accept unix timestamps (f0da2ae)
+
+### Other
+
+- Merge pull request #6 from pencroff-lab/set_changelog (0209fef)
+- Merge pull request #7 from pencroff-lab/2-add-to-dtstamp-support-timestamp-as-number (12a9128)
+- Haiku implementation (5c6b062)
+- Add metadata find/filter tests for Err (96b1210)
+- Merge branch 'compare/haiku' into 5-methods-metadata (bcddf35)
+- Merge pull request #9 from pencroff-lab/5-methods-metadata (2a26fd7)
+- Phase 1 - CI enforcement script of doc migration (ba78766)
+- Phase 2 - Extract types of doc migration (3c7d7e6)
+- Phase 3 - Create examples test files of doc migration (2c826e4)
+- Phase 4 - Trim JSDoc in source files of doc migration (dc1c7c6)
+- Phase 5 - Update CLAUDE.md of doc migration (dfe815c)
+- Phase 6 - Verify and format of doc migration (d115a06)
+
+### Refactor
+
+- Inline dtStamp date init (7a7467d)
 
 ## [0.2.1] - 2026-02-27
 

@@ -25,6 +25,9 @@ jobs:
       - name: Lint
         run: bun run lint:ci
 
+      - name: Check docs
+        run: bun run check:docs
+
       - name: Run tests
         run: bun run test:coverage
 
