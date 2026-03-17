@@ -1,14 +1,38 @@
 # @pencroff-lab/kore
 
-> TypeScript core utilities library providing value-based error handling types inspired by Go-style error handling. Published as a dual ESM/CJS package.
+> TypeScript core utilities library providing value-based error handling
+> with Go-style `Err` and `Outcome<T>` types. Published to npm as a dual
+> ESM/CJS package.
 
-## Modules
+## Core Modules
 
-- [Err](docs/api/err.md): Immutable, value-based error type. Supports wrapping (cause chains), aggregation (multiple errors), hierarchical error codes, JSON serialization/deserialization, and conversion to native Error.
-- [Outcome](docs/api/outcome.md): Monadic container wrapping ResultTuple<T> ([T, null] | [null, Err]). Supports map/mapErr/pipe/pipeAsync chains, combinators (all, any), side effects (effect), and terminal operations (toTuple, defaultTo, either).
-- [dtStamp](docs/api/format_dt.md): Format a Date into a filesystem/log-safe timestamp string. Produces compact, sortable stamps suitable for file names, log prefixes, and identifiers.
-- [Logger](docs/api/logger.md): Structured logging utility with transport DI and Err integration. Callable function with overloaded signatures, child loggers, pretty console transport, and automatic Err formatting.
-- [Logging Guide](docs/logging_guide.md): Usage patterns, DI conventions, error logging strategy, and integration examples.
+- [Err](src/types/err.ts): Immutable, value-based error type with wrapping (cause chains), aggregation, hierarchical error codes, JSON serialization, and conversion to native Error
+- [Outcome](src/types/outcome.ts): Monadic result container wrapping `[T, null] | [null, Err]` with map/pipe chains, combinators (all, any), side effects, and terminal operations
+- [Logger](src/utils/logger.ts): Structured, level-filtered logging with pluggable transports and Err integration
+- [dtStamp](src/utils/format_dt.ts): Compact, sortable date/time stamps for file names, log prefixes, and IDs
+
+## Type Definitions
+
+- [Err types](src/types/err.types.ts): ErrCode, ErrOptions, ErrJSON, ToStringOptions
+- [Outcome types](src/types/outcome.types.ts): ResultTuple, OutcomeCallback, PipeCallback
+
+## Usage Examples
+
+- [Err examples](src/types/err.examples.test.ts): Error creation, wrapping, codes, serialization
+- [Outcome examples](src/types/outcome.examples.test.ts): Mapping, piping, combinators, error handling
+- [Logger examples](src/utils/logger.examples.test.ts): Log levels, transports, child loggers
+- [dtStamp examples](src/utils/format_dt.examples.test.ts): Date formatting options
+
+## Guides
+
+- [Error handling patterns](docs/guides/error-handling-patterns.md): Err and Outcome composition, propagation, real-world scenarios
+- [Migration from throwing](docs/guides/migration-from-throwing.md): Step-by-step try/catch to Outcome conversion
+
+## Optional
+
+- [CLAUDE.md](CLAUDE.md): Full development rules, architecture, and conventions
+- [API reference](docs/api/): Generated TypeDoc documentation
+- [Documentation guide](docs/docs_guide.md): Documentation layers model and budget rules
 
 ## Quick Start
 

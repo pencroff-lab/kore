@@ -149,6 +149,7 @@ Tiered by file size (threshold: 100 non-blank lines). The first `@module` JSDoc 
 - `@example` in `*.types.ts` only if non-obvious from signature, max 5 lines
 - Never repeat invariants per method — state once at class/module level
 - Delete examples that restate the type signature
+- `@internal` and non-exported functions: one-line `//` comment only. Full JSDoc (`@param`/`@returns`) reserved for exported symbols.
 
 ### TypeDoc / generated docs rules
 

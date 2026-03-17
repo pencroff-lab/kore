@@ -24,12 +24,7 @@ export interface DtStampOptions {
 	 * @default false
 	 */
 	ms?: boolean;
-	/**
-	 * Timezone to use for extracting date/time components.
-	 * - `"utc"` -- use UTC methods (`getUTCFullYear`, etc.)
-	 * - `"local"` -- use local-time methods (`getFullYear`, etc.)
-	 * @default "utc"
-	 */
+	/** Timezone for date/time components. @default "utc" */
 	tz?: "utc" | "local";
 	/**
 	 * Which parts of the stamp to include.
@@ -39,12 +34,7 @@ export interface DtStampOptions {
 	 * @default "datetime"
 	 */
 	parts?: "datetime" | "date" | "time";
-	/**
-	 * When `true`, formats with human-readable separators:
-	 * dashes in date (`YYYY-MM-DD`), colons in time (`HH:MM:SS`),
-	 * and `.` before milliseconds in time-only mode (`HH:MM:SS.mmm`).
-	 * @default false
-	 */
+	/** Use human-readable separators (dashes, colons). @default false */
 	readable?: boolean;
 }
 
@@ -54,9 +44,8 @@ export interface DtStampOptions {
  * Produces compact, sortable stamps suitable for file names, log prefixes,
  * and anywhere a human-readable but machine-sortable date/time is needed.
  *
- * @param date - Date to format. Accepts a `Date`, a Unix timestamp in milliseconds
- *   (number), or `null`/omitted (defaults to `new Date()`).
- * @param options - Formatting options (delimiter, milliseconds, timezone, parts, readable)
+ * @param date - Date, Unix ms timestamp, or null (defaults to now)
+ * @param options - Formatting options
  * @returns Formatted timestamp string
  */
 export function dtStamp(

@@ -22,17 +22,22 @@ Current JSDoc budgets (20% impl, 40% types) produce persistent warnings because:
 | `*.types.ts` | 80% | 50% |
 | Implementation `*.ts` | 50% | 35% |
 
-### Step 2: Expand `@module` JSDoc — types-first rule
+### Step 2: Expand `@module` JSDoc — implementation-first rule
 
-When a `*.types.ts` companion file exists, place the expanded `@module` description there
-(TypeDoc associates it with the module). Fallback to the implementation file otherwise.
+> **Corrected in step 3** — TypeDoc ignores `@module` in non-entry-point files.
+> The types-first rule originally proposed here was invalidated: TypeDoc only renders
+> `@module` from entry points (implementation files). `@module` in `*.types.ts` won't
+> appear in generated docs.
+
+Place the `@module` description in the implementation file (TypeDoc entry point), never
+in `*.types.ts`.
 
 | Module | `@module` location | Reason |
 |--------|--------------------|--------|
-| err | `err.types.ts` | types file exists |
-| outcome | `outcome.types.ts` | types file exists |
-| format_dt | `format_dt.ts` | no types file |
-| logger | `logger.ts` | no types file |
+| err | `err.ts` | TypeDoc entry point |
+| outcome | `outcome.ts` | TypeDoc entry point |
+| format_dt | `format_dt.ts` | TypeDoc entry point |
+| logger | `logger.ts` | TypeDoc entry point |
 
 ### Step 3: Write module description content
 

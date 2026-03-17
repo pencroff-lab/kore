@@ -59,7 +59,7 @@ false
 
 > `optional` **parts**: `"date"` \| `"datetime"` \| `"time"`
 
-Defined in: [utils/format\_dt.ts:41](../../src/utils/format_dt.ts#L41)
+Defined in: [utils/format\_dt.ts:36](../../src/utils/format_dt.ts#L36)
 
 Which parts of the stamp to include.
 - `"datetime"` -- full stamp (date + time)
@@ -76,11 +76,9 @@ Which parts of the stamp to include.
 
 > `optional` **readable**: `boolean`
 
-Defined in: [utils/format\_dt.ts:48](../../src/utils/format_dt.ts#L48)
+Defined in: [utils/format\_dt.ts:38](../../src/utils/format_dt.ts#L38)
 
-When `true`, formats with human-readable separators:
-dashes in date (`YYYY-MM-DD`), colons in time (`HH:MM:SS`),
-and `.` before milliseconds in time-only mode (`HH:MM:SS.mmm`).
+Use human-readable separators (dashes, colons).
 
 ###### Default
 
@@ -92,11 +90,9 @@ false
 
 > `optional` **tz**: `"utc"` \| `"local"`
 
-Defined in: [utils/format\_dt.ts:33](../../src/utils/format_dt.ts#L33)
+Defined in: [utils/format\_dt.ts:28](../../src/utils/format_dt.ts#L28)
 
-Timezone to use for extracting date/time components.
-- `"utc"` -- use UTC methods (`getUTCFullYear`, etc.)
-- `"local"` -- use local-time methods (`getFullYear`, etc.)
+Timezone for date/time components.
 
 ###### Default
 
@@ -110,7 +106,7 @@ Timezone to use for extracting date/time components.
 
 > **dtStamp**(`date?`, `options?`): `string`
 
-Defined in: [utils/format\_dt.ts:62](../../src/utils/format_dt.ts#L62)
+Defined in: [utils/format\_dt.ts:51](../../src/utils/format_dt.ts#L51)
 
 Format a `Date` into a filesystem/log-safe timestamp string.
 
@@ -121,8 +117,7 @@ and anywhere a human-readable but machine-sortable date/time is needed.
 
 ##### date?
 
-Date to format. Accepts a `Date`, a Unix timestamp in milliseconds
-  (number), or `null`/omitted (defaults to `new Date()`).
+Date, Unix ms timestamp, or null (defaults to now)
 
 `number` | `Date` | `null`
 
@@ -130,7 +125,7 @@ Date to format. Accepts a `Date`, a Unix timestamp in milliseconds
 
 [`DtStampOptions`](#dtstampoptions)
 
-Formatting options (delimiter, milliseconds, timezone, parts, readable)
+Formatting options
 
 #### Returns
 

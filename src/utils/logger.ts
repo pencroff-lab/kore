@@ -19,17 +19,7 @@
 import stringifySafe from "fast-safe-stringify";
 import { Err } from "../types/err";
 
-/**
- * Log level constants for type-safe level specification.
- *
- * **Level Hierarchy** (lowest to highest):
- * - `TRACE`: Detailed debugging information
- * - `DEBUG`: Debugging information
- * - `INFO`: General informational messages
- * - `WARN`: Warning messages
- * - `ERROR`: Error messages for failures
- * - `FATAL`: Fatal errors causing termination
- */
+/** Log level constants (TRACE < DEBUG < INFO < WARN < ERROR < FATAL). */
 const lvl = {
 	TRACE: "trace",
 	DEBUG: "debug",
@@ -103,30 +93,15 @@ interface LoggerOptions {
 }
 
 /**
- * Callable logger interface with overloaded signatures.
- *
- * The Logger is both a function (for logging) and an object (with level
- * constants and the `child` method).
- *
- * ## Call Signatures
- * 1. `log(message)` - Log at INFO level
- * 2. `log(message, context)` - Log at INFO level with context object or Err
- * 3. `log(message, detail)` - Log at INFO level with detail string
- * 4. `log(level, message)` - Log at specific level
- * 5. `log(level, message, context)` - Log at specific level with context
+ * Callable logger interface — both a function and an object with level
+ * constants and a `child` method.
  */
 interface Logger {
-	/** Trace level constant */
 	readonly TRACE: "trace";
-	/** Debug level constant */
 	readonly DEBUG: "debug";
-	/** Info level constant */
 	readonly INFO: "info";
-	/** Warning level constant */
 	readonly WARN: "warn";
-	/** Error level constant */
 	readonly ERROR: "error";
-	/** Fatal level constant */
 	readonly FATAL: "fatal";
 
 	/** Log a message at INFO level. */
@@ -186,13 +161,7 @@ const DIM = "\x1b[2m";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/**
- * Check whether a value is a valid `LevelValue` string.
- *
- * @param val - Value to check
- * @returns `true` if `val` is a recognized level string
- * @internal
- */
+// Check whether a value is a valid LevelValue string.
 function isLevel(val: unknown): val is LevelValue {
 	return (
 		typeof val === "string" &&
@@ -200,16 +169,7 @@ function isLevel(val: unknown): val is LevelValue {
 	);
 }
 
-/**
- * Normalize a log context argument to a plain object.
- *
- * `Err` instances are wrapped as `{ err }`, plain strings as `{ detail }`,
- * and plain objects are returned as-is. All other values yield `{}`.
- *
- * @param ctx - Raw context argument
- * @returns Plain object for use as log entry context
- * @internal
- */
+// Normalize a log context argument to a plain object.
 function normalizeContext(ctx: unknown): Record<string, unknown> {
 	if (Err.isErr(ctx)) return { err: ctx };
 	if (typeof ctx === "string") return { detail: ctx };
@@ -218,18 +178,7 @@ function normalizeContext(ctx: unknown): Record<string, unknown> {
 	return {};
 }
 
-/**
- * Resolve variadic logger call arguments into a structured call descriptor.
- *
- * Supports three call signatures:
- * - `(msg)` → INFO level, no context
- * - `(level, msg)` or `(msg, ctx)` → explicit level or INFO with context
- * - `(level, msg, ctx)` → explicit level with context
- *
- * @param args - Raw logger call arguments
- * @returns Resolved level, message, and context
- * @internal
- */
+// Resolve variadic logger call arguments into { level, message, context }.
 function resolveCall(...args: unknown[]): {
 	level: LevelValue;
 	message: string;
@@ -269,14 +218,7 @@ function resolveCall(...args: unknown[]): {
 	return { level: lvl.INFO, message: String(args[0] ?? ""), context: {} };
 }
 
-/**
- * Read the minimum log level from the `LOG_LEVEL` environment variable.
- *
- * Falls back to `INFO` if the variable is absent or not a recognized level.
- *
- * @returns Current effective log level
- * @internal
- */
+// Read minimum log level from LOG_LEVEL env var, default INFO.
 function getLogLevel(): LevelValue {
 	const envLevel = process.env.LOG_LEVEL?.toLowerCase();
 	return isLevel(envLevel) ? envLevel : lvl.INFO;
@@ -284,13 +226,7 @@ function getLogLevel(): LevelValue {
 
 // ─── Timestamp formatters ─────────────────────────────────────────────────────
 
-/**
- * Format a Unix millisecond timestamp as `HH:MM:SS.mmm` (local time).
- *
- * @param ts - Timestamp in milliseconds
- * @returns Formatted time string
- * @internal
- */
+// Format a Unix ms timestamp as HH:MM:SS.mmm (local time).
 function formatShortTimestamp(ts: number): string {
 	const d = new Date(ts);
 	const hh = String(d.getHours()).padStart(2, "0");
@@ -304,13 +240,6 @@ function formatShortTimestamp(ts: number): string {
 
 /**
  * Create a built-in pretty console transport.
- *
- * Renders log entries to a human-readable format with optional ANSI colors.
- *
- * Output format:
- * ```
- * {dim timestamp} {colored TAG} {[mod] [mod]} {message} {dim context}
- * ```
  *
  * Err instances in context are rendered via `Err.toString()` on their own
  * indented line below the main line.
@@ -327,16 +256,7 @@ function prettyTransport(options?: PrettyOptions): LogTransport {
 		"isTTY" in output && (output as { isTTY?: boolean }).isTTY === true;
 	const useColors = colorsOpt === "auto" ? isTTY : colorsOpt === true;
 
-	/**
-	 * Format a timestamp according to the configured `tsOpt` option.
-	 *
-	 * Delegates to a custom function when `tsOpt` is a function, renders
-	 * ISO-8601 when `tsOpt` is `'iso'`, or falls back to `formatShortTimestamp`.
-	 *
-	 * @param ts - Timestamp in milliseconds
-	 * @returns Formatted timestamp string
-	 * @internal
-	 */
+	// Format timestamp per the configured tsOpt option.
 	function formatTimestamp(ts: number): string {
 		if (typeof tsOpt === "function") return tsOpt(ts);
 		if (tsOpt === "iso") return new Date(ts).toISOString();
@@ -390,19 +310,7 @@ function prettyTransport(options?: PrettyOptions): LogTransport {
 
 // ─── Core logger builder ──────────────────────────────────────────────────────
 
-/**
- * Construct a Logger function bound to the given module stack, bindings,
- * level filter, and transports.
- *
- * Attaches level constants and a `child()` factory to the returned function.
- *
- * @param modules - Ordered module name stack (outermost first)
- * @param bindings - Fixed context fields merged into every log entry
- * @param level - Minimum level to emit
- * @param transports - Ordered list of transport sinks
- * @returns Configured Logger instance
- * @internal
- */
+// Build a Logger function bound to module stack, bindings, level filter, and transports.
 function buildLogger(
 	modules: string[],
 	bindings: Record<string, unknown>,

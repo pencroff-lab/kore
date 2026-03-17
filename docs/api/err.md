@@ -873,7 +873,7 @@ New Err instance with the original as cause
 
 ### ErrJSON
 
-Defined in: [types/err.types.ts:29](../../src/types/err.types.ts#L29)
+Defined in: [types/err.types.ts:28](../../src/types/err.types.ts#L28)
 
 Wire shape of a serialized Err for cross-boundary transport.
 Reconstruct via `Err.fromJSON()`.
@@ -884,61 +884,61 @@ Reconstruct via `Err.fromJSON()`.
 
 > `optional` **cause**: [`ErrJSON`](#errjson)
 
-Defined in: [types/err.types.ts:37](../../src/types/err.types.ts#L37)
+Defined in: [types/err.types.ts:36](../../src/types/err.types.ts#L36)
 
 ##### code?
 
 > `optional` **code**: `string`
 
-Defined in: [types/err.types.ts:33](../../src/types/err.types.ts#L33)
+Defined in: [types/err.types.ts:32](../../src/types/err.types.ts#L32)
 
 ##### errors
 
 > **errors**: [`ErrJSON`](#errjson)[]
 
-Defined in: [types/err.types.ts:38](../../src/types/err.types.ts#L38)
+Defined in: [types/err.types.ts:37](../../src/types/err.types.ts#L37)
 
 ##### isErr?
 
 > `optional` **isErr**: `boolean`
 
-Defined in: [types/err.types.ts:32](../../src/types/err.types.ts#L32)
+Defined in: [types/err.types.ts:31](../../src/types/err.types.ts#L31)
 
 ##### kind?
 
 > `optional` **kind**: `"Err"`
 
-Defined in: [types/err.types.ts:31](../../src/types/err.types.ts#L31)
+Defined in: [types/err.types.ts:30](../../src/types/err.types.ts#L30)
 
 ##### message
 
 > **message**: `string`
 
-Defined in: [types/err.types.ts:30](../../src/types/err.types.ts#L30)
+Defined in: [types/err.types.ts:29](../../src/types/err.types.ts#L29)
 
 ##### metadata?
 
 > `optional` **metadata**: `Record`\<`string`, `unknown`\>
 
-Defined in: [types/err.types.ts:34](../../src/types/err.types.ts#L34)
+Defined in: [types/err.types.ts:33](../../src/types/err.types.ts#L33)
 
 ##### stack?
 
 > `optional` **stack**: `string`
 
-Defined in: [types/err.types.ts:36](../../src/types/err.types.ts#L36)
+Defined in: [types/err.types.ts:35](../../src/types/err.types.ts#L35)
 
 ##### timestamp
 
 > **timestamp**: `string`
 
-Defined in: [types/err.types.ts:35](../../src/types/err.types.ts#L35)
+Defined in: [types/err.types.ts:34](../../src/types/err.types.ts#L34)
 
 ***
 
 ### ErrJSONOptions
 
-Defined in: [types/err.types.ts:45](../../src/types/err.types.ts#L45)
+Defined in: [types/err.types.ts:44](../../src/types/err.types.ts#L44)
 
 Controls which fields ErrJSON includes.
 Omit sensitive fields at public API boundaries.
@@ -949,7 +949,7 @@ Omit sensitive fields at public API boundaries.
 
 > `optional` **metadata**: `boolean`
 
-Defined in: [types/err.types.ts:49](../../src/types/err.types.ts#L49)
+Defined in: [types/err.types.ts:48](../../src/types/err.types.ts#L48)
 
 Include metadata.
 
@@ -963,7 +963,7 @@ true
 
 > `optional` **stack**: `boolean`
 
-Defined in: [types/err.types.ts:47](../../src/types/err.types.ts#L47)
+Defined in: [types/err.types.ts:46](../../src/types/err.types.ts#L46)
 
 Include stack trace.
 
@@ -977,7 +977,7 @@ true
 
 ### ErrOptions
 
-Defined in: [types/err.types.ts:14](../../src/types/err.types.ts#L14)
+Defined in: [types/err.types.ts:13](../../src/types/err.types.ts#L13)
 
 Options for creating or modifying an Err instance.
 
@@ -987,7 +987,7 @@ Options for creating or modifying an Err instance.
 
 > `optional` **code**: `string`
 
-Defined in: [types/err.types.ts:16](../../src/types/err.types.ts#L16)
+Defined in: [types/err.types.ts:15](../../src/types/err.types.ts#L15)
 
 Error code for programmatic handling
 
@@ -995,7 +995,7 @@ Error code for programmatic handling
 
 > `optional` **message**: `string`
 
-Defined in: [types/err.types.ts:18](../../src/types/err.types.ts#L18)
+Defined in: [types/err.types.ts:17](../../src/types/err.types.ts#L17)
 
 Human-readable error message
 
@@ -1003,7 +1003,7 @@ Human-readable error message
 
 > `optional` **metadata**: `Record`\<`string`, `unknown`\>
 
-Defined in: [types/err.types.ts:20](../../src/types/err.types.ts#L20)
+Defined in: [types/err.types.ts:19](../../src/types/err.types.ts#L19)
 
 Additional contextual data attached to this error level only
 
@@ -1011,7 +1011,7 @@ Additional contextual data attached to this error level only
 
 ### ToStringOptions
 
-Defined in: [types/err.types.ts:57](../../src/types/err.types.ts#L57)
+Defined in: [types/err.types.ts:56](../../src/types/err.types.ts#L56)
 
 Controls `Err.toString()` output for logging and debugging.
 
@@ -1021,7 +1021,7 @@ Controls `Err.toString()` output for logging and debugging.
 
 > `optional` **date**: `boolean`
 
-Defined in: [types/err.types.ts:61](../../src/types/err.types.ts#L61)
+Defined in: [types/err.types.ts:60](../../src/types/err.types.ts#L60)
 
 ISO 8601 timestamp prefix.
 
@@ -1035,7 +1035,7 @@ false
 
 > `optional` **indent**: `string`
 
-Defined in: [types/err.types.ts:67](../../src/types/err.types.ts#L67)
+Defined in: [types/err.types.ts:66](../../src/types/err.types.ts#L66)
 
 Indentation per nesting level.
 
@@ -1049,7 +1049,7 @@ Indentation per nesting level.
 
 > `optional` **maxDepth**: `number`
 
-Defined in: [types/err.types.ts:65](../../src/types/err.types.ts#L65)
+Defined in: [types/err.types.ts:64](../../src/types/err.types.ts#L64)
 
 Max cause chain depth before truncation.
 
@@ -1063,7 +1063,7 @@ undefined (unlimited)
 
 > `optional` **metadata**: `boolean`
 
-Defined in: [types/err.types.ts:63](../../src/types/err.types.ts#L63)
+Defined in: [types/err.types.ts:62](../../src/types/err.types.ts#L62)
 
 Inline metadata object.
 
@@ -1077,7 +1077,7 @@ false
 
 > `optional` **stack**: `number` \| `boolean`
 
-Defined in: [types/err.types.ts:59](../../src/types/err.types.ts#L59)
+Defined in: [types/err.types.ts:58](../../src/types/err.types.ts#L58)
 
 `true` = full stack, `number` = top N frames.
 
@@ -1093,7 +1093,7 @@ undefined
 
 > **ErrCode** = `string`
 
-Defined in: [types/err.types.ts:9](../../src/types/err.types.ts#L9)
+Defined in: [types/err.types.ts:8](../../src/types/err.types.ts#L8)
 
 Uppercase snake_case identifier for programmatic error handling.
 Supports hierarchical codes for prefix matching: 'AUTH:TOKEN:EXPIRED'.

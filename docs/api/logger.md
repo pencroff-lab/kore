@@ -27,7 +27,7 @@ objects dispatched to one or more `LogTransport` sinks. The built-in
 
 ### LogEntry
 
-Defined in: [utils/logger.ts:50](../../src/utils/logger.ts#L50)
+Defined in: [utils/logger.ts:40](../../src/utils/logger.ts#L40)
 
 A single structured log entry passed to transports.
 
@@ -37,7 +37,7 @@ A single structured log entry passed to transports.
 
 > **context**: `Record`\<`string`, `unknown`\>
 
-Defined in: [utils/logger.ts:58](../../src/utils/logger.ts#L58)
+Defined in: [utils/logger.ts:48](../../src/utils/logger.ts#L48)
 
 Merged bindings + call-site context
 
@@ -45,7 +45,7 @@ Merged bindings + call-site context
 
 > **level**: [`LevelValue`](#levelvalue)
 
-Defined in: [utils/logger.ts:52](../../src/utils/logger.ts#L52)
+Defined in: [utils/logger.ts:42](../../src/utils/logger.ts#L42)
 
 Log level
 
@@ -53,7 +53,7 @@ Log level
 
 > **message**: `string`
 
-Defined in: [utils/logger.ts:56](../../src/utils/logger.ts#L56)
+Defined in: [utils/logger.ts:46](../../src/utils/logger.ts#L46)
 
 Log message
 
@@ -61,7 +61,7 @@ Log message
 
 > **modules**: `string`[]
 
-Defined in: [utils/logger.ts:60](../../src/utils/logger.ts#L60)
+Defined in: [utils/logger.ts:50](../../src/utils/logger.ts#L50)
 
 Module chain accumulated by child() calls
 
@@ -69,7 +69,7 @@ Module chain accumulated by child() calls
 
 > **timestamp**: `number`
 
-Defined in: [utils/logger.ts:54](../../src/utils/logger.ts#L54)
+Defined in: [utils/logger.ts:44](../../src/utils/logger.ts#L44)
 
 Unix timestamp in milliseconds (Date.now())
 
@@ -77,25 +77,16 @@ Unix timestamp in milliseconds (Date.now())
 
 ### Logger()
 
-Defined in: [utils/logger.ts:118](../../src/utils/logger.ts#L118)
+Defined in: [utils/logger.ts:99](../../src/utils/logger.ts#L99)
 
-Callable logger interface with overloaded signatures.
-
-The Logger is both a function (for logging) and an object (with level
-constants and the `child` method).
-
-## Call Signatures
-1. `log(message)` - Log at INFO level
-2. `log(message, context)` - Log at INFO level with context object or Err
-3. `log(message, detail)` - Log at INFO level with detail string
-4. `log(level, message)` - Log at specific level
-5. `log(level, message, context)` - Log at specific level with context
+Callable logger interface — both a function and an object with level
+constants and a `child` method.
 
 #### Call Signature
 
 > **Logger**(`message`): `void`
 
-Defined in: [utils/logger.ts:133](../../src/utils/logger.ts#L133)
+Defined in: [utils/logger.ts:108](../../src/utils/logger.ts#L108)
 
 Log a message at INFO level.
 
@@ -113,7 +104,7 @@ Log a message at INFO level.
 
 > **Logger**(`message`, `context`): `void`
 
-Defined in: [utils/logger.ts:135](../../src/utils/logger.ts#L135)
+Defined in: [utils/logger.ts:110](../../src/utils/logger.ts#L110)
 
 Log a message at INFO level with context.
 
@@ -135,7 +126,7 @@ Log a message at INFO level with context.
 
 > **Logger**(`message`, `detail`): `void`
 
-Defined in: [utils/logger.ts:137](../../src/utils/logger.ts#L137)
+Defined in: [utils/logger.ts:112](../../src/utils/logger.ts#L112)
 
 Log a message at INFO level with detail string.
 
@@ -157,7 +148,7 @@ Log a message at INFO level with detail string.
 
 > **Logger**(`level`, `message`): `void`
 
-Defined in: [utils/logger.ts:139](../../src/utils/logger.ts#L139)
+Defined in: [utils/logger.ts:114](../../src/utils/logger.ts#L114)
 
 Log a message at a specific level.
 
@@ -179,7 +170,7 @@ Log a message at a specific level.
 
 > **Logger**(`level`, `message`, `context`): `void`
 
-Defined in: [utils/logger.ts:141](../../src/utils/logger.ts#L141)
+Defined in: [utils/logger.ts:116](../../src/utils/logger.ts#L116)
 
 Log a message at a specific level with context.
 
@@ -207,49 +198,37 @@ Log a message at a specific level with context.
 
 > `readonly` **DEBUG**: `"debug"`
 
-Defined in: [utils/logger.ts:122](../../src/utils/logger.ts#L122)
-
-Debug level constant
+Defined in: [utils/logger.ts:101](../../src/utils/logger.ts#L101)
 
 ##### ERROR
 
 > `readonly` **ERROR**: `"error"`
 
-Defined in: [utils/logger.ts:128](../../src/utils/logger.ts#L128)
-
-Error level constant
+Defined in: [utils/logger.ts:104](../../src/utils/logger.ts#L104)
 
 ##### FATAL
 
 > `readonly` **FATAL**: `"fatal"`
 
-Defined in: [utils/logger.ts:130](../../src/utils/logger.ts#L130)
-
-Fatal level constant
+Defined in: [utils/logger.ts:105](../../src/utils/logger.ts#L105)
 
 ##### INFO
 
 > `readonly` **INFO**: `"info"`
 
-Defined in: [utils/logger.ts:124](../../src/utils/logger.ts#L124)
-
-Info level constant
+Defined in: [utils/logger.ts:102](../../src/utils/logger.ts#L102)
 
 ##### TRACE
 
 > `readonly` **TRACE**: `"trace"`
 
-Defined in: [utils/logger.ts:120](../../src/utils/logger.ts#L120)
-
-Trace level constant
+Defined in: [utils/logger.ts:100](../../src/utils/logger.ts#L100)
 
 ##### WARN
 
 > `readonly` **WARN**: `"warn"`
 
-Defined in: [utils/logger.ts:126](../../src/utils/logger.ts#L126)
-
-Warning level constant
+Defined in: [utils/logger.ts:103](../../src/utils/logger.ts#L103)
 
 #### Methods
 
@@ -257,7 +236,7 @@ Warning level constant
 
 > **child**(`module`, `bindings?`): [`Logger`](#logger)
 
-Defined in: [utils/logger.ts:150](../../src/utils/logger.ts#L150)
+Defined in: [utils/logger.ts:125](../../src/utils/logger.ts#L125)
 
 Create a child logger with module-specific context.
 
@@ -285,7 +264,7 @@ New Logger instance
 
 ### LoggerOptions
 
-Defined in: [utils/logger.ts:98](../../src/utils/logger.ts#L98)
+Defined in: [utils/logger.ts:88](../../src/utils/logger.ts#L88)
 
 Options for `createLogger`.
 
@@ -295,7 +274,7 @@ Options for `createLogger`.
 
 > `optional` **level**: [`LevelValue`](#levelvalue)
 
-Defined in: [utils/logger.ts:100](../../src/utils/logger.ts#L100)
+Defined in: [utils/logger.ts:90](../../src/utils/logger.ts#L90)
 
 Minimum log level. Default: from `LOG_LEVEL` env or `'info'`
 
@@ -303,7 +282,7 @@ Minimum log level. Default: from `LOG_LEVEL` env or `'info'`
 
 > `optional` **transports**: [`LogTransport`](#logtransport)[]
 
-Defined in: [utils/logger.ts:102](../../src/utils/logger.ts#L102)
+Defined in: [utils/logger.ts:92](../../src/utils/logger.ts#L92)
 
 Transports to write entries to. Default: `[prettyTransport()]`
 
@@ -311,7 +290,7 @@ Transports to write entries to. Default: `[prettyTransport()]`
 
 ### LogTransport
 
-Defined in: [utils/logger.ts:67](../../src/utils/logger.ts#L67)
+Defined in: [utils/logger.ts:57](../../src/utils/logger.ts#L57)
 
 Transport interface — receives a `LogEntry` for each log call that passes
 the level filter. Implement this to integrate any logging backend.
@@ -322,7 +301,7 @@ the level filter. Implement this to integrate any logging backend.
 
 > **write**(`entry`): `void`
 
-Defined in: [utils/logger.ts:68](../../src/utils/logger.ts#L68)
+Defined in: [utils/logger.ts:58](../../src/utils/logger.ts#L58)
 
 ###### Parameters
 
@@ -338,7 +317,7 @@ Defined in: [utils/logger.ts:68](../../src/utils/logger.ts#L68)
 
 ### PrettyOptions
 
-Defined in: [utils/logger.ts:74](../../src/utils/logger.ts#L74)
+Defined in: [utils/logger.ts:64](../../src/utils/logger.ts#L64)
 
 Options for the built-in pretty console transport.
 
@@ -348,7 +327,7 @@ Options for the built-in pretty console transport.
 
 > `optional` **colors**: `boolean` \| `"auto"`
 
-Defined in: [utils/logger.ts:83](../../src/utils/logger.ts#L83)
+Defined in: [utils/logger.ts:73](../../src/utils/logger.ts#L73)
 
 Enable ANSI colors.
 - `'auto'` (default): enable when output is a TTY
@@ -359,7 +338,7 @@ Enable ANSI colors.
 
 > `optional` **levelColors**: `Partial`\<`Record`\<[`LevelValue`](#levelvalue), `string`\>\>
 
-Defined in: [utils/logger.ts:85](../../src/utils/logger.ts#L85)
+Defined in: [utils/logger.ts:75](../../src/utils/logger.ts#L75)
 
 Override default level colors (ANSI escape sequences)
 
@@ -367,7 +346,7 @@ Override default level colors (ANSI escape sequences)
 
 > `optional` **output**: `object`
 
-Defined in: [utils/logger.ts:76](../../src/utils/logger.ts#L76)
+Defined in: [utils/logger.ts:66](../../src/utils/logger.ts#L66)
 
 Output stream. Default: `process.stderr`
 
@@ -389,7 +368,7 @@ Output stream. Default: `process.stderr`
 
 > `optional` **timestamp**: `"short"` \| `"iso"` \| (`ts`) => `string`
 
-Defined in: [utils/logger.ts:92](../../src/utils/logger.ts#L92)
+Defined in: [utils/logger.ts:82](../../src/utils/logger.ts#L82)
 
 Timestamp format.
 - `'short'` (default): `HH:MM:SS.mmm` local time
@@ -402,7 +381,7 @@ Timestamp format.
 
 > **LevelValue** = *typeof* [`lvl`](#lvl)\[keyof *typeof* [`lvl`](#lvl)\]
 
-Defined in: [utils/logger.ts:45](../../src/utils/logger.ts#L45)
+Defined in: [utils/logger.ts:35](../../src/utils/logger.ts#L35)
 
 Type representing valid log level values.
 
@@ -412,7 +391,7 @@ Type representing valid log level values.
 
 > `const` **log**: [`Logger`](#logger)
 
-Defined in: [utils/logger.ts:475](../../src/utils/logger.ts#L475)
+Defined in: [utils/logger.ts:383](../../src/utils/logger.ts#L383)
 
 Default logger instance for application-wide logging.
 
@@ -422,17 +401,9 @@ Default logger instance for application-wide logging.
 
 > `const` **lvl**: `object`
 
-Defined in: [utils/logger.ts:33](../../src/utils/logger.ts#L33)
+Defined in: [utils/logger.ts:23](../../src/utils/logger.ts#L23)
 
-Log level constants for type-safe level specification.
-
-**Level Hierarchy** (lowest to highest):
-- `TRACE`: Detailed debugging information
-- `DEBUG`: Debugging information
-- `INFO`: General informational messages
-- `WARN`: Warning messages
-- `ERROR`: Error messages for failures
-- `FATAL`: Fatal errors causing termination
+Log level constants (TRACE < DEBUG < INFO < WARN < ERROR < FATAL).
 
 #### Type Declaration
 
@@ -466,7 +437,7 @@ Log level constants for type-safe level specification.
 
 > **createLogger**(`module?`, `options?`): [`Logger`](#logger)
 
-Defined in: [utils/logger.ts:465](../../src/utils/logger.ts#L465)
+Defined in: [utils/logger.ts:373](../../src/utils/logger.ts#L373)
 
 Create a logger instance with optional module name and configuration.
 
@@ -496,16 +467,9 @@ New Logger instance
 
 > **prettyTransport**(`options?`): [`LogTransport`](#logtransport)
 
-Defined in: [utils/logger.ts:320](../../src/utils/logger.ts#L320)
+Defined in: [utils/logger.ts:249](../../src/utils/logger.ts#L249)
 
 Create a built-in pretty console transport.
-
-Renders log entries to a human-readable format with optional ANSI colors.
-
-Output format:
-```
-{dim timestamp} {colored TAG} {[mod] [mod]} {message} {dim context}
-```
 
 Err instances in context are rendered via `Err.toString()` on their own
 indented line below the main line.
