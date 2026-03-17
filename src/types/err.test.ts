@@ -1025,6 +1025,21 @@ describe("Err", () => {
 				const found = err.find((e) => e.code === "TEST");
 				expect(found).toBe(err);
 			});
+
+			test("finds error by metadata in cause chain", () => {
+				const root = Err.from("Root cause").withMetadata({
+					resourceId: "user-123",
+				});
+				const err = root.wrap("Service failed").withMetadata({
+					requestId: "req-1",
+				});
+
+				const found = err.find(
+					(e) => e.getMetadata("resourceId") === "user-123",
+				);
+
+				expect(found?.message).toBe("Root cause");
+			});
 		});
 
 		describe("filter()", () => {
@@ -1048,6 +1063,34 @@ describe("Err", () => {
 				const agg = Err.aggregate("All").add("Test");
 				const filtered = agg.filter((e) => e.code === "MISSING");
 				expect(filtered).toEqual([]);
+			});
+
+			test("filters aggregated errors by metadata", () => {
+				const agg = Err.aggregate("All")
+					.add(
+						Err.from("Email required", "REQUIRED").withMetadata({
+							field: "email",
+						}),
+					)
+					.add(
+						Err.from("Name required", "REQUIRED").withMetadata({
+							field: "name",
+						}),
+					)
+					.add(
+						Err.from("Email invalid", "INVALID").withMetadata({
+							field: "email",
+						}),
+					);
+
+				const filtered = agg.filter(
+					(e) => e.getMetadata("field") === "email",
+				);
+
+				expect(filtered.map((e) => e.message)).toEqual([
+					"Email required",
+					"Email invalid",
+				]);
 			});
 		});
 	});
