@@ -6,11 +6,17 @@
 
 # format\_dt
 
+Date formatting utility for filesystem/log-safe timestamps.
+
+## See
+
+format_dt.examples.test.ts for usage patterns
+
 ## Interfaces
 
 ### DtStampOptions
 
-Defined in: [utils/format\_dt.ts:8](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/utils/format_dt.ts#L8)
+Defined in: [utils/format\_dt.ts:11](../../src/utils/format_dt.ts#L11)
 
 Options for configuring `dtStamp()` output format.
 
@@ -20,7 +26,7 @@ Options for configuring `dtStamp()` output format.
 
 > `optional` **delimiter**: `string`
 
-Defined in: [utils/format\_dt.ts:13](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/utils/format_dt.ts#L13)
+Defined in: [utils/format\_dt.ts:16](../../src/utils/format_dt.ts#L16)
 
 Character(s) between date/time segments.
 
@@ -34,7 +40,7 @@ Character(s) between date/time segments.
 
 > `optional` **ms**: `boolean`
 
-Defined in: [utils/format\_dt.ts:18](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/utils/format_dt.ts#L18)
+Defined in: [utils/format\_dt.ts:21](../../src/utils/format_dt.ts#L21)
 
 Include milliseconds in the time portion.
 
@@ -48,7 +54,7 @@ false
 
 > `optional` **parts**: `"date"` \| `"datetime"` \| `"time"`
 
-Defined in: [utils/format\_dt.ts:33](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/utils/format_dt.ts#L33)
+Defined in: [utils/format\_dt.ts:36](../../src/utils/format_dt.ts#L36)
 
 Which parts of the stamp to include.
 - `"datetime"` -- full stamp (date + time)
@@ -65,7 +71,7 @@ Which parts of the stamp to include.
 
 > `optional` **readable**: `boolean`
 
-Defined in: [utils/format\_dt.ts:40](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/utils/format_dt.ts#L40)
+Defined in: [utils/format\_dt.ts:43](../../src/utils/format_dt.ts#L43)
 
 When `true`, formats with human-readable separators:
 dashes in date (`YYYY-MM-DD`), colons in time (`HH:MM:SS`),
@@ -81,7 +87,7 @@ false
 
 > `optional` **tz**: `"utc"` \| `"local"`
 
-Defined in: [utils/format\_dt.ts:25](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/utils/format_dt.ts#L25)
+Defined in: [utils/format\_dt.ts:28](../../src/utils/format_dt.ts#L28)
 
 Timezone to use for extracting date/time components.
 - `"utc"` -- use UTC methods (`getUTCFullYear`, etc.)
@@ -99,7 +105,7 @@ Timezone to use for extracting date/time components.
 
 > **dtStamp**(`date?`, `options?`): `string`
 
-Defined in: [utils/format\_dt.ts:54](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/utils/format_dt.ts#L54)
+Defined in: [utils/format\_dt.ts:57](../../src/utils/format_dt.ts#L57)
 
 Format a `Date` into a filesystem/log-safe timestamp string.
 

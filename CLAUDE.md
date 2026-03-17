@@ -139,8 +139,9 @@ Build entry is `index.ts` at root which re-exports from `src/`. Tests, benchmark
 
 ### Inline JSDoc rules
 
-- Module header: ≤ 3 lines summary + `@see` links. No `@example` blocks
-- No `@example` in implementation files — use `@see` to examples test
+- Module header: ≤ 3 lines summary + `@see` reference. No `@example` blocks
+- No `@example` in implementation files — use `@see filename.examples.test.ts` (plain text, no `{@link}`)
+- Never use `{@link}` to reference `.ts` files — TypeDoc copies them to `_media/` and fails
 - `@example` in `*.types.ts` only if non-obvious from signature, max 5 lines
 - Never repeat invariants per method — state once at class/module level
 - Delete examples that restate the type signature

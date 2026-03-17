@@ -1,4 +1,7 @@
 /**
+ * Date formatting utility for filesystem/log-safe timestamps.
+ *
+ * @see format_dt.examples.test.ts for usage patterns
  * @module format_dt
  */
 

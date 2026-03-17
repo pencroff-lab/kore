@@ -1,7 +1,7 @@
 /**
  * Structured logging utility with transport DI and Err integration.
  *
- * @see {@link logger.examples.test.ts} for usage patterns
+ * @see logger.examples.test.ts for usage patterns
  * @module logger
  */
 

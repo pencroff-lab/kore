@@ -1,7 +1,7 @@
 /**
  * Immutable, value-based error type with wrapping and aggregation.
  *
- * @see {@link err.examples.test.ts} for usage patterns
+ * @see err.examples.test.ts for usage patterns
  * @module err
  */
 
