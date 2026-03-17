@@ -57,6 +57,8 @@ Markdown guides explain concepts; test files prove usage.
    - Other `*.ts`: fail if any `@example` exists, warn if ratio > 20%
 4. Exit 0 (pass), exit 1 (fail), warnings printed to stderr
 
+> Fail error details has to be descriptive, to let any agentic tool fix mistake (if skip rules)
+
 **Add to `package.json`:**
 ```json
 "check:docs": "bun scripts/check-docs.sh.ts"
@@ -67,6 +69,10 @@ Markdown guides explain concepts; test files prove usage.
 - name: Check docs
   run: bun run check:docs
 ```
+
+**Add to lint script**
+
+Add `check:docs` to curent `lint` script
 
 **Files to modify:**
 - `scripts/check-docs.sh.ts` (new)
