@@ -46,7 +46,8 @@
 		"postbuild": "bun scripts/verify-build.sh.ts",
 		"prepublish_pkg": "bun scripts/check-version.sh.ts && bun run build",
 		"publish_pkg": "bun publish --access public",
-		"gen_docs": "typedoc",
+		"pregen_docs": "rm -rf docs/api/_media",
+		"gen_docs": "typedoc && bun scripts/fix-docs-links.sh.ts",
 		"changelog": "git-cliff -o CHANGELOG.md",
 		"changelog:latest": "git-cliff --latest --strip header"
 	},

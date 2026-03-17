@@ -10,7 +10,7 @@ Immutable, value-based error type with wrapping and aggregation.
 
 ## See
 
-err.examples.test.ts for usage patterns
+[err.examples.test.ts](../../src/types/err.examples.test.ts) for usage patterns
 
 ## Classes
 

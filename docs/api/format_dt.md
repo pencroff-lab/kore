@@ -10,7 +10,7 @@ Date formatting utility for filesystem/log-safe timestamps.
 
 ## See
 
-format_dt.examples.test.ts for usage patterns
+[format_dt.examples.test.ts](../../src/utils/format_dt.examples.test.ts) for usage patterns
 
 ## Interfaces
 

@@ -10,7 +10,7 @@ Structured logging utility with transport DI and Err integration.
 
 ## See
 
-logger.examples.test.ts for usage patterns
+[logger.examples.test.ts](../../src/utils/logger.examples.test.ts) for usage patterns
 
 ## Interfaces
 

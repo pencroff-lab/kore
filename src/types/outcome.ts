@@ -1,7 +1,7 @@
 /**
  * Monadic container for handling success and error states using tuple-first API design.
  *
- * @see outcome.examples.test.ts for usage patterns
+ * @see [outcome.examples.test.ts](../../src/types/outcome.examples.test.ts) for usage patterns
  * @module outcome
  */
 

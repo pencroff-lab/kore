@@ -10,7 +10,7 @@ Monadic container for handling success and error states using tuple-first API de
 
 ## See
 
-outcome.examples.test.ts for usage patterns
+[outcome.examples.test.ts](../../src/types/outcome.examples.test.ts) for usage patterns
 
 ## Classes
 
