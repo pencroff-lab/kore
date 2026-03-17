@@ -10,7 +10,7 @@
 
 ### DtStampOptions
 
-Defined in: [utils/format\_dt.ts:8](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/format_dt.ts#L8)
+Defined in: [utils/format\_dt.ts:8](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/utils/format_dt.ts#L8)
 
 Options for configuring `dtStamp()` output format.
 
@@ -20,7 +20,7 @@ Options for configuring `dtStamp()` output format.
 
 > `optional` **delimiter**: `string`
 
-Defined in: [utils/format\_dt.ts:13](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/format_dt.ts#L13)
+Defined in: [utils/format\_dt.ts:13](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/utils/format_dt.ts#L13)
 
 Character(s) between date/time segments.
 
@@ -34,7 +34,7 @@ Character(s) between date/time segments.
 
 > `optional` **ms**: `boolean`
 
-Defined in: [utils/format\_dt.ts:18](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/format_dt.ts#L18)
+Defined in: [utils/format\_dt.ts:18](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/utils/format_dt.ts#L18)
 
 Include milliseconds in the time portion.
 
@@ -48,7 +48,7 @@ false
 
 > `optional` **parts**: `"date"` \| `"datetime"` \| `"time"`
 
-Defined in: [utils/format\_dt.ts:33](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/format_dt.ts#L33)
+Defined in: [utils/format\_dt.ts:33](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/utils/format_dt.ts#L33)
 
 Which parts of the stamp to include.
 - `"datetime"` -- full stamp (date + time)
@@ -65,7 +65,7 @@ Which parts of the stamp to include.
 
 > `optional` **readable**: `boolean`
 
-Defined in: [utils/format\_dt.ts:40](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/format_dt.ts#L40)
+Defined in: [utils/format\_dt.ts:40](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/utils/format_dt.ts#L40)
 
 When `true`, formats with human-readable separators:
 dashes in date (`YYYY-MM-DD`), colons in time (`HH:MM:SS`),
@@ -81,7 +81,7 @@ false
 
 > `optional` **tz**: `"utc"` \| `"local"`
 
-Defined in: [utils/format\_dt.ts:25](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/format_dt.ts#L25)
+Defined in: [utils/format\_dt.ts:25](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/utils/format_dt.ts#L25)
 
 Timezone to use for extracting date/time components.
 - `"utc"` -- use UTC methods (`getUTCFullYear`, etc.)
@@ -99,7 +99,7 @@ Timezone to use for extracting date/time components.
 
 > **dtStamp**(`date?`, `options?`): `string`
 
-Defined in: [utils/format\_dt.ts:83](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/utils/format_dt.ts#L83)
+Defined in: [utils/format\_dt.ts:54](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/utils/format_dt.ts#L54)
 
 Format a `Date` into a filesystem/log-safe timestamp string.
 
@@ -110,9 +110,10 @@ and anywhere a human-readable but machine-sortable date/time is needed.
 
 ##### date?
 
-Date to format. Defaults to `new Date()` when `null` or omitted.
+Date to format. Accepts a `Date`, a Unix timestamp in milliseconds
+  (number), or `null`/omitted (defaults to `new Date()`).
 
-`Date` | `null`
+`number` | `Date` | `null`
 
 ##### options?
 
@@ -125,30 +126,3 @@ Formatting options (delimiter, milliseconds, timezone, parts, readable)
 `string`
 
 Formatted timestamp string
-
-#### Examples
-
-```typescript
-dtStamp(new Date("2024-03-15T10:30:45.123Z"));
-// "20240315_103045"
-```
-
-```typescript
-dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, ms: true });
-// "2024-03-15_10:30:45_123"
-```
-
-```typescript
-dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, parts: "date" });
-// "2024-03-15"
-```
-
-```typescript
-dtStamp(new Date("2024-03-15T10:30:45.123Z"), { readable: true, parts: "time", ms: true });
-// "10:30:45.123"
-```
-
-```typescript
-dtStamp(new Date("2024-03-15T10:30:45.123Z"), { delimiter: "-" });
-// "20240315-103045"
-```

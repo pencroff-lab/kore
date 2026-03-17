@@ -6,169 +6,21 @@
 
 # err
 
-Error-as-value implementation for TypeScript applications.
+Immutable, value-based error type with wrapping and aggregation.
 
-This module provides a Go-style error handling approach where errors are
-passed as values rather than thrown as exceptions. The `Err` class supports
-both single error wrapping with context and error aggregation.
+## See
 
-## Immutability Contract
-
-All `Err` instances are immutable. Methods that appear to modify an error
-(like `wrap`, `withCode`, `withMetadata`, `add`) return new instances.
-The original error is never mutated. This means:
-
-- Safe to pass errors across boundaries without defensive copying
-- Method chaining always produces new instances
-- No "spooky action at a distance" bugs
-
-## Examples
-
-```typescript
-import { Err } from './err';
-
-function divide(a: number, b: number): [number, null] | [null, Err] {
-  if (b === 0) {
-    return [null, Err.from('Division by zero', 'MATH_ERROR')];
-  }
-  return [a / b, null];
-}
-
-const [result, err] = divide(10, 0);
-if (err) {
-  console.error(err.toString());
-  return;
-}
-console.log(result); // result is number here
-```
-
-```typescript
-function readConfig(path: string): [Config, null] | [null, Err] {
-  const [content, readErr] = readFile(path);
-  if (readErr) {
-    return [null, readErr.wrap(`Failed to read config from ${path}`)];
-  }
-
-  const [parsed, parseErr] = parseJSON(content);
-  if (parseErr) {
-    return [null, parseErr
-      .wrap('Invalid config format')
-      .withCode('CONFIG_ERROR')
-      .withMetadata({ path })];
-  }
-
-  return [parsed as Config, null];
-}
-```
-
-```typescript
-function parseData(raw: string): [Data, null] | [null, Err] {
-  try {
-    return [JSON.parse(raw), null];
-  } catch (e) {
-    return [null, Err.wrap('Failed to parse data', e as Error)];
-  }
-}
-```
-
-```typescript
-function validateUser(input: UserInput): [User, null] | [null, Err] {
-  let errors = Err.aggregate('Validation failed');
-
-  if (!input.name?.trim()) {
-    errors = errors.add('Name is required');
-  }
-  if (!input.email?.includes('@')) {
-    errors = errors.add(Err.from('Invalid email', 'INVALID_EMAIL'));
-  }
-  if (input.age !== undefined && input.age < 0) {
-    errors = errors.add('Age cannot be negative');
-  }
-
-  if (errors.count > 0) {
-    return [null, errors.withCode('VALIDATION_ERROR')];
-  }
-
-  return [input as User, null];
-}
-```
-
-```typescript
-// Backend: serialize error for API response
-const err = Err.from('User not found', 'NOT_FOUND');
-res.status(404).json({ error: err.toJSON() });
-
-// Frontend: deserialize error from API response
-const response = await fetch('/api/user/123');
-if (!response.ok) {
-  const { error } = await response.json();
-  const err = Err.fromJSON(error);
-  console.log(err.code); // 'NOT_FOUND'
-}
-
-// Public API: omit stack traces
-res.json({ error: err.toJSON({ stack: false }) });
-```
+err.examples.test.ts for usage patterns
 
 ## Classes
 
 ### Err
 
-Defined in: [types/err.ts:262](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L262)
+Defined in: [types/err.ts:23](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L23)
 
-A value-based error type that supports wrapping and aggregation.
-
-`Err` is designed to be returned from functions instead of throwing exceptions,
-following the Go-style error handling pattern. It supports:
-
-- **Single errors**: Created via `Err.from()` with optional code and metadata
-- **Error wrapping**: Adding context to errors as they propagate up the call stack
-- **Error aggregation**: Collecting multiple errors under a single parent (e.g., validation)
-- **Serialization**: Convert to/from JSON for service-to-service communication
+A value-based error type that supports wrapping, aggregation, and serialization.
 
 All instances are immutable - methods return new instances rather than mutating.
-
-#### Examples
-
-```typescript
-// From string with code (most common)
-const err1 = Err.from('User not found', 'NOT_FOUND');
-
-// From string with full options
-const err2 = Err.from('Connection timeout', {
-  code: 'TIMEOUT',
-  metadata: { host: 'api.example.com' }
-});
-
-// From native Error (preserves original stack and cause chain)
-try {
-  riskyOperation();
-} catch (e) {
-  const err = Err.from(e).withCode('OPERATION_FAILED');
-  return [null, err];
-}
-
-// From unknown (safe for catch blocks)
-const err3 = Err.from(unknownValue);
-```
-
-```typescript
-try {
-  await db.query(sql);
-} catch (e) {
-  return [null, Err.wrap('Database query failed', e as Error)];
-}
-```
-
-```typescript
-let errors = Err.aggregate('Multiple operations failed')
-  .add(Err.from('Database write failed'))
-  .add(Err.from('Cache invalidation failed'))
-  .add('Notification send failed'); // strings are auto-wrapped
-
-console.log(errors.count); // 3
-console.log(errors.flatten()); // Array of all individual errors
-```
 
 #### Properties
 
@@ -176,7 +28,7 @@ console.log(errors.flatten()); // Array of all individual errors
 
 > `readonly` `optional` **code**: `string`
 
-Defined in: [types/err.ts:296](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L296)
+Defined in: [types/err.ts:40](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L40)
 
 Error code for programmatic handling
 
@@ -184,34 +36,16 @@ Error code for programmatic handling
 
 > `readonly` **isErr**: `true`
 
-Defined in: [types/err.ts:290](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L290)
+Defined in: [types/err.ts:34](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L34)
 
 Discriminator property for type narrowing.
 Always `true` for Err instances.
-
-Useful when checking values from external sources (API responses,
-message queues) where `instanceof` may not work.
-
-###### Example
-
-```typescript
-// Checking unknown values from API
-const data = await response.json();
-if (data.error?.isErr) {
-  // Likely an Err-like object
-}
-
-// For type narrowing, prefer Err.isErr()
-if (Err.isErr(value)) {
-  console.error(value.message);
-}
-```
 
 ##### kind
 
 > `readonly` **kind**: `"Err"` = `"Err"`
 
-Defined in: [types/err.ts:267](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L267)
+Defined in: [types/err.ts:28](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L28)
 
 Discriminator property for type narrowing.
 Always "Err" for Err instances.
@@ -220,7 +54,7 @@ Always "Err" for Err instances.
 
 > `readonly` **message**: `string`
 
-Defined in: [types/err.ts:293](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L293)
+Defined in: [types/err.ts:37](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L37)
 
 Human-readable error message
 
@@ -228,7 +62,7 @@ Human-readable error message
 
 > `readonly` `optional` **metadata**: `Record`\<`string`, `unknown`\>
 
-Defined in: [types/err.ts:299](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L299)
+Defined in: [types/err.ts:43](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L43)
 
 Additional contextual data
 
@@ -236,7 +70,7 @@ Additional contextual data
 
 > `readonly` **timestamp**: `string`
 
-Defined in: [types/err.ts:306](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L306)
+Defined in: [types/err.ts:50](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L50)
 
 Timestamp when the error was created (ISO 8601 string).
 
@@ -250,25 +84,9 @@ Stored as string for easy serialization and comparison.
 
 > **get** **count**(): `number`
 
-Defined in: [types/err.ts:974](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L974)
+Defined in: [types/err.ts:538](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L538)
 
 Total count of errors (including nested aggregates).
-
-For single errors, returns 1.
-For aggregates, recursively counts all child errors.
-
-###### Example
-
-```typescript
-const single = Err.from('One error');
-console.log(single.count); // 1
-
-const nested = Err.aggregate('Parent')
-  .add('Error 1')
-  .add(Err.aggregate('Child').add('Error 2').add('Error 3'));
-
-console.log(nested.count); // 3
-```
 
 ###### Returns
 
@@ -280,25 +98,9 @@ console.log(nested.count); // 3
 
 > **get** **errors**(): readonly [`Err`](#err)[]
 
-Defined in: [types/err.ts:999](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L999)
+Defined in: [types/err.ts:548](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L548)
 
 Direct child errors (for aggregates).
-
-Returns an empty array for non-aggregate errors.
-
-###### Example
-
-```typescript
-const aggregate = Err.aggregate('Batch failed')
-  .add('Task 1 failed')
-  .add('Task 2 failed');
-
-for (const err of aggregate.errors) {
-  console.log(err.message);
-}
-// "Task 1 failed"
-// "Task 2 failed"
-```
 
 ###### Returns
 
@@ -310,19 +112,9 @@ readonly [`Err`](#err)[]
 
 > **get** **isAggregate**(): `boolean`
 
-Defined in: [types/err.ts:952](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L952)
+Defined in: [types/err.ts:531](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L531)
 
 Whether this error is an aggregate containing multiple errors.
-
-###### Example
-
-```typescript
-const single = Err.from('Single error');
-const multi = Err.aggregate('Multiple').add('One').add('Two');
-
-console.log(single.isAggregate); // false
-console.log(multi.isAggregate);  // true
-```
 
 ###### Returns
 
@@ -334,25 +126,9 @@ console.log(multi.isAggregate);  // true
 
 > **get** **root**(): [`Err`](#err)
 
-Defined in: [types/err.ts:1021](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1021)
+Defined in: [types/err.ts:555](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L555)
 
 The root/original error in a wrapped error chain.
-
-Follows the cause chain to find the deepest error.
-Returns `this` if there is no cause.
-
-###### Example
-
-```typescript
-const root = Err.from('Original error');
-const wrapped = root
-  .wrap('Added context')
-  .wrap('More context');
-
-console.log(wrapped.message);      // "More context"
-console.log(wrapped.root.message); // "Original error"
-console.log(wrapped.root.stack);   // Stack pointing to original error
-```
 
 ###### Returns
 
@@ -364,7 +140,7 @@ console.log(wrapped.root.stack);   // Stack pointing to original error
 
 > **get** **stack**(): `string` \| `undefined`
 
-Defined in: [types/err.ts:1611](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1611)
+Defined in: [types/err.ts:895](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L895)
 
 Get the captured stack trace.
 
@@ -384,13 +160,9 @@ Stack trace string or undefined
 
 > **add**(`error`): [`Err`](#err)
 
-Defined in: [types/err.ts:900](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L900)
+Defined in: [types/err.ts:501](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L501)
 
 Add an error to this aggregate.
-
-Returns a new Err with the error added to the list (immutable).
-If this is not an aggregate error, it will be treated as one with
-the added error as the first child.
 
 ###### Parameters
 
@@ -406,28 +178,13 @@ Error to add (Err, Error, or string)
 
 New Err instance with the error added
 
-###### Example
-
-```typescript
-let errors = Err.aggregate('Form validation failed');
-
-if (!email) {
-  errors = errors.add('Email is required');
-}
-if (!password) {
-  errors = errors.add(Err.from('Password is required').withCode('MISSING_PASSWORD'));
-}
-```
-
 ##### addAll()
 
 > **addAll**(`errors`): [`Err`](#err)
 
-Defined in: [types/err.ts:932](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L932)
+Defined in: [types/err.ts:520](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L520)
 
 Add multiple errors to this aggregate at once.
-
-Returns a new Err with all errors added (immutable).
 
 ###### Parameters
 
@@ -443,27 +200,13 @@ Array of errors to add
 
 New Err instance with all errors added
 
-###### Example
-
-```typescript
-const validationErrors = [
-  'Name too short',
-  Err.from('Invalid email format').withCode('INVALID_EMAIL'),
-  new Error('Age must be positive'),
-];
-
-const aggregate = Err.aggregate('Validation failed').addAll(validationErrors);
-```
-
 ##### chain()
 
 > **chain**(): [`Err`](#err)[]
 
-Defined in: [types/err.ts:1073](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1073)
+Defined in: [types/err.ts:573](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L573)
 
 Get the full chain of wrapped errors from root to current.
-
-The first element is the root/original error, the last is `this`.
 
 ###### Returns
 
@@ -471,37 +214,13 @@ The first element is the root/original error, the last is `this`.
 
 Array of Err instances in causal order
 
-###### Remarks
-
-Time complexity: O(n) where n is the depth of the cause chain.
-
-###### Example
-
-```typescript
-const chain = Err.from('Network timeout')
-  .wrap('API request failed')
-  .wrap('Could not refresh token')
-  .wrap('Authentication failed')
-  .chain();
-
-console.log(chain.map(e => e.message));
-// [
-//   "Network timeout",
-//   "API request failed",
-//   "Could not refresh token",
-//   "Authentication failed"
-// ]
-```
-
 ##### filter()
 
 > **filter**(`predicate`): [`Err`](#err)[]
 
-Defined in: [types/err.ts:1255](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1255)
+Defined in: [types/err.ts:660](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L660)
 
 Find all errors matching a predicate.
-
-Searches this error, its cause chain, and all aggregated errors.
 
 ###### Parameters
 
@@ -517,27 +236,13 @@ Function to test each error
 
 Array of all matching Err instances
 
-###### Example
-
-```typescript
-const err = Err.aggregate('Validation failed')
-  .add(Err.from('Name required', 'REQUIRED'))
-  .add(Err.from('Invalid email', 'INVALID'))
-  .add(Err.from('Age required', 'REQUIRED'));
-
-const required = err.filter(e => e.code === 'REQUIRED');
-console.log(required.length); // 2
-```
-
 ##### find()
 
 > **find**(`predicate`): [`Err`](#err) \| `undefined`
 
-Defined in: [types/err.ts:1222](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1222)
+Defined in: [types/err.ts:640](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L640)
 
 Find the first error matching a predicate.
-
-Searches this error, its cause chain, and all aggregated errors.
 
 ###### Parameters
 
@@ -553,27 +258,13 @@ Function to test each error
 
 The first matching Err or undefined
 
-###### Example
-
-```typescript
-const err = Err.aggregate('Multiple failures')
-  .add(Err.from('Not found', 'NOT_FOUND'))
-  .add(Err.from('Timeout', 'TIMEOUT'));
-
-const timeout = err.find(e => e.code === 'TIMEOUT');
-console.log(timeout?.message); // "Timeout"
-```
-
 ##### flatten()
 
 > **flatten**(): [`Err`](#err)[]
 
-Defined in: [types/err.ts:1109](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1109)
+Defined in: [types/err.ts:588](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L588)
 
 Flatten all errors into a single array.
-
-For aggregates, recursively collects all leaf errors.
-For single errors, returns an array containing just this error.
 
 ###### Returns
 
@@ -581,35 +272,81 @@ For single errors, returns an array containing just this error.
 
 Flattened array of all individual errors
 
-###### Remarks
+##### getMetadata()
 
-Time complexity: O(n) where n is the total number of errors in all nested aggregates.
-Recursively traverses the error tree.
+###### Call Signature
 
-###### Example
+> **getMetadata**\<`T`\>(`key`): `T` \| `undefined`
 
-```typescript
-const nested = Err.aggregate('All errors')
-  .add('Error A')
-  .add(Err.aggregate('Group B')
-    .add('Error B1')
-    .add('Error B2'))
-  .add('Error C');
+Defined in: [types/err.ts:439](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L439)
 
-const flat = nested.flatten();
-console.log(flat.map(e => e.message));
-// ["Error A", "Error B1", "Error B2", "Error C"]
-```
+Get metadata value for a given key.
+
+###### Type Parameters
+
+###### T
+
+`T` = `unknown`
+
+The expected type of the metadata value
+
+###### Parameters
+
+###### key
+
+`string`
+
+The metadata key to retrieve
+
+###### Returns
+
+`T` \| `undefined`
+
+The metadata value or default, cast to type T
+
+###### Call Signature
+
+> **getMetadata**\<`T`\>(`key`, `defaultValue`): `T`
+
+Defined in: [types/err.ts:440](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L440)
+
+Get metadata value for a given key.
+
+###### Type Parameters
+
+###### T
+
+`T` = `unknown`
+
+The expected type of the metadata value
+
+###### Parameters
+
+###### key
+
+`string`
+
+The metadata key to retrieve
+
+###### defaultValue
+
+`T`
+
+Optional default value if key is missing
+
+###### Returns
+
+`T`
+
+The metadata value or default, cast to type T
 
 ##### hasCode()
 
 > **hasCode**(`code`): `boolean`
 
-Defined in: [types/err.ts:1138](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1138)
+Defined in: [types/err.ts:605](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L605)
 
 Check if this error or any error in its chain/aggregate has a specific code.
-
-Searches the cause chain and all aggregated errors.
 
 ###### Parameters
 
@@ -625,34 +362,13 @@ The error code to search for
 
 `true` if the code is found anywhere in the error tree
 
-###### Example
-
-```typescript
-const err = Err.from('DB error', 'DB_ERROR')
-  .wrap('Repository failed')
-  .wrap('Service unavailable');
-
-console.log(err.hasCode('DB_ERROR'));      // true
-console.log(err.hasCode('NETWORK_ERROR')); // false
-```
-
 ##### hasCodePrefix()
 
 > **hasCodePrefix**(`prefix`, `boundary?`): `boolean`
 
-Defined in: [types/err.ts:1189](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1189)
+Defined in: [types/err.ts:619](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L619)
 
-Check if this error or any error in its chain/aggregate has a code
-matching the given prefix with boundary awareness.
-
-This enables hierarchical error code patterns like `AUTH:TOKEN:EXPIRED`
-where libraries define base codes and consumers extend with subcodes.
-
-Matches if:
-- Code equals prefix exactly (e.g., `"AUTH"` matches `"AUTH"`)
-- Code starts with prefix + boundary (e.g., `"AUTH"` matches `"AUTH:EXPIRED"`)
-
-Does NOT match partial strings (e.g., `"AUTH"` does NOT match `"AUTHORIZATION"`).
+Check if this error or any error in its chain/aggregate has a code matching the given prefix.
 
 ###### Parameters
 
@@ -674,47 +390,67 @@ Separator character/string between code segments (default: ":")
 
 `true` if a matching code is found anywhere in the error tree
 
-###### Examples
+##### hasMetadata()
 
-```typescript
-const err = Err.from('Token expired', { code: 'AUTH:TOKEN:EXPIRED' });
+> **hasMetadata**(`key`, `options?`): `boolean`
 
-err.hasCodePrefix('AUTH');           // true (matches AUTH:*)
-err.hasCodePrefix('AUTH:TOKEN');     // true (matches AUTH:TOKEN:*)
-err.hasCodePrefix('AUTHORIZATION');  // false (no boundary match)
-```
+Defined in: [types/err.ts:413](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L413)
 
-```typescript
-const err = Err.from('Not found', { code: 'HTTP.404.NOT_FOUND' });
+Check if metadata exists for a given key.
 
-err.hasCodePrefix('HTTP', '.');      // true
-err.hasCodePrefix('HTTP.404', '.');  // true
-err.hasCodePrefix('HTTP', ':');      // false (wrong boundary)
-```
+###### Parameters
 
-```typescript
-const err = Err.from('DB error', { code: 'DB:CONNECTION' })
-  .wrap('Service failed', { code: 'SERVICE:UNAVAILABLE' });
+###### key
 
-err.hasCodePrefix('DB');       // true (found in cause)
-err.hasCodePrefix('SERVICE');  // true (found in current)
-```
+`string`
+
+The metadata key to check
+
+###### options?
+
+Optional configuration
+
+###### keyCheck?
+
+`boolean`
+
+If true, only checks key existence (default: false)
+
+###### Returns
+
+`boolean`
+
+true if metadata exists according to the selected mode
+
+##### omitMetadata()
+
+> **omitMetadata**(`key`): [`Err`](#err)
+
+Defined in: [types/err.ts:459](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L459)
+
+Create a new Err instance with specified metadata keys removed.
+
+###### Parameters
+
+###### key
+
+Single key or array of keys to remove
+
+`string` | `string`[]
+
+###### Returns
+
+[`Err`](#err)
+
+New Err instance with keys omitted
 
 ##### toError()
 
 > **toError**(): `Error`
 
-Defined in: [types/err.ts:1586](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1586)
+Defined in: [types/err.ts:870](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L870)
 
 Convert to a native Error for interop with throw-based APIs.
-
-Creates an Error with:
-- `message`: This error's message
-- `name`: This error's code (or "Err")
-- `stack`: This error's original stack trace
-- `cause`: Converted cause chain (native Error)
-
-Note: Metadata is not included on the native Error.
 
 ###### Returns
 
@@ -722,31 +458,13 @@ Note: Metadata is not included on the native Error.
 
 Native Error instance
 
-###### Example
-
-```typescript
-const err = Err.from('Something failed', 'MY_ERROR');
-
-// If you need to throw for some API
-throw err.toError();
-
-// The thrown error will have:
-// - error.message === "Something failed"
-// - error.name === "MY_ERROR"
-// - error.stack === (original stack trace)
-// - error.cause === (if wrapped)
-```
-
 ##### toJSON()
 
 > **toJSON**(`options?`): [`ErrJSON`](#errjson)
 
-Defined in: [types/err.ts:1320](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1320)
+Defined in: [types/err.ts:684](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L684)
 
 Convert to a JSON-serializable object.
-
-Useful for logging, API responses, and serialization.
-Use options to control what's included (e.g., omit stack for public APIs).
 
 ###### Parameters
 
@@ -766,54 +484,13 @@ Plain object representation
 
 [fromJSON](#fromjson) for deserializing an Err from JSON
 
-###### Examples
-
-```typescript
-const err = Err.from('Not found', {
-  code: 'NOT_FOUND',
-  metadata: { userId: '123' }
-});
-
-console.log(JSON.stringify(err.toJSON(), null, 2));
-// {
-//   "message": "Not found",
-//   "code": "NOT_FOUND",
-//   "metadata": { "userId": "123" },
-//   "timestamp": "2024-01-15T10:30:00.000Z",
-//   "stack": "Error: ...",
-//   "errors": []
-// }
-```
-
-```typescript
-app.get('/user/:id', (req, res) => {
-  const result = getUser(req.params.id);
-  if (Err.isErr(result)) {
-    const status = result.code === 'NOT_FOUND' ? 404 : 500;
-    return res.status(status).json({
-      error: result.toJSON({ stack: false })
-    });
-  }
-  res.json(result);
-});
-```
-
-```typescript
-err.toJSON({ stack: false, metadata: false });
-// Only includes: message, code, timestamp, cause, errors
-```
-
 ##### toString()
 
 > **toString**(`options?`): `string`
 
-Defined in: [types/err.ts:1486](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1486)
+Defined in: [types/err.ts:792](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L792)
 
 Convert to a formatted string for logging/display.
-
-Includes cause chain and aggregated errors with indentation.
-When called with options, can include additional details like
-stack traces, timestamps, and metadata.
 
 ###### Parameters
 
@@ -829,67 +506,13 @@ Formatting options (optional)
 
 Formatted error string
 
-###### Examples
-
-```typescript
-const err = Err.from('DB error')
-  .wrap('Repository failed')
-  .wrap('Service unavailable');
-
-console.log(err.toString());
-// [ERROR] Service unavailable
-//   Caused by: [ERROR] Repository failed
-//     Caused by: [ERROR] DB error
-```
-
-```typescript
-const err = Err.from('Connection failed', {
-  code: 'DB:CONNECTION',
-  metadata: { host: 'localhost', port: 5432 }
-});
-
-console.log(err.toString({ date: true, metadata: true, stack: 3 }));
-// [2024-01-15T10:30:00.000Z] [DB:CONNECTION] Connection failed
-//   metadata: {"host":"localhost","port":5432}
-//   stack:
-//     at Database.connect (src/db.ts:45)
-//     at Repository.init (src/repo.ts:23)
-//     at Service.start (src/service.ts:12)
-```
-
-```typescript
-const err = Err.aggregate('Validation failed', [], { code: 'VALIDATION' })
-  .add('Name required')
-  .add('Email invalid');
-
-console.log(err.toString());
-// [VALIDATION] Validation failed
-//   Errors (2):
-//     - [ERROR] Name required
-//     - [ERROR] Email invalid
-```
-
-```typescript
-const deep = Err.from('Root')
-  .wrap('Level 1')
-  .wrap('Level 2')
-  .wrap('Level 3');
-
-console.log(deep.toString({ maxDepth: 2 }));
-// [ERROR] Level 3
-//   Caused by: [ERROR] Level 2
-//     ... (1 more cause)
-```
-
 ##### unwrap()
 
 > **unwrap**(): [`Err`](#err) \| `undefined`
 
-Defined in: [types/err.ts:1042](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L1042)
+Defined in: [types/err.ts:564](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L564)
 
 Get the directly wrapped error (one level up).
-
-Returns `undefined` if this error has no cause.
 
 ###### Returns
 
@@ -897,26 +520,13 @@ Returns `undefined` if this error has no cause.
 
 The wrapped Err or undefined
 
-###### Example
-
-```typescript
-const inner = Err.from('DB connection failed');
-const outer = inner.wrap('Could not save user');
-
-const unwrapped = outer.unwrap();
-console.log(unwrapped?.message); // "DB connection failed"
-console.log(inner.unwrap());     // undefined
-```
-
 ##### withCode()
 
 > **withCode**(`code`): [`Err`](#err)
 
-Defined in: [types/err.ts:833](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L833)
+Defined in: [types/err.ts:373](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L373)
 
 Create a new Err with a different or added error code.
-
-Preserves the original stack trace and timestamp.
 
 ###### Parameters
 
@@ -932,26 +542,13 @@ The error code to set
 
 New Err instance with the specified code
 
-###### Example
-
-```typescript
-const err = Err.from('Record not found').withCode('NOT_FOUND');
-
-if (err.code === 'NOT_FOUND') {
-  return res.status(404).json(err.toJSON());
-}
-```
-
 ##### withMetadata()
 
 > **withMetadata**(`metadata`): [`Err`](#err)
 
-Defined in: [types/err.ts:863](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L863)
+Defined in: [types/err.ts:390](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L390)
 
 Create a new Err with additional metadata.
-
-New metadata is merged with existing metadata. Preserves the original
-stack trace and timestamp.
 
 ###### Parameters
 
@@ -967,35 +564,13 @@ Key-value pairs to add to metadata
 
 New Err instance with merged metadata
 
-###### Example
-
-```typescript
-const err = Err.from('Request failed')
-  .withMetadata({ url: '/api/users' })
-  .withMetadata({ statusCode: 500, retryable: true });
-
-console.log(err.metadata);
-// { url: '/api/users', statusCode: 500, retryable: true }
-```
-
 ##### wrap()
 
 > **wrap**(`context`): [`Err`](#err)
 
-Defined in: [types/err.ts:806](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L806)
+Defined in: [types/err.ts:357](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L357)
 
 Wrap this error with additional context.
-
-Creates a new error that has this error as its cause. The original error
-is preserved and accessible via `unwrap()` or `chain()`.
-
-## Stack Trace Behavior
-
-The new wrapper captures a fresh stack trace pointing to where `wrap()`
-was called. This is intentional - it shows the propagation path. The
-original error's stack is preserved and accessible via:
-- `err.unwrap()?.stack` - immediate cause's stack
-- `err.root.stack` - original error's stack
 
 ###### Parameters
 
@@ -1015,39 +590,13 @@ New Err instance with this error as cause
 
 [Err.wrap](#wrap-1) for the static version (useful in catch blocks)
 
-###### Examples
-
-```typescript
-const dbErr = queryDatabase();
-if (Err.isErr(dbErr)) {
-  return dbErr.wrap('Failed to fetch user');
-}
-```
-
-```typescript
-return originalErr.wrap({
-  message: 'Service unavailable',
-  code: 'SERVICE_ERROR',
-  metadata: { service: 'user-service', retryAfter: 30 }
-});
-```
-
-```typescript
-const wrapped = original.wrap('Context 1').wrap('Context 2');
-console.log(wrapped.stack);       // Points to second wrap() call
-console.log(wrapped.root.stack);  // Points to original error location
-```
-
 ##### aggregate()
 
 > `static` **aggregate**(`message`, `errors?`, `options?`): [`Err`](#err)
 
-Defined in: [types/err.ts:594](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L594)
+Defined in: [types/err.ts:235](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L235)
 
 Create an aggregate error for collecting multiple errors.
-
-Useful for validation, batch operations, or any scenario where
-multiple errors should be collected and reported together.
 
 ###### Parameters
 
@@ -1075,45 +624,13 @@ Optional code and metadata for the aggregate
 
 New aggregate Err instance
 
-###### Examples
-
-```typescript
-function validate(data: Input): [Valid, null] | [null, Err] {
-  let errors = Err.aggregate('Validation failed');
-
-  if (!data.email) errors = errors.add('Email is required');
-  if (!data.name) errors = errors.add('Name is required');
-
-  if (errors.count > 0) {
-    return [null, errors.withCode('VALIDATION_ERROR')];
-  }
-  return [data as Valid, null];
-}
-```
-
-```typescript
-async function processAll(items: Item[]): [null, Err] | [void, null] {
-  let errors = Err.aggregate('Batch processing failed');
-
-  for (const item of items) {
-    const [, err] = await processItem(item);
-    if (err) {
-      errors = errors.add(err.withMetadata({ itemId: item.id }));
-    }
-  }
-
-  if (errors.count > 0) return [null, errors];
-  return [undefined, null];
-}
-```
-
 ##### from()
 
 ###### Call Signature
 
 > `static` **from**(`message`, `code?`): [`Err`](#err)
 
-Defined in: [types/err.ts:370](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L370)
+Defined in: [types/err.ts:109](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L109)
 
 Create an Err from a string message with optional code.
 
@@ -1137,17 +654,11 @@ Optional error code
 
 New Err instance
 
-###### Example
-
-```typescript
-const err = Err.from('User not found', 'NOT_FOUND');
-```
-
 ###### Call Signature
 
 > `static` **from**(`message`, `options`): [`Err`](#err)
 
-Defined in: [types/err.ts:387](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L387)
+Defined in: [types/err.ts:118](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L118)
 
 Create an Err from a string message with full options.
 
@@ -1171,27 +682,15 @@ Code and metadata options
 
 New Err instance
 
-###### Example
-
-```typescript
-const err = Err.from('Connection timeout', {
-  code: 'TIMEOUT',
-  metadata: { host: 'api.example.com', timeoutMs: 5000 }
-});
-```
-
 ###### Call Signature
 
 > `static` **from**(`error`, `options?`): [`Err`](#err)
 
-Defined in: [types/err.ts:410](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L410)
+Defined in: [types/err.ts:129](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L129)
 
 Create an Err from a native Error.
 
-Preserves the original error's:
-- Stack trace (as primary stack for debugging)
-- Cause chain (if `error.cause` is Error or string)
-- Name (in metadata as `originalName`)
+Preserves the original error's stack trace, cause chain, and name.
 
 ###### Parameters
 
@@ -1213,21 +712,11 @@ Optional overrides for message, code, and metadata
 
 New Err instance
 
-###### Example
-
-```typescript
-try {
-  JSON.parse(invalidJson);
-} catch (e) {
-  return Err.from(e as Error, { code: 'PARSE_ERROR' });
-}
-```
-
 ###### Call Signature
 
 > `static` **from**(`error`, `options?`): [`Err`](#err)
 
-Defined in: [types/err.ts:425](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L425)
+Defined in: [types/err.ts:138](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L138)
 
 Create an Err from another Err instance (clone with optional overrides).
 
@@ -1251,23 +740,13 @@ Optional overrides
 
 New Err instance with merged properties
 
-###### Example
-
-```typescript
-const original = Err.from('Original error');
-const modified = Err.from(original, { code: 'NEW_CODE' });
-```
-
 ###### Call Signature
 
 > `static` **from**(`error`, `options?`): [`Err`](#err)
 
-Defined in: [types/err.ts:447](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L447)
+Defined in: [types/err.ts:147](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L147)
 
 Create an Err from an unknown value (safe for catch blocks).
-
-Handles any value that might be thrown, including non-Error objects,
-strings, numbers, null, and undefined.
 
 ###### Parameters
 
@@ -1289,27 +768,13 @@ Optional code and metadata
 
 New Err instance
 
-###### Example
-
-```typescript
-try {
-  await riskyAsyncOperation();
-} catch (e) {
-  // Safe - handles any thrown value
-  return Err.from(e).wrap('Operation failed');
-}
-```
-
 ##### fromJSON()
 
 > `static` **fromJSON**(`json`): [`Err`](#err)
 
-Defined in: [types/err.ts:642](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L642)
+Defined in: [types/err.ts:257](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L257)
 
 Deserialize an Err from JSON representation.
-
-Reconstructs an Err instance from its JSON form, including
-cause chains and aggregated errors. Validates the input structure.
 
 ###### Parameters
 
@@ -1333,39 +798,13 @@ Error if json is invalid or missing required fields
 
 [toJSON](#tojson) for serializing an Err to JSON
 
-###### Examples
-
-```typescript
-const response = await fetch('/api/users/123');
-if (!response.ok) {
-  const body = await response.json();
-  if (body.error) {
-    const err = Err.fromJSON(body.error);
-    if (err.hasCode('NOT_FOUND')) {
-      return showNotFound();
-    }
-    return showError(err);
-  }
-}
-```
-
-```typescript
-queue.on('error', (message) => {
-  const err = Err.fromJSON(message.payload);
-  logger.error('Task failed', { error: err.toJSON() });
-});
-```
-
 ##### isErr()
 
 > `static` **isErr**(`value`): `value is Err`
 
-Defined in: [types/err.ts:748](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L748)
+Defined in: [types/err.ts:334](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L334)
 
 Type guard to check if a value is an Err instance.
-
-Useful for checking values from external sources where
-`instanceof` may not work (different realms, serialization).
 
 ###### Parameters
 
@@ -1381,42 +820,13 @@ Any value to check
 
 `true` if value is an Err instance
 
-###### Examples
-
-```typescript
-// Useful for values from external sources
-function handleApiResponse(data: unknown): void {
-  if (Err.isErr(data)) {
-    console.error('Received error:', data.message);
-    return;
-  }
-  // Process data...
-}
-```
-
-```typescript
-function getUser(id: string): [User, null] | [null, Err] {
-  // ...
-}
-
-const [user, err] = getUser('123');
-if (err) {
-  console.error(err.message);
-  return;
-}
-console.log(user.name);
-```
-
 ##### wrap()
 
 > `static` **wrap**(`message`, `error`, `options?`): [`Err`](#err)
 
-Defined in: [types/err.ts:538](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L538)
+Defined in: [types/err.ts:214](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.ts#L214)
 
 Static convenience method to wrap an error with a context message.
-
-Creates a new Err with the provided message, having the original
-error as its cause. This is the recommended pattern for catch blocks.
 
 ###### Parameters
 
@@ -1448,34 +858,14 @@ New Err instance with the original as cause
 
 [Err.prototype.wrap](#wrap) for the instance method
 
-###### Examples
-
-```typescript
-try {
-  await db.query(sql);
-} catch (e) {
-  return Err.wrap('Database query failed', e as Error);
-}
-```
-
-```typescript
-try {
-  const user = await fetchUser(id);
-} catch (e) {
-  return Err.wrap('Failed to fetch user', e as Error, {
-    code: 'USER_FETCH_ERROR',
-    metadata: { userId: id }
-  });
-}
-```
-
 ## Interfaces
 
 ### ErrJSON
 
-Defined in: [types/err.ts:194](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L194)
+Defined in: [types/err.types.ts:35](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L35)
 
-JSON representation of an Err for serialization.
+Wire shape of a serialized Err for cross-boundary transport.
+Reconstruct via `Err.fromJSON()`.
 
 #### Properties
 
@@ -1483,63 +873,64 @@ JSON representation of an Err for serialization.
 
 > `optional` **cause**: [`ErrJSON`](#errjson)
 
-Defined in: [types/err.ts:202](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L202)
+Defined in: [types/err.types.ts:43](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L43)
 
 ##### code?
 
 > `optional` **code**: `string`
 
-Defined in: [types/err.ts:198](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L198)
+Defined in: [types/err.types.ts:39](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L39)
 
 ##### errors
 
 > **errors**: [`ErrJSON`](#errjson)[]
 
-Defined in: [types/err.ts:203](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L203)
+Defined in: [types/err.types.ts:44](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L44)
 
 ##### isErr?
 
 > `optional` **isErr**: `boolean`
 
-Defined in: [types/err.ts:197](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L197)
+Defined in: [types/err.types.ts:38](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L38)
 
 ##### kind?
 
 > `optional` **kind**: `"Err"`
 
-Defined in: [types/err.ts:196](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L196)
+Defined in: [types/err.types.ts:37](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L37)
 
 ##### message
 
 > **message**: `string`
 
-Defined in: [types/err.ts:195](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L195)
+Defined in: [types/err.types.ts:36](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L36)
 
 ##### metadata?
 
 > `optional` **metadata**: `Record`\<`string`, `unknown`\>
 
-Defined in: [types/err.ts:199](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L199)
+Defined in: [types/err.types.ts:40](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L40)
 
 ##### stack?
 
 > `optional` **stack**: `string`
 
-Defined in: [types/err.ts:201](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L201)
+Defined in: [types/err.types.ts:42](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L42)
 
 ##### timestamp
 
 > **timestamp**: `string`
 
-Defined in: [types/err.ts:200](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L200)
+Defined in: [types/err.types.ts:41](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L41)
 
 ***
 
 ### ErrJSONOptions
 
-Defined in: [types/err.ts:142](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L142)
+Defined in: [types/err.types.ts:51](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L51)
 
-Options for JSON serialization.
+Controls which fields ErrJSON includes.
+Omit sensitive fields at public API boundaries.
 
 #### Properties
 
@@ -1547,10 +938,9 @@ Options for JSON serialization.
 
 > `optional` **metadata**: `boolean`
 
-Defined in: [types/err.ts:154](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L154)
+Defined in: [types/err.types.ts:55](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L55)
 
-Include metadata in output.
-Set to `false` to omit potentially sensitive data.
+Include metadata.
 
 ###### Default
 
@@ -1562,10 +952,9 @@ true
 
 > `optional` **stack**: `boolean`
 
-Defined in: [types/err.ts:148](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L148)
+Defined in: [types/err.types.ts:53](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L53)
 
-Include stack trace in output.
-Set to `false` for public API responses.
+Include stack trace.
 
 ###### Default
 
@@ -1577,7 +966,7 @@ true
 
 ### ErrOptions
 
-Defined in: [types/err.ts:130](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L130)
+Defined in: [types/err.types.ts:20](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L20)
 
 Options for creating or modifying an Err instance.
 
@@ -1587,15 +976,15 @@ Options for creating or modifying an Err instance.
 
 > `optional` **code**: `string`
 
-Defined in: [types/err.ts:132](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L132)
+Defined in: [types/err.types.ts:22](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L22)
 
-Error code for programmatic error handling
+Error code for programmatic handling
 
 ##### message?
 
 > `optional` **message**: `string`
 
-Defined in: [types/err.ts:134](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L134)
+Defined in: [types/err.types.ts:24](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L24)
 
 Human-readable error message
 
@@ -1603,17 +992,17 @@ Human-readable error message
 
 > `optional` **metadata**: `Record`\<`string`, `unknown`\>
 
-Defined in: [types/err.ts:136](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L136)
+Defined in: [types/err.types.ts:26](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L26)
 
-Additional contextual data
+Additional contextual data attached to this error level only
 
 ***
 
 ### ToStringOptions
 
-Defined in: [types/err.ts:160](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L160)
+Defined in: [types/err.types.ts:63](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L63)
 
-Options for toString() output formatting.
+Controls `Err.toString()` output for logging and debugging.
 
 #### Properties
 
@@ -1621,9 +1010,9 @@ Options for toString() output formatting.
 
 > `optional` **date**: `boolean`
 
-Defined in: [types/err.ts:172](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L172)
+Defined in: [types/err.types.ts:67](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L67)
 
-Include timestamp in output (ISO 8601 format).
+ISO 8601 timestamp prefix.
 
 ###### Default
 
@@ -1635,24 +1024,23 @@ false
 
 > `optional` **indent**: `string`
 
-Defined in: [types/err.ts:188](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L188)
+Defined in: [types/err.types.ts:73](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L73)
 
-Indentation string for nested output.
+Indentation per nesting level.
 
 ###### Default
 
 ```ts
-"  " (two spaces)
+"  "
 ```
 
 ##### maxDepth?
 
 > `optional` **maxDepth**: `number`
 
-Defined in: [types/err.ts:183](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L183)
+Defined in: [types/err.types.ts:71](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L71)
 
-Maximum depth for cause chain traversal.
-When exceeded, shows "... (N more causes)".
+Max cause chain depth before truncation.
 
 ###### Default
 
@@ -1664,9 +1052,9 @@ undefined (unlimited)
 
 > `optional` **metadata**: `boolean`
 
-Defined in: [types/err.ts:177](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L177)
+Defined in: [types/err.types.ts:69](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L69)
 
-Include metadata object in output.
+Inline metadata object.
 
 ###### Default
 
@@ -1678,16 +1066,14 @@ false
 
 > `optional` **stack**: `number` \| `boolean`
 
-Defined in: [types/err.ts:167](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L167)
+Defined in: [types/err.types.ts:65](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L65)
 
-Include stack trace in output.
-- `true`: Include full stack trace
-- `number`: Include only top N frames (default: 3 when number)
+`true` = full stack, `number` = top N frames.
 
 ###### Default
 
 ```ts
-undefined (no stack)
+undefined
 ```
 
 ## Type Aliases
@@ -1696,17 +1082,11 @@ undefined (no stack)
 
 > **ErrCode** = `string`
 
-Defined in: [types/err.ts:125](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/err.ts#L125)
+Defined in: [types/err.types.ts:15](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/err.types.ts#L15)
 
-Error code type - typically uppercase snake_case identifiers.
+Uppercase snake_case identifier for programmatic error handling.
+Supports hierarchical codes for prefix matching: 'AUTH:TOKEN:EXPIRED'.
 
-#### Example
+#### See
 
-```typescript
-const codes: ErrCode[] = [
-  'NOT_FOUND',
-  'VALIDATION_ERROR',
-  'DB_CONNECTION_FAILED',
-  'AUTH_EXPIRED',
-];
-```
+[Err.hasCode](#hascode) for prefix-based matching behavior

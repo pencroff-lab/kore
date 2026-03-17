@@ -8,88 +8,18 @@
 
 Monadic container for handling success and error states using tuple-first API design.
 
-This module provides the `Outcome<T>` class and related types for implementing
-type-safe error handling without exceptions. All operations favor immutability.
+## See
 
-## Examples
-
-```typescript
-import { Outcome } from './outcome';
-
-const [val, err] = Outcome.from(() => [42, null]).toTuple();
-```
-
-```typescript
-// Before (throwing):
-function getUser(id: string): User {
-  const user = db.find(id);
-  if (!user) throw new Error("Not found");
-  return user;
-}
-try {
-  const user = getUser("123");
-  console.log(user.name);
-} catch (e) {
-  console.error(e.message);
-}
-
-// After (Outcome):
-function getUser(id: string): Outcome<User> {
-  return Outcome.from(() => {
-    const user = db.find(id);
-    if (!user) return Err.from("Not found", "NOT_FOUND");
-    return [user, null];
-  });
-}
-const [user, err] = getUser("123").toTuple();
-if (err) {
-  console.error(err.message);
-  return;
-}
-console.log(user.name);
-```
+outcome.examples.test.ts for usage patterns
 
 ## Classes
 
 ### Outcome
 
-Defined in: [types/outcome.ts:166](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L166)
+Defined in: [types/outcome.ts:25](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L25)
 
 A monadic container for handling success and error states.
-
-`Outcome<T>` provides a type-safe way to handle operations that can fail,
-using tuples as the primary interface. All instances are immutable.
-
-## Core Patterns
-
-- **Construction**: Use static methods `ok()`, `err()`, `from()`, `fromAsync()`
-- **Inspection**: Use `isOk`, `isErr`, `value`, `error` properties
-- **Transformation**: Use `map()`, `mapErr()` for chained operations
-- **Extraction**: Use `toTuple()` for final value extraction
-
-#### Examples
-
-```typescript
-const outcome = Outcome.from(() => {
-  if (Math.random() > 0.5) return [42, null];
-  return Err.from('Bad luck');
-});
-
-const [value, err] = outcome.toTuple();
-if (err) {
-  console.error('Failed:', err.message);
-} else {
-  console.log('Success:', value);
-}
-```
-
-```typescript
-const result = Outcome.ok(5)
-  .map(n => [n * 2, null])
-  .map(n => [n.toString(), null])
-  .toTuple();
-// result: ['10', null]
-```
+Uses tuples as the primary interface. All instances are immutable.
 
 #### Type Parameters
 
@@ -105,7 +35,7 @@ The type of the success value
 
 > `readonly` **isOk**: `boolean`
 
-Defined in: [types/outcome.ts:171](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L171)
+Defined in: [types/outcome.ts:30](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L30)
 
 Discriminator property for type narrowing.
 `true` for success outcomes, `false` for error outcomes.
@@ -118,19 +48,9 @@ Discriminator property for type narrowing.
 
 > **get** **error**(): [`Err`](err.md#err) \| `null`
 
-Defined in: [types/outcome.ts:233](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L233)
+Defined in: [types/outcome.ts:65](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L65)
 
 The error, or null if in success state.
-
-###### Example
-
-```typescript
-const success = Outcome.ok(42);
-const failure = Outcome.err('Failed');
-
-console.log(success.error); // null
-console.log(failure.error?.message); // 'Failed'
-```
 
 ###### Returns
 
@@ -142,19 +62,9 @@ console.log(failure.error?.message); // 'Failed'
 
 > **get** **isErr**(): `boolean`
 
-Defined in: [types/outcome.ts:197](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L197)
+Defined in: [types/outcome.ts:47](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L47)
 
 Whether this Outcome is in error state.
-
-###### Example
-
-```typescript
-const success = Outcome.ok(42);
-const failure = Outcome.err('Failed');
-
-console.log(success.isErr); // false
-console.log(failure.isErr); // true
-```
 
 ###### Returns
 
@@ -166,19 +76,9 @@ console.log(failure.isErr); // true
 
 > **get** **value**(): `T` \| `null`
 
-Defined in: [types/outcome.ts:217](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L217)
+Defined in: [types/outcome.ts:58](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L58)
 
 The success value, or null if in error state.
-
-###### Example
-
-```typescript
-const success = Outcome.ok(42);
-const failure = Outcome.err('Failed');
-
-console.log(success.value); // 42
-console.log(failure.value); // null
-```
 
 ###### Returns
 
@@ -192,12 +92,9 @@ console.log(failure.value); // null
 
 > **defaultTo**(`fallback`): `T`
 
-Defined in: [types/outcome.ts:1005](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1005)
+Defined in: [types/outcome.ts:476](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L476)
 
 Extract the success value, or use a fallback value on error.
-
-This is a terminal operation that exits the Outcome chain.
-Returns `T` directly, not wrapped in Outcome.
 
 ###### Parameters
 
@@ -217,32 +114,13 @@ The success value or the fallback
 
 If the outcome is an error and computing fallback throws
 
-###### See
-
- - [either](#either) for transforming both cases with custom logic
- - [toTuple](#totuple) for raw tuple extraction
-
-###### Examples
-
-```typescript
-const count = parseNumber(input).defaultTo(0);
-// Returns parsed number or 0 on error
-```
-
-```typescript
-const config = loadConfig().defaultTo({ port: 3000, host: 'localhost' });
-```
-
 ###### Call Signature
 
 > **defaultTo**(`handler`): `T`
 
-Defined in: [types/outcome.ts:1032](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1032)
+Defined in: [types/outcome.ts:485](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L485)
 
 Extract the success value, or compute a fallback from the error.
-
-This is a terminal operation that exits the Outcome chain.
-The handler receives the `Err` and can use it to compute the fallback.
 
 ###### Parameters
 
@@ -262,31 +140,15 @@ The success value or computed fallback
 
 If the handler throws, the exception propagates to the caller
 
-###### Examples
-
-```typescript
-const name = fetchUser(id).defaultTo(err =>
-  err.hasCode('NOT_FOUND') ? 'Guest' : 'Unknown'
-);
-```
-
-```typescript
-const data = loadData().defaultTo(err => {
-  console.error('Load failed:', err.message);
-  return cachedData;
-});
-```
-
 ###### Call Signature
 
 > **defaultTo**(`fallback`, `asValue`): `T`
 
-Defined in: [types/outcome.ts:1050](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1050)
+Defined in: [types/outcome.ts:496](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L496)
 
 Extract the success value, or use the provided fallback value.
 
-When T is a function type, use this overload with `asValue: true`
-to force treating the fallback as a static value rather than an error handler.
+Use `asValue: true` when T is a function type to avoid treating it as a handler.
 
 ###### Parameters
 
@@ -308,22 +170,14 @@ Must be `true` to use this overload
 
 The success value or the fallback
 
-###### Example
-
-```typescript
-const defaultHandler = () => console.log('default');
-const handler = getHandler().defaultTo(defaultHandler, true);
-```
-
 ##### effect()
 
 > **effect**(`fn`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:939](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L939)
+Defined in: [types/outcome.ts:435](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L435)
 
 Execute a side effect with access to the full tuple.
 
-The callback receives the tuple `[value, error]` regardless of state.
 Returns `this` unchanged for chaining.
 If the callback throws, the exception is caught and the Outcome becomes an error.
 
@@ -345,32 +199,11 @@ This Outcome (for chaining), or error Outcome if callback throws
 
 [effectAsync](#effectasync) for the async version
 
-###### Examples
-
-```typescript
-const outcome = Outcome.ok(42)
-  .effect(([val, err]) => {
-    if (err) console.error('Failed:', err.message);
-    else console.log('Success:', val);
-  })
-  .map(v => [v * 2, null]);
-```
-
-```typescript
-outcome.effect(([val, err]) => {
-  metrics.record({
-    success: !err,
-    value: val,
-    errorCode: err?.code
-  });
-});
-```
-
 ##### effectAsync()
 
 > **effectAsync**(`fn`): `Promise`\<[`Outcome`](#outcome)\<`T`\>\>
 
-Defined in: [types/outcome.ts:965](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L965)
+Defined in: [types/outcome.ts:453](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L453)
 
 Async version of `effect()`.
 
@@ -392,29 +225,13 @@ Promise of this Outcome
 
 [effect](#effect) for the synchronous version
 
-###### Example
-
-```typescript
-const outcome = await Outcome.ok(data)
-  .effectAsync(async ([val, err]) => {
-    await logger.log({ value: val, error: err?.toJSON() });
-  });
-```
-
 ##### either()
 
 > **either**\<`U`\>(`onOk`, `onErr`): `U`
 
-Defined in: [types/outcome.ts:1118](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1118)
+Defined in: [types/outcome.ts:520](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L520)
 
 Transform the Outcome into a final value by handling both cases.
-
-This is a terminal operation that exits the Outcome chain, similar to
-`toTuple()` but with transformation logic applied.
-
-Each handler receives only its relevant type with full type safety:
-- `onOk` receives `T` (guaranteed non-null value)
-- `onErr` receives `Err` (guaranteed error)
 
 ###### Type Parameters
 
@@ -446,53 +263,15 @@ The transformed value (not wrapped in Outcome)
 
 If either callback throws, the exception propagates to the caller
 
-###### See
-
- - [defaultTo](#defaultto) for simple value extraction with fallback
- - [toTuple](#totuple) for raw tuple extraction
- - [toJSON](#tojson) for JSON serialization
-
-###### Examples
-
-```typescript
-const message = fetchUser(id).either(
-  user => `Welcome, ${user.name}!`,
-  err => `Error: ${err.message}`
-);
-// message is string, not Outcome<string>
-```
-
-```typescript
-const response = processOrder(orderId).either(
-  order => ({ status: 200, body: { id: order.id, total: order.total } }),
-  err => ({
-    status: err.hasCode('NOT_FOUND') ? 404 : 500,
-    body: { error: err.message }
-  })
-);
-```
-
-```typescript
-const count = parseNumber(input).either(n => n, () => 0);
-```
-
-```typescript
-const status: 'success' | 'error' = outcomeEntity.either(
-  () => 'success',
-  () => 'error'
-);
-```
-
 ##### map()
 
 > **map**\<`U`\>(`fn`): [`Outcome`](#outcome)\<`U`\>
 
-Defined in: [types/outcome.ts:773](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L773)
+Defined in: [types/outcome.ts:339](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L339)
 
 Transform the success value using a callback.
 
-Only called if this Outcome is successful. Errors pass through unchanged.
-The callback can return any `CallbackReturn<U>` pattern.
+Only called if successful. Errors pass through unchanged.
 If the callback throws, the exception is caught and wrapped.
 
 ###### Type Parameters
@@ -520,39 +299,11 @@ New Outcome with transformed value or original/new error
  - [mapAsync](#mapasync) for the async version
  - [mapErr](#maperr) for transforming or recovering from errors
 
-###### Examples
-
-```typescript
-const outcome = Outcome.ok(5)
-  .map(n => [n * 2, null])
-  .map(n => [n.toString(), null]);
-
-console.log(outcome.value); // '10'
-```
-
-```typescript
-const outcome = Outcome.ok('{"name":"John"}')
-  .map(json => {
-    try {
-      return [JSON.parse(json), null];
-    } catch {
-      return Err.from('Invalid JSON');
-    }
-  });
-```
-
-```typescript
-const outcome = Outcome.err('Original error')
-  .map(v => [v * 2, null]); // Never called
-
-console.log(outcome.error?.message); // 'Original error'
-```
-
 ##### mapAsync()
 
 > **mapAsync**\<`U`\>(`fn`): `Promise`\<[`Outcome`](#outcome)\<`U`\>\>
 
-Defined in: [types/outcome.ts:802](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L802)
+Defined in: [types/outcome.ts:359](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L359)
 
 Async version of `map()`.
 
@@ -580,28 +331,15 @@ Promise of new Outcome
 
 [map](#map) for the synchronous version
 
-###### Example
-
-```typescript
-const outcome = await Outcome.ok(userId)
-  .mapAsync(async id => {
-    const user = await fetchUser(id);
-    return [user, null];
-  });
-```
-
 ##### mapErr()
 
 > **mapErr**\<`U`\>(`fn`): [`Outcome`](#outcome)\<`T` \| `U`\>
 
-Defined in: [types/outcome.ts:856](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L856)
+Defined in: [types/outcome.ts:384](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L384)
 
 Transform or recover from an error using a callback.
 
-Only called if this Outcome is in error state. Success passes through unchanged.
-The callback can return any `CallbackReturn<U>` pattern, allowing:
-- Recovery: return `[value, null]` to convert error to success
-- Transform: return `Err` or `[null, Err]` to change the error
+Only called if in error state. Success passes through unchanged.
 
 ###### Type Parameters
 
@@ -628,36 +366,11 @@ New Outcome with transformed error or recovered value
  - [mapErrAsync](#maperrasync) for the async version
  - [map](#map) for transforming success values
 
-###### Examples
-
-```typescript
-const outcome = Outcome.err('Not found')
-  .mapErr(err => {
-    if (err.hasCode('NOT_FOUND')) {
-      return [defaultValue, null]; // recover with default
-    }
-    return err; // pass through other errors
-  });
-```
-
-```typescript
-const outcome = Outcome.err('Low-level error')
-  .mapErr(err => err.wrap('High-level context'));
-```
-
-```typescript
-const outcome = Outcome.err('Something failed')
-  .mapErr(err => {
-    console.error('Error occurred:', err.message);
-    return err; // pass through unchanged
-  });
-```
-
 ##### mapErrAsync()
 
 > **mapErrAsync**\<`U`\>(`fn`): `Promise`\<[`Outcome`](#outcome)\<`T` \| `U`\>\>
 
-Defined in: [types/outcome.ts:887](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L887)
+Defined in: [types/outcome.ts:405](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L405)
 
 Async version of `mapErr()`.
 
@@ -685,29 +398,17 @@ Promise of new Outcome
 
 [mapErr](#maperr) for the synchronous version
 
-###### Example
-
-```typescript
-const outcome = await Outcome.err('Primary failed')
-  .mapErrAsync(async err => {
-    const fallback = await fetchFromBackup();
-    if (fallback) return [fallback, null];
-    return err.wrap('Backup also failed');
-  });
-```
-
 ##### pipe()
 
 ###### Call Signature
 
 > **pipe**\<`A`\>(`f1`): [`Outcome`](#outcome)\<`A`\>
 
-Defined in: [types/outcome.ts:1173](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1173)
+Defined in: [types/outcome.ts:541](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L541)
 
 Chain synchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`.
-This allows handling both success and error cases at each step,
+Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`,
 enabling mid-chain recovery or conditional transformations.
 
 ###### Type Parameters
@@ -732,49 +433,15 @@ enabling mid-chain recovery or conditional transformations.
  - [map](#map) for simple success-only transformation
  - [mapErr](#maperr) for error-only transformation
 
-###### Examples
-
-```typescript
-const result = Outcome.ok(rawInput).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    return [validate(val), null];
-  },
-  ([val, err]) => {
-    if (err) return err;
-    return [transform(val), null];
-  }
-);
-```
-
-```typescript
-const result = Outcome.ok(input).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    if (!val.isValid) return Err.from('Invalid', 'VALIDATION');
-    return [val, null];
-  },
-  ([val, err]) => {
-    // Recover from validation error
-    if (err?.hasCode('VALIDATION')) {
-      return [DEFAULT_VALUE, null];
-    }
-    if (err) return err;
-    return [val.process(), null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipe**\<`A`, `B`\>(`f1`, `f2`): [`Outcome`](#outcome)\<`B`\>
 
-Defined in: [types/outcome.ts:1174](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1174)
+Defined in: [types/outcome.ts:542](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L542)
 
 Chain synchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`.
-This allows handling both success and error cases at each step,
+Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`,
 enabling mid-chain recovery or conditional transformations.
 
 ###### Type Parameters
@@ -807,49 +474,15 @@ enabling mid-chain recovery or conditional transformations.
  - [map](#map) for simple success-only transformation
  - [mapErr](#maperr) for error-only transformation
 
-###### Examples
-
-```typescript
-const result = Outcome.ok(rawInput).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    return [validate(val), null];
-  },
-  ([val, err]) => {
-    if (err) return err;
-    return [transform(val), null];
-  }
-);
-```
-
-```typescript
-const result = Outcome.ok(input).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    if (!val.isValid) return Err.from('Invalid', 'VALIDATION');
-    return [val, null];
-  },
-  ([val, err]) => {
-    // Recover from validation error
-    if (err?.hasCode('VALIDATION')) {
-      return [DEFAULT_VALUE, null];
-    }
-    if (err) return err;
-    return [val.process(), null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipe**\<`A`, `B`, `C`\>(`f1`, `f2`, `f3`): [`Outcome`](#outcome)\<`C`\>
 
-Defined in: [types/outcome.ts:1175](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1175)
+Defined in: [types/outcome.ts:543](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L543)
 
 Chain synchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`.
-This allows handling both success and error cases at each step,
+Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`,
 enabling mid-chain recovery or conditional transformations.
 
 ###### Type Parameters
@@ -890,49 +523,15 @@ enabling mid-chain recovery or conditional transformations.
  - [map](#map) for simple success-only transformation
  - [mapErr](#maperr) for error-only transformation
 
-###### Examples
-
-```typescript
-const result = Outcome.ok(rawInput).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    return [validate(val), null];
-  },
-  ([val, err]) => {
-    if (err) return err;
-    return [transform(val), null];
-  }
-);
-```
-
-```typescript
-const result = Outcome.ok(input).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    if (!val.isValid) return Err.from('Invalid', 'VALIDATION');
-    return [val, null];
-  },
-  ([val, err]) => {
-    // Recover from validation error
-    if (err?.hasCode('VALIDATION')) {
-      return [DEFAULT_VALUE, null];
-    }
-    if (err) return err;
-    return [val.process(), null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipe**\<`A`, `B`, `C`, `D`\>(`f1`, `f2`, `f3`, `f4`): [`Outcome`](#outcome)\<`D`\>
 
-Defined in: [types/outcome.ts:1180](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1180)
+Defined in: [types/outcome.ts:548](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L548)
 
 Chain synchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`.
-This allows handling both success and error cases at each step,
+Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`,
 enabling mid-chain recovery or conditional transformations.
 
 ###### Type Parameters
@@ -981,49 +580,15 @@ enabling mid-chain recovery or conditional transformations.
  - [map](#map) for simple success-only transformation
  - [mapErr](#maperr) for error-only transformation
 
-###### Examples
-
-```typescript
-const result = Outcome.ok(rawInput).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    return [validate(val), null];
-  },
-  ([val, err]) => {
-    if (err) return err;
-    return [transform(val), null];
-  }
-);
-```
-
-```typescript
-const result = Outcome.ok(input).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    if (!val.isValid) return Err.from('Invalid', 'VALIDATION');
-    return [val, null];
-  },
-  ([val, err]) => {
-    // Recover from validation error
-    if (err?.hasCode('VALIDATION')) {
-      return [DEFAULT_VALUE, null];
-    }
-    if (err) return err;
-    return [val.process(), null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`\>(`f1`, `f2`, `f3`, `f4`, `f5`): [`Outcome`](#outcome)\<`E`\>
 
-Defined in: [types/outcome.ts:1186](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1186)
+Defined in: [types/outcome.ts:554](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L554)
 
 Chain synchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`.
-This allows handling both success and error cases at each step,
+Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`,
 enabling mid-chain recovery or conditional transformations.
 
 ###### Type Parameters
@@ -1080,49 +645,15 @@ enabling mid-chain recovery or conditional transformations.
  - [map](#map) for simple success-only transformation
  - [mapErr](#maperr) for error-only transformation
 
-###### Examples
-
-```typescript
-const result = Outcome.ok(rawInput).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    return [validate(val), null];
-  },
-  ([val, err]) => {
-    if (err) return err;
-    return [transform(val), null];
-  }
-);
-```
-
-```typescript
-const result = Outcome.ok(input).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    if (!val.isValid) return Err.from('Invalid', 'VALIDATION');
-    return [val, null];
-  },
-  ([val, err]) => {
-    // Recover from validation error
-    if (err?.hasCode('VALIDATION')) {
-      return [DEFAULT_VALUE, null];
-    }
-    if (err) return err;
-    return [val.process(), null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`): [`Outcome`](#outcome)\<`F`\>
 
-Defined in: [types/outcome.ts:1193](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1193)
+Defined in: [types/outcome.ts:561](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L561)
 
 Chain synchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`.
-This allows handling both success and error cases at each step,
+Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`,
 enabling mid-chain recovery or conditional transformations.
 
 ###### Type Parameters
@@ -1187,49 +718,15 @@ enabling mid-chain recovery or conditional transformations.
  - [map](#map) for simple success-only transformation
  - [mapErr](#maperr) for error-only transformation
 
-###### Examples
-
-```typescript
-const result = Outcome.ok(rawInput).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    return [validate(val), null];
-  },
-  ([val, err]) => {
-    if (err) return err;
-    return [transform(val), null];
-  }
-);
-```
-
-```typescript
-const result = Outcome.ok(input).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    if (!val.isValid) return Err.from('Invalid', 'VALIDATION');
-    return [val, null];
-  },
-  ([val, err]) => {
-    // Recover from validation error
-    if (err?.hasCode('VALIDATION')) {
-      return [DEFAULT_VALUE, null];
-    }
-    if (err) return err;
-    return [val.process(), null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`): [`Outcome`](#outcome)\<`G`\>
 
-Defined in: [types/outcome.ts:1201](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1201)
+Defined in: [types/outcome.ts:569](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L569)
 
 Chain synchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`.
-This allows handling both success and error cases at each step,
+Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`,
 enabling mid-chain recovery or conditional transformations.
 
 ###### Type Parameters
@@ -1302,49 +799,15 @@ enabling mid-chain recovery or conditional transformations.
  - [map](#map) for simple success-only transformation
  - [mapErr](#maperr) for error-only transformation
 
-###### Examples
-
-```typescript
-const result = Outcome.ok(rawInput).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    return [validate(val), null];
-  },
-  ([val, err]) => {
-    if (err) return err;
-    return [transform(val), null];
-  }
-);
-```
-
-```typescript
-const result = Outcome.ok(input).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    if (!val.isValid) return Err.from('Invalid', 'VALIDATION');
-    return [val, null];
-  },
-  ([val, err]) => {
-    // Recover from validation error
-    if (err?.hasCode('VALIDATION')) {
-      return [DEFAULT_VALUE, null];
-    }
-    if (err) return err;
-    return [val.process(), null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`): [`Outcome`](#outcome)\<`H`\>
 
-Defined in: [types/outcome.ts:1210](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1210)
+Defined in: [types/outcome.ts:578](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L578)
 
 Chain synchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`.
-This allows handling both success and error cases at each step,
+Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`,
 enabling mid-chain recovery or conditional transformations.
 
 ###### Type Parameters
@@ -1425,49 +888,15 @@ enabling mid-chain recovery or conditional transformations.
  - [map](#map) for simple success-only transformation
  - [mapErr](#maperr) for error-only transformation
 
-###### Examples
-
-```typescript
-const result = Outcome.ok(rawInput).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    return [validate(val), null];
-  },
-  ([val, err]) => {
-    if (err) return err;
-    return [transform(val), null];
-  }
-);
-```
-
-```typescript
-const result = Outcome.ok(input).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    if (!val.isValid) return Err.from('Invalid', 'VALIDATION');
-    return [val, null];
-  },
-  ([val, err]) => {
-    // Recover from validation error
-    if (err?.hasCode('VALIDATION')) {
-      return [DEFAULT_VALUE, null];
-    }
-    if (err) return err;
-    return [val.process(), null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`, `f9`): [`Outcome`](#outcome)\<`I`\>
 
-Defined in: [types/outcome.ts:1220](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1220)
+Defined in: [types/outcome.ts:588](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L588)
 
 Chain synchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`.
-This allows handling both success and error cases at each step,
+Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`,
 enabling mid-chain recovery or conditional transformations.
 
 ###### Type Parameters
@@ -1556,49 +985,15 @@ enabling mid-chain recovery or conditional transformations.
  - [map](#map) for simple success-only transformation
  - [mapErr](#maperr) for error-only transformation
 
-###### Examples
-
-```typescript
-const result = Outcome.ok(rawInput).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    return [validate(val), null];
-  },
-  ([val, err]) => {
-    if (err) return err;
-    return [transform(val), null];
-  }
-);
-```
-
-```typescript
-const result = Outcome.ok(input).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    if (!val.isValid) return Err.from('Invalid', 'VALIDATION');
-    return [val, null];
-  },
-  ([val, err]) => {
-    // Recover from validation error
-    if (err?.hasCode('VALIDATION')) {
-      return [DEFAULT_VALUE, null];
-    }
-    if (err) return err;
-    return [val.process(), null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`, `f9`, `f10`): [`Outcome`](#outcome)\<`J`\>
 
-Defined in: [types/outcome.ts:1231](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1231)
+Defined in: [types/outcome.ts:599](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L599)
 
 Chain synchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`.
-This allows handling both success and error cases at each step,
+Each predicate receives `ResultTuple<T>` and returns `CallbackReturn<U>`,
 enabling mid-chain recovery or conditional transformations.
 
 ###### Type Parameters
@@ -1695,50 +1090,16 @@ enabling mid-chain recovery or conditional transformations.
  - [map](#map) for simple success-only transformation
  - [mapErr](#maperr) for error-only transformation
 
-###### Examples
-
-```typescript
-const result = Outcome.ok(rawInput).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    return [validate(val), null];
-  },
-  ([val, err]) => {
-    if (err) return err;
-    return [transform(val), null];
-  }
-);
-```
-
-```typescript
-const result = Outcome.ok(input).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    if (!val.isValid) return Err.from('Invalid', 'VALIDATION');
-    return [val, null];
-  },
-  ([val, err]) => {
-    // Recover from validation error
-    if (err?.hasCode('VALIDATION')) {
-      return [DEFAULT_VALUE, null];
-    }
-    if (err) return err;
-    return [val.process(), null];
-  }
-);
-```
-
 ##### pipeAsync()
 
 ###### Call Signature
 
 > **pipeAsync**\<`A`\>(`f1`): `Promise`\<[`Outcome`](#outcome)\<`A`\>\>
 
-Defined in: [types/outcome.ts:1307](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1307)
+Defined in: [types/outcome.ts:641](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L641)
 
 Chain asynchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `Promise<CallbackReturn<U>>`.
 Predicates are executed sequentially, each awaiting the previous result.
 
 ###### Type Parameters
@@ -1763,48 +1124,14 @@ Predicates are executed sequentially, each awaiting the previous result.
  - [mapAsync](#mapasync) for simple async success-only transformation
  - [mapErrAsync](#maperrasync) for async error-only transformation
 
-###### Examples
-
-```typescript
-const result = await Outcome.ok(userId).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    const user = await fetchUser(val);
-    return [user, null];
-  },
-  async ([user, err]) => {
-    if (err) return err;
-    const profile = await fetchProfile(user.profileId);
-    return [{ ...user, profile }, null];
-  }
-);
-```
-
-```typescript
-const result = await Outcome.ok(id).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    return await fetchFromPrimary(val);
-  },
-  async ([val, err]) => {
-    // Fallback to secondary on error
-    if (err) {
-      return await fetchFromSecondary(id);
-    }
-    return [val, null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipeAsync**\<`A`, `B`\>(`f1`, `f2`): `Promise`\<[`Outcome`](#outcome)\<`B`\>\>
 
-Defined in: [types/outcome.ts:1308](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1308)
+Defined in: [types/outcome.ts:642](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L642)
 
 Chain asynchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `Promise<CallbackReturn<U>>`.
 Predicates are executed sequentially, each awaiting the previous result.
 
 ###### Type Parameters
@@ -1837,48 +1164,14 @@ Predicates are executed sequentially, each awaiting the previous result.
  - [mapAsync](#mapasync) for simple async success-only transformation
  - [mapErrAsync](#maperrasync) for async error-only transformation
 
-###### Examples
-
-```typescript
-const result = await Outcome.ok(userId).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    const user = await fetchUser(val);
-    return [user, null];
-  },
-  async ([user, err]) => {
-    if (err) return err;
-    const profile = await fetchProfile(user.profileId);
-    return [{ ...user, profile }, null];
-  }
-);
-```
-
-```typescript
-const result = await Outcome.ok(id).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    return await fetchFromPrimary(val);
-  },
-  async ([val, err]) => {
-    // Fallback to secondary on error
-    if (err) {
-      return await fetchFromSecondary(id);
-    }
-    return [val, null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipeAsync**\<`A`, `B`, `C`\>(`f1`, `f2`, `f3`): `Promise`\<[`Outcome`](#outcome)\<`C`\>\>
 
-Defined in: [types/outcome.ts:1312](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1312)
+Defined in: [types/outcome.ts:646](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L646)
 
 Chain asynchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `Promise<CallbackReturn<U>>`.
 Predicates are executed sequentially, each awaiting the previous result.
 
 ###### Type Parameters
@@ -1919,48 +1212,14 @@ Predicates are executed sequentially, each awaiting the previous result.
  - [mapAsync](#mapasync) for simple async success-only transformation
  - [mapErrAsync](#maperrasync) for async error-only transformation
 
-###### Examples
-
-```typescript
-const result = await Outcome.ok(userId).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    const user = await fetchUser(val);
-    return [user, null];
-  },
-  async ([user, err]) => {
-    if (err) return err;
-    const profile = await fetchProfile(user.profileId);
-    return [{ ...user, profile }, null];
-  }
-);
-```
-
-```typescript
-const result = await Outcome.ok(id).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    return await fetchFromPrimary(val);
-  },
-  async ([val, err]) => {
-    // Fallback to secondary on error
-    if (err) {
-      return await fetchFromSecondary(id);
-    }
-    return [val, null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`\>(`f1`, `f2`, `f3`, `f4`): `Promise`\<[`Outcome`](#outcome)\<`D`\>\>
 
-Defined in: [types/outcome.ts:1317](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1317)
+Defined in: [types/outcome.ts:651](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L651)
 
 Chain asynchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `Promise<CallbackReturn<U>>`.
 Predicates are executed sequentially, each awaiting the previous result.
 
 ###### Type Parameters
@@ -2009,48 +1268,14 @@ Predicates are executed sequentially, each awaiting the previous result.
  - [mapAsync](#mapasync) for simple async success-only transformation
  - [mapErrAsync](#maperrasync) for async error-only transformation
 
-###### Examples
-
-```typescript
-const result = await Outcome.ok(userId).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    const user = await fetchUser(val);
-    return [user, null];
-  },
-  async ([user, err]) => {
-    if (err) return err;
-    const profile = await fetchProfile(user.profileId);
-    return [{ ...user, profile }, null];
-  }
-);
-```
-
-```typescript
-const result = await Outcome.ok(id).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    return await fetchFromPrimary(val);
-  },
-  async ([val, err]) => {
-    // Fallback to secondary on error
-    if (err) {
-      return await fetchFromSecondary(id);
-    }
-    return [val, null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`\>(`f1`, `f2`, `f3`, `f4`, `f5`): `Promise`\<[`Outcome`](#outcome)\<`E`\>\>
 
-Defined in: [types/outcome.ts:1323](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1323)
+Defined in: [types/outcome.ts:657](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L657)
 
 Chain asynchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `Promise<CallbackReturn<U>>`.
 Predicates are executed sequentially, each awaiting the previous result.
 
 ###### Type Parameters
@@ -2107,48 +1332,14 @@ Predicates are executed sequentially, each awaiting the previous result.
  - [mapAsync](#mapasync) for simple async success-only transformation
  - [mapErrAsync](#maperrasync) for async error-only transformation
 
-###### Examples
-
-```typescript
-const result = await Outcome.ok(userId).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    const user = await fetchUser(val);
-    return [user, null];
-  },
-  async ([user, err]) => {
-    if (err) return err;
-    const profile = await fetchProfile(user.profileId);
-    return [{ ...user, profile }, null];
-  }
-);
-```
-
-```typescript
-const result = await Outcome.ok(id).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    return await fetchFromPrimary(val);
-  },
-  async ([val, err]) => {
-    // Fallback to secondary on error
-    if (err) {
-      return await fetchFromSecondary(id);
-    }
-    return [val, null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`): `Promise`\<[`Outcome`](#outcome)\<`F`\>\>
 
-Defined in: [types/outcome.ts:1330](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1330)
+Defined in: [types/outcome.ts:664](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L664)
 
 Chain asynchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `Promise<CallbackReturn<U>>`.
 Predicates are executed sequentially, each awaiting the previous result.
 
 ###### Type Parameters
@@ -2213,48 +1404,14 @@ Predicates are executed sequentially, each awaiting the previous result.
  - [mapAsync](#mapasync) for simple async success-only transformation
  - [mapErrAsync](#maperrasync) for async error-only transformation
 
-###### Examples
-
-```typescript
-const result = await Outcome.ok(userId).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    const user = await fetchUser(val);
-    return [user, null];
-  },
-  async ([user, err]) => {
-    if (err) return err;
-    const profile = await fetchProfile(user.profileId);
-    return [{ ...user, profile }, null];
-  }
-);
-```
-
-```typescript
-const result = await Outcome.ok(id).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    return await fetchFromPrimary(val);
-  },
-  async ([val, err]) => {
-    // Fallback to secondary on error
-    if (err) {
-      return await fetchFromSecondary(id);
-    }
-    return [val, null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`): `Promise`\<[`Outcome`](#outcome)\<`G`\>\>
 
-Defined in: [types/outcome.ts:1338](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1338)
+Defined in: [types/outcome.ts:672](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L672)
 
 Chain asynchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `Promise<CallbackReturn<U>>`.
 Predicates are executed sequentially, each awaiting the previous result.
 
 ###### Type Parameters
@@ -2327,48 +1484,14 @@ Predicates are executed sequentially, each awaiting the previous result.
  - [mapAsync](#mapasync) for simple async success-only transformation
  - [mapErrAsync](#maperrasync) for async error-only transformation
 
-###### Examples
-
-```typescript
-const result = await Outcome.ok(userId).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    const user = await fetchUser(val);
-    return [user, null];
-  },
-  async ([user, err]) => {
-    if (err) return err;
-    const profile = await fetchProfile(user.profileId);
-    return [{ ...user, profile }, null];
-  }
-);
-```
-
-```typescript
-const result = await Outcome.ok(id).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    return await fetchFromPrimary(val);
-  },
-  async ([val, err]) => {
-    // Fallback to secondary on error
-    if (err) {
-      return await fetchFromSecondary(id);
-    }
-    return [val, null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`): `Promise`\<[`Outcome`](#outcome)\<`H`\>\>
 
-Defined in: [types/outcome.ts:1347](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1347)
+Defined in: [types/outcome.ts:681](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L681)
 
 Chain asynchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `Promise<CallbackReturn<U>>`.
 Predicates are executed sequentially, each awaiting the previous result.
 
 ###### Type Parameters
@@ -2449,48 +1572,14 @@ Predicates are executed sequentially, each awaiting the previous result.
  - [mapAsync](#mapasync) for simple async success-only transformation
  - [mapErrAsync](#maperrasync) for async error-only transformation
 
-###### Examples
-
-```typescript
-const result = await Outcome.ok(userId).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    const user = await fetchUser(val);
-    return [user, null];
-  },
-  async ([user, err]) => {
-    if (err) return err;
-    const profile = await fetchProfile(user.profileId);
-    return [{ ...user, profile }, null];
-  }
-);
-```
-
-```typescript
-const result = await Outcome.ok(id).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    return await fetchFromPrimary(val);
-  },
-  async ([val, err]) => {
-    // Fallback to secondary on error
-    if (err) {
-      return await fetchFromSecondary(id);
-    }
-    return [val, null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`, `f9`): `Promise`\<[`Outcome`](#outcome)\<`I`\>\>
 
-Defined in: [types/outcome.ts:1357](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1357)
+Defined in: [types/outcome.ts:691](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L691)
 
 Chain asynchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `Promise<CallbackReturn<U>>`.
 Predicates are executed sequentially, each awaiting the previous result.
 
 ###### Type Parameters
@@ -2579,48 +1668,14 @@ Predicates are executed sequentially, each awaiting the previous result.
  - [mapAsync](#mapasync) for simple async success-only transformation
  - [mapErrAsync](#maperrasync) for async error-only transformation
 
-###### Examples
-
-```typescript
-const result = await Outcome.ok(userId).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    const user = await fetchUser(val);
-    return [user, null];
-  },
-  async ([user, err]) => {
-    if (err) return err;
-    const profile = await fetchProfile(user.profileId);
-    return [{ ...user, profile }, null];
-  }
-);
-```
-
-```typescript
-const result = await Outcome.ok(id).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    return await fetchFromPrimary(val);
-  },
-  async ([val, err]) => {
-    // Fallback to secondary on error
-    if (err) {
-      return await fetchFromSecondary(id);
-    }
-    return [val, null];
-  }
-);
-```
-
 ###### Call Signature
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`, `f9`, `f10`): `Promise`\<[`Outcome`](#outcome)\<`J`\>\>
 
-Defined in: [types/outcome.ts:1368](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1368)
+Defined in: [types/outcome.ts:702](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L702)
 
 Chain asynchronous transformations using tuple-based predicates.
 
-Each predicate receives `ResultTuple<T>` and returns `Promise<CallbackReturn<U>>`.
 Predicates are executed sequentially, each awaiting the previous result.
 
 ###### Type Parameters
@@ -2717,49 +1772,13 @@ Predicates are executed sequentially, each awaiting the previous result.
  - [mapAsync](#mapasync) for simple async success-only transformation
  - [mapErrAsync](#maperrasync) for async error-only transformation
 
-###### Examples
-
-```typescript
-const result = await Outcome.ok(userId).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    const user = await fetchUser(val);
-    return [user, null];
-  },
-  async ([user, err]) => {
-    if (err) return err;
-    const profile = await fetchProfile(user.profileId);
-    return [{ ...user, profile }, null];
-  }
-);
-```
-
-```typescript
-const result = await Outcome.ok(id).pipeAsync(
-  async ([val, err]) => {
-    if (err) return err;
-    return await fetchFromPrimary(val);
-  },
-  async ([val, err]) => {
-    // Fallback to secondary on error
-    if (err) {
-      return await fetchFromSecondary(id);
-    }
-    return [val, null];
-  }
-);
-```
-
 ##### toJSON()
 
 > **toJSON**(): \[`T`, `null`\] \| \[`null`, [`ErrJSON`](err.md#errjson)\]
 
-Defined in: [types/outcome.ts:1452](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1452)
+Defined in: [types/outcome.ts:758](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L758)
 
 Convert to JSON-serializable tuple.
-
-For success: returns `[value, null]`
-For error: returns `[null, errJSON]` where errJSON is from `Err.toJSON()`
 
 ###### Returns
 
@@ -2771,22 +1790,11 @@ JSON-serializable representation
 
 [fromJSON](#fromjson) for deserializing an Outcome from JSON
 
-###### Example
-
-```typescript
-const outcome = Outcome.ok({ name: 'John' });
-const json = JSON.stringify(outcome.toJSON());
-// '[{"name":"John"},null]'
-
-// Deserialize
-const restored = Outcome.fromJSON(JSON.parse(json));
-```
-
 ##### toString()
 
 > **toString**(): `string`
 
-Defined in: [types/outcome.ts:1473](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1473)
+Defined in: [types/outcome.ts:770](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L770)
 
 Convert to a human-readable string.
 
@@ -2796,26 +1804,13 @@ Convert to a human-readable string.
 
 String representation
 
-###### Example
-
-```typescript
-console.log(Outcome.ok(42).toString());
-// 'Outcome.ok(42)'
-
-console.log(Outcome.err('Failed').toString());
-// 'Outcome.err([ERROR] Failed)'
-```
-
 ##### toTuple()
 
 > **toTuple**(): [`ResultTuple`](#resulttuple)\<`T`\>
 
-Defined in: [types/outcome.ts:1427](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L1427)
+Defined in: [types/outcome.ts:746](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L746)
 
 Extract the internal tuple.
-
-Primary method for extracting values from an Outcome.
-Use destructuring for ergonomic access.
 
 ###### Returns
 
@@ -2827,31 +1822,16 @@ The internal ResultTuple<T>
 
 [fromTuple](#fromtuple) for creating an Outcome from a tuple
 
-###### Example
-
-```typescript
-const outcome = Outcome.ok(42);
-const [value, error] = outcome.toTuple();
-
-if (error) {
-  console.error('Failed:', error.message);
-  return;
-}
-console.log('Value:', value); // 42
-```
-
 ##### all()
 
 > `static` **all**\<`T`\>(`outcomes`): [`Outcome`](#outcome)\<`T`[]\>
 
-Defined in: [types/outcome.ts:617](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L617)
+Defined in: [types/outcome.ts:249](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L249)
 
 Combines multiple Outcomes, succeeding if all succeed with an array of values.
-If any Outcome fails, returns all failures aggregated via `Err.aggregate()`.
 
-This is useful for validation scenarios where you need to collect all errors.
-
-For empty arrays, returns `Outcome.ok([])` (vacuous truth).
+Non-short-circuiting: collects all errors via `Err.aggregate()`.
+For empty arrays, returns `Outcome.ok([])`.
 
 ###### Type Parameters
 
@@ -2873,59 +1853,16 @@ Array of Outcomes to combine
 
 Outcome containing array of all success values, or aggregate error
 
-###### Remarks
-
-Time complexity: O(n) where n is the number of outcomes.
-All outcomes are evaluated (non-short-circuiting) to collect all errors.
-
-###### Examples
-
-```typescript
-const outcomes = [Outcome.ok(1), Outcome.ok(2), Outcome.ok(3)];
-const combined = Outcome.all(outcomes);
-console.log(combined.value); // [1, 2, 3]
-```
-
-```typescript
-const outcomes = [
-  Outcome.ok(1),
-  Outcome.err('Failed'),
-  Outcome.ok(3)
-];
-const combined = Outcome.all(outcomes);
-console.log(combined.isErr); // true
-console.log(combined.error?.isAggregate); // true
-console.log(combined.error?.message); // 'Multiple failed'
-```
-
-```typescript
-const mixed = [
-  Outcome.ok(1),
-  Outcome.err("Error A"),
-  Outcome.err("Error B")
-];
-const failed = Outcome.all(mixed);
-console.log(failed.isErr);  // true
-// Error contains both "Error A" and "Error B"
-```
-
-```typescript
-const combined = Outcome.all([]);
-console.log(combined.value); // []
-```
-
 ##### any()
 
 > `static` **any**\<`T`\>(`outcomes`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:683](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L683)
+Defined in: [types/outcome.ts:279](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L279)
 
 Return the first successful Outcome from an array.
 
-Returns the first success encountered.
-Returns an aggregate error if ALL outcomes fail.
-
-For empty arrays, returns an error (no value to return).
+Short-circuits on first success. Returns an aggregate error if all fail.
+For empty arrays, returns an error with code `EMPTY_INPUT`.
 
 ###### Type Parameters
 
@@ -2947,47 +1884,13 @@ Array of Outcomes to check
 
 First successful Outcome, or aggregate of all errors
 
-###### Remarks
-
-Time complexity: O(n) worst case, but short-circuits on first success.
-Best case: O(1) if first outcome is successful.
-
-###### Examples
-
-```typescript
-const outcomes = [
-  Outcome.err('First failed'),
-  Outcome.ok(42),
-  Outcome.ok(100)
-];
-const result = Outcome.any(outcomes);
-console.log(result.value); // 42
-```
-
-```typescript
-const outcomes = [
-  Outcome.err('Error 1'),
-  Outcome.err('Error 2')
-];
-const result = Outcome.any(outcomes);
-console.log(result.isErr); // true
-console.log(result.error?.isAggregate); // true
-```
-
-```typescript
-const result = Outcome.any([]);
-console.log(result.isErr); // true
-console.log(result.error?.message); // 'No outcomes provided'
-console.log(result.error?.code); // 'EMPTY_INPUT'
-```
-
 ##### err()
 
 ###### Call Signature
 
 > `static` **err**(`error`): [`Outcome`](#outcome)\<`never`\>
 
-Defined in: [types/outcome.ts:269](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L269)
+Defined in: [types/outcome.ts:85](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L85)
 
 Create an error Outcome from an existing Err.
 
@@ -3005,18 +1908,11 @@ The Err instance
 
 Outcome in error state
 
-###### Example
-
-```typescript
-const err = Err.from('Something failed');
-const outcome = Outcome.err(err);
-```
-
 ###### Call Signature
 
 > `static` **err**(`message`, `code?`): [`Outcome`](#outcome)\<`never`\>
 
-Defined in: [types/outcome.ts:285](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L285)
+Defined in: [types/outcome.ts:94](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L94)
 
 Create an error Outcome from a message with optional code.
 
@@ -3040,19 +1936,11 @@ Optional error code
 
 Outcome in error state
 
-###### Example
-
-```typescript
-const outcome = Outcome.err('Not found', 'NOT_FOUND');
-const [, err] = outcome.toTuple();
-console.log(err?.code); // 'NOT_FOUND'
-```
-
 ###### Call Signature
 
 > `static` **err**(`message`, `options`): [`Outcome`](#outcome)\<`never`\>
 
-Defined in: [types/outcome.ts:302](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L302)
+Defined in: [types/outcome.ts:103](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L103)
 
 Create an error Outcome from a message with options.
 
@@ -3076,20 +1964,11 @@ Error options (code, metadata)
 
 Outcome in error state
 
-###### Example
-
-```typescript
-const outcome = Outcome.err('Timeout', {
-  code: 'TIMEOUT',
-  metadata: { durationMs: 5000 }
-});
-```
-
 ###### Call Signature
 
 > `static` **err**(`message`, `error`, `options?`): [`Outcome`](#outcome)\<`never`\>
 
-Defined in: [types/outcome.ts:321](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L321)
+Defined in: [types/outcome.ts:113](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L113)
 
 Create an error Outcome by wrapping another error.
 
@@ -3119,29 +1998,13 @@ Optional additional options
 
 Outcome in error state with wrapped cause
 
-###### Example
-
-```typescript
-try {
-  JSON.parse(invalid);
-} catch (e) {
-  return Outcome.err('Parse failed', e as Error, { code: 'PARSE_ERROR' });
-}
-```
-
 ##### from()
 
 > `static` **from**\<`T`\>(`fn`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:421](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L421)
+Defined in: [types/outcome.ts:163](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L163)
 
 Create an Outcome from a callback that returns `CallbackReturn<T>`.
-
-The callback can return:
-- `[value, null]` - success with value
-- `[null, Err]` - error as tuple
-- `null` - void success
-- `Err` - error directly
 
 If the callback throws, the exception is caught and wrapped in an error Outcome.
 
@@ -3169,39 +2032,13 @@ Outcome<T>
 
 [fromAsync](#fromasync) for the async version
 
-###### Examples
-
-```typescript
-const outcome = Outcome.from(() => {
-  return [42, null];
-});
-console.log(outcome.value); // 42
-```
-
-```typescript
-const outcome = Outcome.from(() => {
-  if (invalid) return Err.from('Invalid input');
-  return [result, null];
-});
-```
-
-```typescript
-const outcome = Outcome.from(() => {
-  const data = JSON.parse(untrustedInput); // may throw
-  return [data, null];
-});
-// If JSON.parse throws, outcome.isErr === true
-```
-
 ##### fromAsync()
 
 > `static` **fromAsync**\<`T`\>(`fn`): `Promise`\<[`Outcome`](#outcome)\<`T`\>\>
 
-Defined in: [types/outcome.ts:468](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L468)
+Defined in: [types/outcome.ts:180](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L180)
 
 Create an Outcome from an async callback that returns `Promise<CallbackReturn<T>>`.
-
-Async version of `from()` with identical semantics.
 
 ###### Type Parameters
 
@@ -3227,47 +2064,15 @@ Promise<Outcome<T>>
 
 [from](#from) for the synchronous version
 
-###### Examples
-
-```typescript
-const outcome = await Outcome.fromAsync(async () => {
-  const response = await fetch('/api/data');
-  if (!response.ok) {
-    return Err.from('Request failed', { code: 'HTTP_ERROR' });
-  }
-  const data = await response.json();
-  return [data, null];
-});
-```
-
-```typescript
-const outcome = await Outcome.fromAsync(async () => {
-  let errors = Err.aggregate('Batch failed');
-
-  const [a, errA] = await taskA().toTuple();
-  if (errA) errors = errors.add(errA);
-
-  const [b, errB] = await taskB().toTuple();
-  if (errB) errors = errors.add(errB);
-
-  if (errors.count > 0) return errors;
-  return [{ a, b }, null];
-});
-```
-
 ##### fromJSON()
 
 > `static` **fromJSON**\<`T`\>(`payload`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:541](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L541)
+Defined in: [types/outcome.ts:217](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L217)
 
 Create an Outcome from a JSON tuple produced by `toJSON()`.
 
-Accepts `[value, null]` for success or `[null, errJSON]` for errors.
-Errors are rehydrated with `Err.fromJSON()`.
-
-Invalid payloads (non-array or wrong length) return an error Outcome
-rather than throwing — validate the source when consuming untrusted JSON.
+Invalid payloads return an error Outcome rather than throwing.
 
 ###### Type Parameters
 
@@ -3293,28 +2098,13 @@ Outcome<T>
 
 [toJSON](#tojson) for serializing an Outcome to JSON
 
-###### Examples
-
-```typescript
-const json = JSON.stringify(outcome.toJSON());
-const restored = Outcome.fromJSON(JSON.parse(json));
-```
-
-```typescript
-const result = Outcome.fromJSON({ not: 'a tuple' });
-console.log(result.isErr); // true
-console.log(result.error?.message); // 'Invalid Outcome JSON'
-```
-
 ##### fromTuple()
 
 > `static` **fromTuple**\<`T`\>(`tuple`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:506](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L506)
+Defined in: [types/outcome.ts:199](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L199)
 
 Create an Outcome from an existing ResultTuple.
-
-Useful for deserializing Outcomes or converting from external tuple sources.
 
 ###### Type Parameters
 
@@ -3340,27 +2130,11 @@ Outcome<T>
 
 [toTuple](#totuple) for extracting the tuple from an Outcome
 
-###### Examples
-
-```typescript
-const json = '["hello", null]';
-const tuple = JSON.parse(json) as ResultTuple<string>;
-const outcome = Outcome.fromTuple(tuple);
-console.log(outcome.value); // 'hello'
-```
-
-```typescript
-const original = Outcome.ok(42);
-const json = JSON.stringify(original.toJSON());
-const restored = Outcome.fromTuple(JSON.parse(json));
-console.log(restored.value); // 42
-```
-
 ##### ok()
 
 > `static` **ok**\<`T`\>(`value`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:253](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L253)
+Defined in: [types/outcome.ts:75](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L75)
 
 Create a success Outcome with the given value.
 
@@ -3384,26 +2158,13 @@ The success value
 
 Outcome containing the success value
 
-###### Example
-
-```typescript
-const outcome = Outcome.ok(42);
-console.log(outcome.isOk);  // true
-console.log(outcome.value); // 42
-
-const [val, err] = outcome.toTuple();
-// val: 42, err: null
-```
-
 ##### unit()
 
 > `static` **unit**(): [`Outcome`](#outcome)\<`null`\>
 
-Defined in: [types/outcome.ts:376](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L376)
+Defined in: [types/outcome.ts:149](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.ts#L149)
 
 Create a success Outcome with null value (void success).
-
-Use for operations that succeed but have no meaningful return value.
 
 ###### Returns
 
@@ -3411,39 +2172,16 @@ Use for operations that succeed but have no meaningful return value.
 
 Outcome<null> representing void success
 
-###### Remarks
-
-Returns `Outcome<null>` (not `Outcome<undefined>` or `Outcome<void>`).
-This is intentional for consistency with the tuple pattern where `null`
-indicates absence of error in `[value, null]`.
-
-###### Example
-
-```typescript
-function logMessage(msg: string): Outcome<null> {
-  console.log(msg);
-  return Outcome.unit();
-}
-
-const outcome = logMessage('Hello');
-console.log(outcome.isOk); // true
-console.log(outcome.value); // null
-```
-
 ## Type Aliases
 
 ### CallbackReturn
 
 > **CallbackReturn**\<`T`\> = [`ResultTuple`](#resulttuple)\<`T`\> \| [`NullErr`](#nullerr)
 
-Defined in: [types/outcome.ts:105](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L105)
+Defined in: [types/outcome.types.ts:32](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.types.ts#L32)
 
 Combined callback return type for `Outcome.from()` and `Outcome.fromAsync()`.
-Supports all patterns:
-- `[T, null]`: success with value (tuple)
-- `[null, Err]`: error (tuple)
-- `null`: void success
-- `Err`: error (shorthand)
+Supports tuple, null (void success), and Err (shorthand) patterns.
 
 Discrimination order: `Err.isErr()` → `=== null` → destructure tuple
 
@@ -3453,38 +2191,17 @@ Discrimination order: `Err.isErr()` → `=== null` → destructure tuple
 
 `T`
 
-#### Example
-
-```typescript
-Outcome.from(() => {
-  if (badInput) return Err.from('Bad input');     // Err shorthand
-  if (noResult) return null;                       // void success
-  if (hasError) return [null, Err.from('Error')]; // tuple error
-  return [value, null];                            // tuple success
-});
-```
-
 ***
 
 ### NullErr
 
 > **NullErr** = `null` \| [`Err`](err.md#err)
 
-Defined in: [types/outcome.ts:64](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L64)
+Defined in: [types/outcome.types.ts:17](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.types.ts#L17)
 
 Direct return types for errors or void success.
 - `null`: void success (function completed, no value to return)
 - `Err`: error (shorthand for `[null, Err]`)
-
-#### Example
-
-```typescript
-function saveConfig(config: Config): NullErr {
-  if (!config.valid) return Err.from('Invalid config');
-  fs.writeFileSync('config.json', JSON.stringify(config));
-  return null; // void success
-}
-```
 
 ***
 
@@ -3492,7 +2209,7 @@ function saveConfig(config: Config): NullErr {
 
 > **PipeFn**\<`In`, `Out`\> = (`tuple`) => [`CallbackReturn`](#callbackreturn)\<`Out`\>
 
-Defined in: [types/outcome.ts:114](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L114)
+Defined in: [types/outcome.types.ts:43](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.types.ts#L43)
 
 Synchronous pipe function type.
 Receives a ResultTuple and returns a CallbackReturn.
@@ -3527,7 +2244,7 @@ Output value type
 
 > **PipeFnAsync**\<`In`, `Out`\> = (`tuple`) => `Promise`\<[`CallbackReturn`](#callbackreturn)\<`Out`\>\>
 
-Defined in: [types/outcome.ts:123](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L123)
+Defined in: [types/outcome.types.ts:52](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.types.ts#L52)
 
 Asynchronous pipe function type.
 Receives a ResultTuple and returns a Promise of CallbackReturn.
@@ -3562,7 +2279,7 @@ Output value type
 
 > **ResultTuple**\<`T`\> = \[`T`, `null`\] \| \[`null`, [`Err`](err.md#err)\]
 
-Defined in: [types/outcome.ts:83](https://github.com/pencroff-lab/kore/blob/e0541df57b6410063b5a6ed549d1617d3ec50053/src/types/outcome.ts#L83)
+Defined in: [types/outcome.types.ts:24](https://github.com/pencroff-lab/kore/blob/9484b3bcf14be42bbc7c63d69c6d16723409591e/src/types/outcome.types.ts#L24)
 
 Tuple-based result with positional semantics.
 - `[T, null]`: success with value
@@ -3573,16 +2290,3 @@ Tuple-based result with positional semantics.
 ##### T
 
 `T`
-
-#### Example
-
-```typescript
-function divide(a: number, b: number): ResultTuple<number> {
-  if (b === 0) return [null, Err.from('Division by zero')];
-  return [a / b, null];
-}
-
-const [result, err] = divide(10, 2);
-if (err) console.error(err.message);
-else console.log(result); // 5
-```
