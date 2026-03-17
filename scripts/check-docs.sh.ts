@@ -12,6 +12,7 @@ interface FileResult {
 	exampleBlocks: { line: number; lineCount: number }[];
 	totalNonBlank: number;
 	docLines: number;
+	moduleBlockLines: number;
 }
 
 // ─── JSDoc parsing ───────────────────────────────────────────────────────────
@@ -29,6 +30,12 @@ function analyzeFile(filePath: string, content: string): FileResult {
 	let currentExampleLines = 0;
 	const exampleBlocks: { line: number; lineCount: number }[] = [];
 
+	// Track @module block for exclusion
+	let moduleBlockLines = 0;
+	let currentBlockLines = 0;
+	let currentBlockHasModule = false;
+	let moduleBlockFound = false;
+
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i]!;
 		const trimmed = line.trim();
@@ -40,10 +47,16 @@ function analyzeFile(filePath: string, content: string): FileResult {
 		if (!inJSDoc && trimmed.startsWith("/**")) {
 			inJSDoc = true;
 			docLines++;
+			currentBlockLines = 1;
+			currentBlockHasModule = false;
 
 			// Single-line JSDoc: /** ... */
 			if (trimmed.endsWith("*/") && trimmed.length > 4) {
 				inJSDoc = false;
+				if (trimmed.includes("@module") && !moduleBlockFound) {
+					moduleBlockLines = 1;
+					moduleBlockFound = true;
+				}
 				if (trimmed.includes("@example")) {
 					exampleBlocks.push({ line: i + 1, lineCount: 1 });
 				}
@@ -53,6 +66,12 @@ function analyzeFile(filePath: string, content: string): FileResult {
 
 		if (inJSDoc) {
 			docLines++;
+			currentBlockLines++;
+
+			// Detect @module tag
+			if (trimmed.includes("@module")) {
+				currentBlockHasModule = true;
+			}
 
 			// Detect @example start
 			if (trimmed.includes("@example")) {
@@ -68,10 +87,7 @@ function analyzeFile(filePath: string, content: string): FileResult {
 				currentExampleLines = 1;
 			} else if (inExample) {
 				// Check if new tag starts (ends example)
-				if (
-					trimmed.startsWith("* @") &&
-					!trimmed.startsWith("* @example")
-				) {
+				if (trimmed.startsWith("* @") && !trimmed.startsWith("* @example")) {
 					exampleBlocks.push({
 						line: currentExampleStart,
 						lineCount: currentExampleLines,
@@ -91,14 +107,19 @@ function analyzeFile(filePath: string, content: string): FileResult {
 					});
 					inExample = false;
 				}
+				if (currentBlockHasModule && !moduleBlockFound) {
+					moduleBlockLines = currentBlockLines;
+					moduleBlockFound = true;
+				}
 				inJSDoc = false;
 			}
 		}
 	}
 
+	const effectiveDocLines = docLines - moduleBlockLines;
 	const docRatio =
 		totalNonBlank > 0
-			? Math.round((docLines / totalNonBlank) * 100)
+			? Math.round((effectiveDocLines / totalNonBlank) * 100)
 			: 0;
 
 	return {
@@ -107,7 +128,8 @@ function analyzeFile(filePath: string, content: string): FileResult {
 		docRatio,
 		exampleBlocks,
 		totalNonBlank,
-		docLines,
+		docLines: effectiveDocLines,
+		moduleBlockLines,
 	};
 }
 
@@ -120,11 +142,14 @@ function checkRules(result: FileResult): {
 	const errors: string[] = [];
 	const warnings: string[] = [];
 
+	const isSmall = result.totalNonBlank < 100;
+
 	if (result.isTypes) {
-		// *.types.ts rules
-		if (result.docRatio > 40) {
+		// *.types.ts rules — tiered budget
+		const budget = isSmall ? 80 : 50;
+		if (result.docRatio > budget) {
 			warnings.push(
-				`${result.path}: doc ratio ${result.docRatio}% exceeds 40% budget (${result.docLines}/${result.totalNonBlank} non-blank lines)`,
+				`${result.path}: doc ratio ${result.docRatio}% exceeds ${budget}% budget (${result.docLines}/${result.totalNonBlank} non-blank lines)`,
 			);
 		}
 		for (const ex of result.exampleBlocks) {
@@ -135,7 +160,8 @@ function checkRules(result: FileResult): {
 			}
 		}
 	} else {
-		// Implementation *.ts rules
+		// Implementation *.ts rules — tiered budget
+		const budget = isSmall ? 50 : 35;
 		if (result.exampleBlocks.length > 0) {
 			for (const ex of result.exampleBlocks) {
 				errors.push(
@@ -143,9 +169,9 @@ function checkRules(result: FileResult): {
 				);
 			}
 		}
-		if (result.docRatio > 20) {
+		if (result.docRatio > budget) {
 			warnings.push(
-				`${result.path}: doc ratio ${result.docRatio}% exceeds 20% budget (${result.docLines}/${result.totalNonBlank} non-blank lines)`,
+				`${result.path}: doc ratio ${result.docRatio}% exceeds ${budget}% budget (${result.docLines}/${result.totalNonBlank} non-blank lines)`,
 			);
 		}
 	}
@@ -191,9 +217,7 @@ if (allErrors.length > 0) {
 }
 
 if (allWarnings.length > 0) {
-	console.log(
-		`\nDocs check passed with ${allWarnings.length} warning(s)`,
-	);
+	console.log(`\nDocs check passed with ${allWarnings.length} warning(s)`);
 } else {
 	console.log("Docs check passed.");
 }

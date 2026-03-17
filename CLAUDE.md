@@ -122,11 +122,13 @@ Build entry is `index.ts` at root which re-exports from `src/`. Tests, benchmark
 
 ### Doc Budget (enforced in CI)
 
-| File type | Max JSDoc ratio | Notes |
-|-----------|----------------|-------|
-| `*.types.ts` | ≤ 40% of non-blank lines | Types are the API contract |
-| Implementation `*.ts` | ≤ 20% of non-blank lines | Logic self-evident from types |
-| `*.test.ts` | 0% | Tests are documentation |
+Tiered by file size (threshold: 100 non-blank lines). The first `@module` JSDoc block is excluded from the ratio.
+
+| File type | Small (< 100 lines) | Normal (≥ 100 lines) |
+|-----------|---------------------|----------------------|
+| `*.types.ts` | ≤ 80% | ≤ 50% |
+| Implementation `*.ts` | ≤ 50% | ≤ 35% |
+| `*.test.ts` | 0% | 0% |
 
 ### What goes where
 
@@ -139,7 +141,8 @@ Build entry is `index.ts` at root which re-exports from `src/`. Tests, benchmark
 
 ### Inline JSDoc rules
 
-- Module header: ≤ 3 lines summary + `@see` reference. No `@example` blocks
+- **`@module` placement (types-first rule):** When a `*.types.ts` companion exists, place the `@module` block there (TypeDoc associates it with the module). Otherwise place it in the implementation file.
+- `@module` block: summary + key concepts + `@see` reference. `@example` allowed only in `*.types.ts` module blocks (max 5 lines).
 - No `@example` in implementation files — use `@see [file.examples.test.ts](../../src/.../file.examples.test.ts)`
 - `{@link}` only for TypeScript symbols (classes, methods). Never for `.ts` file paths — TypeDoc copies them to `_media/` and breaks builds
 - `@example` in `*.types.ts` only if non-obvious from signature, max 5 lines

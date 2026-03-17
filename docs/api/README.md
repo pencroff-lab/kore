@@ -6,7 +6,7 @@
 
 ## Modules
 
-- [err](err.md)
 - [format\_dt](format_dt.md)
 - [logger](logger.md)
-- [outcome](outcome.md)
+- [types/err](types/err.md)
+- [types/outcome](types/outcome.md)

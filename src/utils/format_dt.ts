@@ -1,5 +1,10 @@
 /**
- * Date formatting utility for filesystem/log-safe timestamps.
+ * Compact, sortable date/time stamps for file names, log prefixes, and IDs.
+ *
+ * `dtStamp()` produces strings like `20260317_143012` (default) or
+ * `2026-03-17_14:30:12` (readable mode). Supports UTC/local timezone,
+ * date-only/time-only parts, optional milliseconds, and a configurable
+ * delimiter — all controlled via a single `DtStampOptions` object.
  *
  * @see [format_dt.examples.test.ts](../../src/utils/format_dt.examples.test.ts) for usage patterns
  * @module format_dt

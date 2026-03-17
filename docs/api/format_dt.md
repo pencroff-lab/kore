@@ -6,7 +6,12 @@
 
 # format\_dt
 
-Date formatting utility for filesystem/log-safe timestamps.
+Compact, sortable date/time stamps for file names, log prefixes, and IDs.
+
+`dtStamp()` produces strings like `20260317_143012` (default) or
+`2026-03-17_14:30:12` (readable mode). Supports UTC/local timezone,
+date-only/time-only parts, optional milliseconds, and a configurable
+delimiter — all controlled via a single `DtStampOptions` object.
 
 ## See
 
@@ -16,7 +21,7 @@ Date formatting utility for filesystem/log-safe timestamps.
 
 ### DtStampOptions
 
-Defined in: [utils/format\_dt.ts:11](../../src/utils/format_dt.ts#L11)
+Defined in: [utils/format\_dt.ts:16](../../src/utils/format_dt.ts#L16)
 
 Options for configuring `dtStamp()` output format.
 
@@ -26,7 +31,7 @@ Options for configuring `dtStamp()` output format.
 
 > `optional` **delimiter**: `string`
 
-Defined in: [utils/format\_dt.ts:16](../../src/utils/format_dt.ts#L16)
+Defined in: [utils/format\_dt.ts:21](../../src/utils/format_dt.ts#L21)
 
 Character(s) between date/time segments.
 
@@ -40,7 +45,7 @@ Character(s) between date/time segments.
 
 > `optional` **ms**: `boolean`
 
-Defined in: [utils/format\_dt.ts:21](../../src/utils/format_dt.ts#L21)
+Defined in: [utils/format\_dt.ts:26](../../src/utils/format_dt.ts#L26)
 
 Include milliseconds in the time portion.
 
@@ -54,7 +59,7 @@ false
 
 > `optional` **parts**: `"date"` \| `"datetime"` \| `"time"`
 
-Defined in: [utils/format\_dt.ts:36](../../src/utils/format_dt.ts#L36)
+Defined in: [utils/format\_dt.ts:41](../../src/utils/format_dt.ts#L41)
 
 Which parts of the stamp to include.
 - `"datetime"` -- full stamp (date + time)
@@ -71,7 +76,7 @@ Which parts of the stamp to include.
 
 > `optional` **readable**: `boolean`
 
-Defined in: [utils/format\_dt.ts:43](../../src/utils/format_dt.ts#L43)
+Defined in: [utils/format\_dt.ts:48](../../src/utils/format_dt.ts#L48)
 
 When `true`, formats with human-readable separators:
 dashes in date (`YYYY-MM-DD`), colons in time (`HH:MM:SS`),
@@ -87,7 +92,7 @@ false
 
 > `optional` **tz**: `"utc"` \| `"local"`
 
-Defined in: [utils/format\_dt.ts:28](../../src/utils/format_dt.ts#L28)
+Defined in: [utils/format\_dt.ts:33](../../src/utils/format_dt.ts#L33)
 
 Timezone to use for extracting date/time components.
 - `"utc"` -- use UTC methods (`getUTCFullYear`, etc.)
@@ -105,7 +110,7 @@ Timezone to use for extracting date/time components.
 
 > **dtStamp**(`date?`, `options?`): `string`
 
-Defined in: [utils/format\_dt.ts:57](../../src/utils/format_dt.ts#L57)
+Defined in: [utils/format\_dt.ts:62](../../src/utils/format_dt.ts#L62)
 
 Format a `Date` into a filesystem/log-safe timestamp string.
 

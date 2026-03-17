@@ -1,8 +1,23 @@
 /**
- * Core types for value-based error handling.
- * Implementation lives in err.ts which imports from here.
+ * Value-based error handling inspired by Go's explicit error returns.
  *
- * @module err.types
+ * `Err` replaces thrown exceptions with immutable error values that carry
+ * context (codes, metadata, timestamps) and compose via wrapping and
+ * aggregation. Because every `Err` is a plain value, errors flow through
+ * the type system — no `try/catch` needed.
+ *
+ * **Key concepts:**
+ * - **Immutability** — every mutating method (`wrap`, `withCode`, `add`) returns a new instance.
+ * - **Hierarchical codes** — colon-separated segments (`AUTH:TOKEN:EXPIRED`) enable prefix matching.
+ * - **Cause chains** — `wrap()` links errors into a chain queryable via `root`, `chain()`, and `unwrap()`.
+ * - **Aggregation** — `aggregate()` / `add()` collect multiple independent errors under one parent.
+ *
+ * @example
+ * const e = Err.from("timeout", "NET:TIMEOUT");
+ * const wrapped = e.wrap("fetch failed");
+ *
+ * @see [err.examples.test.ts](../../src/types/err.examples.test.ts) for usage patterns
+ * @module err
  */
 
 // ─── Group: Creation ─────────────────────────────────────────────────────────

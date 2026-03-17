@@ -1,5 +1,16 @@
 /**
- * Structured logging utility with transport DI and Err integration.
+ * Structured, level-filtered logging with pluggable transports and `Err` integration.
+ *
+ * `createLogger()` returns a callable `Logger` that doubles as an object with
+ * level constants and a `child()` factory. Log entries are plain `LogEntry`
+ * objects dispatched to one or more `LogTransport` sinks. The built-in
+ * `prettyTransport()` renders colored, human-readable output to stderr.
+ *
+ * **Key concepts:**
+ * - **Callable interface** — `log("msg")` logs at INFO; `log(log.WARN, "msg")` at WARN.
+ * - **Child loggers** — `log.child("mod")` adds a module tag and optional bindings.
+ * - **Err-aware** — passing an `Err` as context renders it with stack + metadata on its own line.
+ * - **Transport DI** — swap the default pretty transport for JSON, file, or test transports.
  *
  * @see [logger.examples.test.ts](../../src/utils/logger.examples.test.ts) for usage patterns
  * @module logger

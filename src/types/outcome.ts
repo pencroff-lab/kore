@@ -2,7 +2,6 @@
  * Monadic container for handling success and error states using tuple-first API design.
  *
  * @see [outcome.examples.test.ts](../../src/types/outcome.examples.test.ts) for usage patterns
- * @module outcome
  */
 
 import { Err, type ErrCode, type ErrOptions } from "./err";

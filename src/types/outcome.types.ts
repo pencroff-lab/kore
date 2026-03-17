@@ -1,8 +1,23 @@
 /**
- * Core types for monadic error handling with Outcome.
- * Implementation lives in outcome.ts which imports from here.
+ * Monadic container for safe success/error propagation using tuple-first design.
  *
- * @module outcome.types
+ * `Outcome<T>` wraps a `ResultTuple<T>` — either `[T, null]` (success) or
+ * `[null, Err]` (error) — and provides chainable transforms (`map`, `pipe`),
+ * combinators (`all`, `any`), and terminal operations (`toTuple`, `defaultTo`,
+ * `either`). Callbacks may return tuples, `null` (void success), or a bare
+ * `Err` (shorthand error).
+ *
+ * **Key concepts:**
+ * - **Tuple-first** — `toTuple()` is the primary extraction; destructure as `[val, err]`.
+ * - **Immutability** — every transform returns a new `Outcome`, never mutates.
+ * - **Auto-catch** — `from`, `map`, and `pipe` catch thrown exceptions and wrap them as `Err`.
+ * - **Combinators** — `all` collects every error (non-short-circuit), `any` short-circuits on first success.
+ *
+ * @example
+ * const [val, err] = Outcome.ok(42).map(n => [n * 2, null]).toTuple();
+ *
+ * @see [outcome.examples.test.ts](../../src/types/outcome.examples.test.ts) for usage patterns
+ * @module outcome
  */
 
 import type { Err } from "./err";
