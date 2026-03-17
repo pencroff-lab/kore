@@ -1,8 +1,3 @@
-/**
- * Core types for monadic error handling with Outcome.
- * Implementation lives in {@link Outcome} (outcome.ts).
- */
-
 import type { Err } from "./err";
 
 // ─── Group: Result types ─────────────────────────────────────────────────────

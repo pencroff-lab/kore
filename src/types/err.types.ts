@@ -1,8 +1,3 @@
-/**
- * Core types for value-based error handling.
- * Implementation lives in {@link Err} (err.ts).
- */
-
 // ─── Group: Creation ─────────────────────────────────────────────────────────
 
 /**

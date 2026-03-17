@@ -13,6 +13,7 @@ interface FileResult {
 	totalNonBlank: number;
 	docLines: number;
 	moduleBlockLines: number;
+	hasFileLevelJSDoc: boolean;
 }
 
 // ─── JSDoc parsing ───────────────────────────────────────────────────────────
@@ -36,6 +37,11 @@ function analyzeFile(filePath: string, content: string): FileResult {
 	let currentBlockHasModule = false;
 	let moduleBlockFound = false;
 
+	// Detect file-level JSDoc (before any code)
+	let hasFileLevelJSDoc = false;
+	let seenCode = false;
+	let isFirstJSDoc = true;
+
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i]!;
 		const trimmed = line.trim();
@@ -43,12 +49,22 @@ function analyzeFile(filePath: string, content: string): FileResult {
 		if (trimmed.length === 0) continue;
 		totalNonBlank++;
 
+		// Track whether we've seen any non-JSDoc code
+		if (!inJSDoc && !trimmed.startsWith("/**")) {
+			seenCode = true;
+		}
+
 		// Detect JSDoc start
 		if (!inJSDoc && trimmed.startsWith("/**")) {
 			inJSDoc = true;
 			docLines++;
 			currentBlockLines = 1;
 			currentBlockHasModule = false;
+
+			if (isFirstJSDoc && !seenCode) {
+				hasFileLevelJSDoc = true;
+			}
+			isFirstJSDoc = false;
 
 			// Single-line JSDoc: /** ... */
 			if (trimmed.endsWith("*/") && trimmed.length > 4) {
@@ -130,6 +146,7 @@ function analyzeFile(filePath: string, content: string): FileResult {
 		totalNonBlank,
 		docLines: effectiveDocLines,
 		moduleBlockLines,
+		hasFileLevelJSDoc,
 	};
 }
 
@@ -145,7 +162,13 @@ function checkRules(result: FileResult): {
 	const isSmall = result.totalNonBlank < 100;
 
 	if (result.isTypes) {
-		// *.types.ts rules — tiered budget
+		// *.types.ts rules
+		if (result.hasFileLevelJSDoc) {
+			errors.push(
+				`${result.path}: file-level JSDoc found in *.types.ts. TypeDoc does not render it — remove to save doc budget.`,
+			);
+		}
+		// Tiered budget
 		const budget = isSmall ? 80 : 50;
 		if (result.docRatio > budget) {
 			warnings.push(

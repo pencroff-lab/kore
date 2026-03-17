@@ -2190,7 +2190,7 @@ Outcome<null> representing void success
 
 > **CallbackReturn**\<`T`\> = [`ResultTuple`](#resulttuple)\<`T`\> \| [`NullErr`](#nullerr)
 
-Defined in: [types/outcome.types.ts:30](../../src/types/outcome.types.ts#L30)
+Defined in: [types/outcome.types.ts:26](../../src/types/outcome.types.ts#L26)
 
 Combined callback return type for `Outcome.from()` and `Outcome.fromAsync()`.
 Supports tuple, null (void success), and Err (shorthand) patterns.
@@ -2209,7 +2209,7 @@ Discrimination order: `Err.isErr()` → `=== null` → destructure tuple
 
 > **NullErr** = `null` \| [`Err`](err.md#err)
 
-Defined in: [types/outcome.types.ts:15](../../src/types/outcome.types.ts#L15)
+Defined in: [types/outcome.types.ts:11](../../src/types/outcome.types.ts#L11)
 
 Direct return types for errors or void success.
 - `null`: void success (function completed, no value to return)
@@ -2221,7 +2221,7 @@ Direct return types for errors or void success.
 
 > **PipeFn**\<`In`, `Out`\> = (`tuple`) => [`CallbackReturn`](#callbackreturn)\<`Out`\>
 
-Defined in: [types/outcome.types.ts:41](../../src/types/outcome.types.ts#L41)
+Defined in: [types/outcome.types.ts:37](../../src/types/outcome.types.ts#L37)
 
 Synchronous pipe function type.
 Receives a ResultTuple and returns a CallbackReturn.
@@ -2256,7 +2256,7 @@ Output value type
 
 > **PipeFnAsync**\<`In`, `Out`\> = (`tuple`) => `Promise`\<[`CallbackReturn`](#callbackreturn)\<`Out`\>\>
 
-Defined in: [types/outcome.types.ts:50](../../src/types/outcome.types.ts#L50)
+Defined in: [types/outcome.types.ts:46](../../src/types/outcome.types.ts#L46)
 
 Asynchronous pipe function type.
 Receives a ResultTuple and returns a Promise of CallbackReturn.
@@ -2291,7 +2291,7 @@ Output value type
 
 > **ResultTuple**\<`T`\> = \[`T`, `null`\] \| \[`null`, [`Err`](err.md#err)\]
 
-Defined in: [types/outcome.types.ts:22](../../src/types/outcome.types.ts#L22)
+Defined in: [types/outcome.types.ts:18](../../src/types/outcome.types.ts#L18)
 
 Tuple-based result with positional semantics.
 - `[T, null]`: success with value
