@@ -23,7 +23,7 @@ Detailed API documentation for each module:
 
 ### Guides
 
-- [Error handling guide](docs/guides/error_handling_guide.md) -- `Err` and `Outcome` practical examples
+- [Error handling guide](docs/guides/error-handling-patterns.md) -- `Err` and `Outcome` practical examples
   - [Migration from throwing](docs/guides/migration-from-throwing.md)
 - [Logging guide](docs/guides/logging_guide.md) -- Patterns, conventions, and integration strategies
 - [TS docstrings general guide](docs/guides/docs_guide.md)
