@@ -130,7 +130,7 @@ describe("Outcome", () => {
 
 		test("mapErr transforms error", () => {
 			const outcome = Outcome.err("original").mapErr((e) =>
-				Err.wrap("transformed", e),
+				Err.from(e).wrap("transformed"),
 			);
 			expect(outcome.error?.message).toBe("transformed");
 			expect(outcome.error?.unwrap()?.message).toBe("original");
