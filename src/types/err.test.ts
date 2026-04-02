@@ -55,6 +55,37 @@ describe("Err", () => {
 				expect(err.code).toBeUndefined();
 			});
 
+			test("captures .code from native Error", () => {
+				const error = Object.assign(new Error("ENOENT: no such file"), {
+					code: "ENOENT",
+				});
+
+				const err = Err.from(error);
+
+				expect(err.code).toBe("ENOENT");
+				expect(err.hasCode("ENOENT")).toBe(true);
+			});
+
+			test("explicit options.code overrides native .code", () => {
+				const error = Object.assign(new Error("ENOENT: no such file"), {
+					code: "ENOENT",
+				});
+
+				const err = Err.from(error, { code: "FS_ERROR" });
+
+				expect(err.code).toBe("FS_ERROR");
+			});
+
+			test("ignores non-string .code on native Error", () => {
+				const error = Object.assign(new Error("Something failed"), {
+					code: 42,
+				});
+
+				const err = Err.from(error);
+
+				expect(err.code).toBeUndefined();
+			});
+
 			test("adds originalName to metadata from Error", () => {
 				const error = new Error("Test error");
 				error.name = "CustomError";

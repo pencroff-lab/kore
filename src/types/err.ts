@@ -186,8 +186,14 @@ export class Err {
 				cause = Err.from(input.cause);
 			}
 
+			// Capture .code from Node.js system errors (e.g., ENOENT, EACCES)
+			const nativeCode = (input as unknown as Record<string, unknown>).code;
+			const effectiveCode =
+				options.code ??
+				(typeof nativeCode === "string" ? nativeCode : undefined);
+
 			return new Err(options.message ?? input.message, {
-				code: options.code,
+				code: effectiveCode,
 				cause,
 				metadata: {
 					originalName: input.name,
