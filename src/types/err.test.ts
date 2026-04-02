@@ -124,11 +124,190 @@ describe("Err", () => {
 			});
 		});
 
-		describe("static wrap()", () => {
+		describe("from() with duck-typed objects", () => {
+			test("reconstructs Err from toJSON() output", () => {
+				const original = Err.from("something failed", "FAIL_CODE");
+				const json = original.toJSON();
+
+				const restored = Err.from(json);
+
+				expect(restored.isErr).toBe(true);
+				expect(restored.message).toBe("something failed");
+				expect(restored.code).toBe("FAIL_CODE");
+				expect(restored).not.toBe(original);
+			});
+
+			test("reconstructs Err from toJSON() with option overrides", () => {
+				const original = Err.from("something failed", {
+					code: "ORIG",
+					metadata: { key: "val" },
+				});
+				const json = original.toJSON();
+
+				const restored = Err.from(json, {
+					code: "OVERRIDE",
+					metadata: { extra: true },
+				});
+
+				expect(restored.message).toBe("something failed");
+				expect(restored.code).toBe("OVERRIDE");
+				expect(restored.metadata).toEqual(
+					expect.objectContaining({ key: "val", extra: true }),
+				);
+			});
+
+			test("reconstructs Err from toJSON() with message override", () => {
+				const json = Err.from("original msg").toJSON();
+
+				const restored = Err.from(json, { message: "new msg" });
+
+				expect(restored.message).toBe("new msg");
+			});
+
+			test("reconstructs Err from hand-crafted duck-typed object", () => {
+				const duck = {
+					kind: "Err",
+					isErr: true,
+					message: "manual error",
+				};
+
+				const restored = Err.from(duck);
+
+				expect(restored.isErr).toBe(true);
+				expect(restored.message).toBe("manual error");
+			});
+
+			test("reconstructs Err from toJSON() with nested cause", () => {
+				const original = Err.from("outer").wrap("inner", {
+					code: "INNER",
+				});
+				const json = original.toJSON();
+
+				const restored = Err.from(json);
+
+				expect(restored.message).toBe("inner");
+				expect(restored.code).toBe("INNER");
+				expect(restored.unwrap()?.message).toBe("outer");
+			});
+
+			test("reconstructs Err from toJSON() with aggregated errors", () => {
+				const agg = Err.from("base")
+					.add(Err.from("err1"))
+					.add(Err.from("err2"));
+				const json = agg.toJSON();
+
+				const restored = Err.from(json);
+
+				expect(restored.errors).toHaveLength(2);
+				expect(restored.errors[0]?.message).toBe("err1");
+				expect(restored.errors[1]?.message).toBe("err2");
+			});
+
+			test("handles duck-typed object with errors set to null", () => {
+				const duck = {
+					kind: "Err",
+					isErr: true,
+					message: "null errors",
+					errors: null,
+				};
+
+				const restored = Err.from(duck);
+
+				expect(restored.isErr).toBe(true);
+				expect(restored.message).toBe("null errors");
+				expect(restored.errors).toEqual([]);
+			});
+
+			test("handles duck-typed object with errors set to undefined", () => {
+				const duck = {
+					kind: "Err",
+					isErr: true,
+					message: "undefined errors",
+					errors: undefined,
+				};
+
+				const restored = Err.from(duck);
+
+				expect(restored.isErr).toBe(true);
+				expect(restored.message).toBe("undefined errors");
+				expect(restored.errors).toEqual([]);
+			});
+
+			test("handles duck-typed object with metadata set to null", () => {
+				const duck = {
+					kind: "Err",
+					isErr: true,
+					message: "null metadata",
+					metadata: null,
+				};
+
+				const restored = Err.from(duck);
+
+				expect(restored.isErr).toBe(true);
+				expect(restored.message).toBe("null metadata");
+				expect(restored.metadata).toBeUndefined();
+			});
+
+			test("handles duck-typed object with metadata set to undefined", () => {
+				const duck = {
+					kind: "Err",
+					isErr: true,
+					message: "undefined metadata",
+					metadata: undefined,
+				};
+
+				const restored = Err.from(duck);
+
+				expect(restored.isErr).toBe(true);
+				expect(restored.message).toBe("undefined metadata");
+				expect(restored.metadata).toBeUndefined();
+			});
+
+			test("handles duck-typed object with both errors and metadata null", () => {
+				const duck = {
+					kind: "Err",
+					isErr: true,
+					message: "all null",
+					errors: null,
+					metadata: null,
+				};
+
+				const restored = Err.from(duck);
+
+				expect(restored.isErr).toBe(true);
+				expect(restored.message).toBe("all null");
+				expect(restored.errors).toEqual([]);
+				expect(restored.metadata).toBeUndefined();
+			});
+
+			test("handles duck-typed object with null fields and option overrides", () => {
+				const duck = {
+					kind: "Err",
+					isErr: true,
+					message: "base",
+					errors: null,
+					metadata: null,
+				};
+
+				const restored = Err.from(duck, {
+					code: "ADDED",
+					metadata: { extra: true },
+				});
+
+				expect(restored.message).toBe("base");
+				expect(restored.code).toBe("ADDED");
+				expect(restored.errors).toEqual([]);
+				expect(restored.metadata).toEqual(
+					expect.objectContaining({ extra: true }),
+				);
+			});
+		});
+
+		describe("from() + wrap() pattern", () => {
 			test("wraps error with new context", () => {
 				const error = new Error("Database connection failed");
 
-				const wrapped = Err.wrap("Failed to fetch user", error);
+				const wrapped = Err.from(error).wrap("Failed to fetch user");
 
 				expect(wrapped.message).toBe("Failed to fetch user");
 				expect(wrapped.unwrap()?.message).toBe("Database connection failed");
@@ -137,7 +316,7 @@ describe("Err", () => {
 			test("wraps with code and metadata", () => {
 				const error = new Error("DB error");
 
-				const wrapped = Err.wrap("Service error", error, {
+				const wrapped = Err.from(error).wrap("Service error", {
 					code: "SERVICE_ERROR",
 					metadata: { service: "user-service" },
 				});
@@ -149,21 +328,19 @@ describe("Err", () => {
 			});
 		});
 
-		describe("static aggregate()", () => {
-			test("creates aggregate with default code", () => {
-				const aggregate = Err.aggregate("Multiple failed");
+		describe("from() + addAll() aggregation", () => {
+			test("creates error that can collect children", () => {
+				const aggregate = Err.from("Multiple failed");
 
 				expect(aggregate.message).toBe("Multiple failed");
-				expect(aggregate.code).toBe("AGGREGATE");
-				expect(aggregate.count).toBe(1);
+				expect(aggregate.code).toBeUndefined();
 			});
 
 			test("creates aggregate with initial errors", () => {
 				const errors = ["Error 1", "Error 2"];
 
-				const aggregate = Err.aggregate("Multiple failed", errors);
+				const aggregate = Err.from("Multiple failed").addAll(errors);
 
-				expect(aggregate.count).toBe(2);
 				expect(aggregate.errors[0]?.message).toBe("Error 1");
 				expect(aggregate.errors[1]?.message).toBe("Error 2");
 			});
@@ -271,6 +448,29 @@ describe("Err", () => {
 				const err = Err.fromJSON(json);
 				expect(err.errors[0]?.message).toBe("Public Error");
 			});
+
+			test("rejects null metadata", () => {
+				const json = { message: "test", metadata: null };
+				expect(() => Err.fromJSON(json)).toThrow(
+					"Invalid ErrJSON: metadata must be an object",
+				);
+			});
+
+			test("reconstructed Err with valid metadata supports hasMetadata", () => {
+				const json = {
+					message: "test",
+					metadata: { key: "value" },
+				};
+				const err = Err.fromJSON(json);
+				expect(err.hasMetadata("key")).toBe(true);
+				expect(err.hasMetadata("missing")).toBe(false);
+			});
+
+			test("reconstructed Err without metadata supports hasMetadata", () => {
+				const json = { message: "test" };
+				const err = Err.fromJSON(json);
+				expect(err.hasMetadata("any")).toBe(false);
+			});
 		});
 
 		describe("isErr()", () => {
@@ -339,8 +539,7 @@ describe("Err", () => {
 			test("wraps with full options", () => {
 				const original = Err.from("Original error", "ORIG");
 
-				const wrapped = original.wrap({
-					message: "New context",
+				const wrapped = original.wrap("New context", {
 					code: "NEW_CODE",
 					metadata: { level: "critical" },
 				});
@@ -761,14 +960,13 @@ describe("Err", () => {
 				});
 
 				test("preserves aggregated errors", () => {
-					const aggregate = Err.aggregate("Aggregate")
+					const aggregate = Err.from("Aggregate")
 						.add("Error 1")
 						.add("Error 2")
 						.withMetadata({ a: 1, b: 2 });
 
 					const result = aggregate.omitMetadata("a");
 
-					expect(result.count).toBe(2);
 					expect(result.errors.length).toBe(2);
 				});
 			});
@@ -794,10 +992,9 @@ describe("Err", () => {
 	describe("Aggregate Operations", () => {
 		describe("add()", () => {
 			test("adds error to aggregate", () => {
-				const aggregate = Err.aggregate("Validation failed");
+				const aggregate = Err.from("Validation failed");
 				const added = aggregate.add("Email is required");
 
-				expect(added.count).toBe(1);
 				expect(added.errors[0]?.message).toBe("Email is required");
 				expect(added).not.toBe(aggregate);
 			});
@@ -806,7 +1003,6 @@ describe("Err", () => {
 				const single = Err.from("Single error");
 				const aggregateAdded = single.add("Added error");
 
-				expect(aggregateAdded.count).toBe(1); // Implementation detail: count becomes 1 when converted
 				expect(aggregateAdded.errors.length).toBe(1);
 			});
 		});
@@ -814,9 +1010,8 @@ describe("Err", () => {
 		describe("addAll()", () => {
 			test("adds array of errors", () => {
 				const errors = ["Error 1", Err.from("Error 2", "CODE2")];
-				const aggregate = Err.aggregate("All failed").addAll(errors);
+				const aggregate = Err.from("All failed").addAll(errors);
 
-				expect(aggregate.count).toBe(2);
 				expect(aggregate.errors.length).toBe(2);
 				expect(aggregate.errors[0]?.message).toBe("Error 1");
 				expect(aggregate.errors[1]?.code).toBe("CODE2");
@@ -825,29 +1020,6 @@ describe("Err", () => {
 	});
 
 	describe("Inspection Methods", () => {
-		describe("count", () => {
-			test("counts nested aggregates recursively", () => {
-				const nested = Err.aggregate("Parent")
-					.add("Error A")
-					.add(Err.aggregate("Child").add("Error B1").add("Error B2"))
-					.add("Error C");
-
-				expect(nested.count).toBe(4);
-			});
-
-			test("returns 1 for single errors", () => {
-				const single = Err.from("Single error");
-				expect(single.count).toBe(1);
-			});
-
-			test("never 0 for empty aggregates as well", () => {
-				const empty = Err.aggregate("Empty");
-				expect(empty.count).toBe(1);
-				const single = Err.from("Single error");
-				expect(single.count).toBe(1);
-			});
-		});
-
 		describe("root", () => {
 			test("finds deepest error in chain", () => {
 				const root = Err.from("Original error");
@@ -883,9 +1055,9 @@ describe("Err", () => {
 
 		describe("flatten()", () => {
 			test("flattens nested aggregates", () => {
-				const nested = Err.aggregate("All failed")
+				const nested = Err.from("All failed")
 					.add("Error A")
-					.add(Err.aggregate("Group B").add("Error B1").add("Error B2"))
+					.add(Err.from("Group B").add("Error B1").add("Error B2"))
 					.add("Error C");
 
 				const flat = nested.flatten();
@@ -900,7 +1072,7 @@ describe("Err", () => {
 			});
 
 			test("handles empty aggregates", () => {
-				const empty = Err.aggregate("Empty");
+				const empty = Err.from("Empty");
 				const flat = empty.flatten();
 
 				expect(flat.length).toBe(1);
@@ -925,7 +1097,7 @@ describe("Err", () => {
 			});
 
 			test("finds code in aggregated errors", () => {
-				const aggregate = Err.aggregate("Many errors")
+				const aggregate = Err.from("Many errors")
 					.add(Err.from("Error 1", "CODE1"))
 					.add(Err.from("Error 2", "CODE2"))
 					.add(Err.from("Error 3", "CODE3"));
@@ -973,8 +1145,7 @@ describe("Err", () => {
 			test("finds prefix in cause chain", () => {
 				const err = Err.from("DB error", {
 					code: "DB:CONNECTION",
-				}).wrap({
-					message: "Service failed",
+				}).wrap("Service failed", {
 					code: "SERVICE:UNAVAILABLE",
 				});
 
@@ -984,7 +1155,7 @@ describe("Err", () => {
 			});
 
 			test("finds prefix in aggregated errors", () => {
-				const agg = Err.aggregate("Multiple failures")
+				const agg = Err.from("Multiple failures")
 					.add(Err.from("Auth failed", { code: "AUTH:INVALID_TOKEN" }))
 					.add(Err.from("DB failed", { code: "DB:TIMEOUT" }));
 
@@ -1017,7 +1188,7 @@ describe("Err", () => {
 
 		describe("find()", () => {
 			test("finds first matching error", () => {
-				const aggregate = Err.aggregate("All")
+				const aggregate = Err.from("All")
 					.add("No code")
 					.add(Err.from("Code A", "CODE_A"))
 					.add(Err.from("Code B", "CODE_B"));
@@ -1028,7 +1199,7 @@ describe("Err", () => {
 			});
 
 			test("finds nothing when no match", () => {
-				const aggregate = Err.aggregate("All").add("Test");
+				const aggregate = Err.from("All").add("Test");
 				const found = aggregate.find((e) => e.code === "MISSING");
 				expect(found).toBeUndefined();
 			});
@@ -1057,7 +1228,7 @@ describe("Err", () => {
 
 		describe("filter()", () => {
 			test("filters aggregated errors", () => {
-				const agg = Err.aggregate("All")
+				const agg = Err.from("All")
 					.add(Err.from("Required 1", "REQUIRED"))
 					.add(Err.from("Invalid 1", "INVALID"))
 					.add(Err.from("Required 2", "REQUIRED"))
@@ -1073,13 +1244,13 @@ describe("Err", () => {
 			});
 
 			test("returns empty array when no matches", () => {
-				const agg = Err.aggregate("All").add("Test");
+				const agg = Err.from("All").add("Test");
 				const filtered = agg.filter((e) => e.code === "MISSING");
 				expect(filtered).toEqual([]);
 			});
 
 			test("filters aggregated errors by metadata", () => {
-				const agg = Err.aggregate("All")
+				const agg = Err.from("All")
 					.add(
 						Err.from("Email required", "REQUIRED").withMetadata({
 							field: "email",
@@ -1128,8 +1299,7 @@ describe("Err", () => {
 			});
 
 			test("serializes nested cause", () => {
-				const nested = err.wrap({
-					message: "Wrapped error",
+				const nested = err.wrap("Wrapped error", {
 					code: "WRAPPED_CODE",
 				});
 				const json = nested.toJSON();
@@ -1144,7 +1314,7 @@ describe("Err", () => {
 			test("serializes aggregate with cause", () => {
 				const rootCause = Err.from("Database connection failed", "DB_ERROR");
 				const wrappedCause = rootCause.wrap("Repository failed");
-				const aggregate = Err.aggregate("Multiple operations failed")
+				const aggregate = Err.from("Multiple operations failed")
 					.add("Task 1 failed")
 					.add("Task 2 failed");
 
@@ -1200,20 +1370,20 @@ describe("Err", () => {
 			});
 
 			test("formats aggregated error", () => {
-				const agg = Err.aggregate("Validation failed")
+				const agg = Err.from("Validation failed")
 					.add("Name required")
 					.add("Email invalid");
 
 				const str = agg.toString({ stack: true });
 
-				expect(str).toContain("[AGGREGATE] Validation failed");
+				expect(str).toContain("[ERROR] Validation failed");
 				expect(str).toContain("Errors (2):");
 				expect(str).toContain("Name required");
 				expect(str).toContain("Email invalid");
 			});
 
 			test("formats aggregated error - from JSON", () => {
-				const agg = Err.aggregate("Validation failed")
+				const agg = Err.from("Validation failed")
 					.add("Name required")
 					.add("Email invalid");
 
@@ -1222,7 +1392,7 @@ describe("Err", () => {
 					metadata: true,
 				});
 
-				expect(str).toContain("[AGGREGATE] Validation failed");
+				expect(str).toContain("[ERROR] Validation failed");
 				expect(str).toContain("Errors (2):");
 				expect(str).toContain("Name required");
 				expect(str).toContain("Email invalid");
@@ -1299,8 +1469,7 @@ describe("Err", () => {
 				});
 
 				test("uses custom indent string", () => {
-					const err = Err.from("Inner", "INNER").wrap({
-						message: "Outer",
+					const err = Err.from("Inner", "INNER").wrap("Outer", {
 						code: "OUTER",
 					});
 					const str = err.toString({ indent: "    " }); // 4 spaces
@@ -1330,8 +1499,7 @@ describe("Err", () => {
 					const err = Err.from("Inner", {
 						code: "INNER",
 						metadata: { level: "inner" },
-					}).wrap({
-						message: "Outer",
+					}).wrap("Outer", {
 						code: "OUTER",
 						metadata: { level: "outer" },
 					});
@@ -1348,7 +1516,7 @@ describe("Err", () => {
 				});
 
 				test("options propagate to aggregated errors", () => {
-					const agg = Err.aggregate("Multiple errors")
+					const agg = Err.from("Multiple errors")
 						.add(
 							Err.from("Error 1", {
 								code: "E1",
@@ -1408,7 +1576,7 @@ describe("Err", () => {
 
 			test("converts cause chain to native Error", () => {
 				const rootCause = Err.from("Root cause", "ROOT");
-				const wrapped = Err.wrap("Wrapped error", rootCause, {
+				const wrapped = Err.from(rootCause).wrap("Wrapped error", {
 					code: "WRAPPED",
 				});
 

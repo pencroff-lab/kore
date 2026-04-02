@@ -10,7 +10,7 @@
  * - **Immutability** — every mutating method (`wrap`, `withCode`, `add`) returns a new instance.
  * - **Hierarchical codes** — colon-separated segments (`AUTH:TOKEN:EXPIRED`) enable prefix matching.
  * - **Cause chains** — `wrap()` links errors into a chain queryable via `root`, `chain()`, and `unwrap()`.
- * - **Aggregation** — `aggregate()` / `add()` collect multiple independent errors under one parent.
+ * - **Aggregation** — `add()` / `addAll()` collect multiple independent errors under one parent.
  *
  * @see [err.examples.test.ts](../../src/types/err.examples.test.ts) for usage patterns
  * @module err
@@ -166,14 +166,39 @@ export class Err {
 
 		// Already an Err - clone with optional overrides
 		if (Err.isErr(input)) {
-			return new Err(options.message ?? input.message, {
-				code: options.code ?? input.code,
-				cause: input._cause,
-				errors: [...input._errors],
-				metadata: { ...input.metadata, ...options.metadata },
-				stack: input._stack,
-				timestamp: input.timestamp,
-			});
+			if (input instanceof Err) {
+				// Real instance — safe to access private fields
+				return new Err(options.message ?? input.message, {
+					code: options.code ?? input.code,
+					cause: input._cause,
+					errors: [...input._errors],
+					metadata: { ...input.metadata, ...options.metadata },
+					stack: input._stack,
+					timestamp: input.timestamp,
+				});
+			}
+			// Duck-typed object (e.g. from toJSON()) — sanitize and route through fromJSON
+			const raw = input as Record<string, unknown>;
+			const sanitized = {
+				...raw,
+				errors: Array.isArray(raw.errors) ? raw.errors : undefined,
+				metadata:
+					raw.metadata && typeof raw.metadata === "object"
+						? raw.metadata
+						: undefined,
+			};
+			const base = Err.fromJSON(sanitized);
+			if (options.message || options.code || options.metadata) {
+				return new Err(options.message ?? base.message, {
+					code: options.code ?? base.code,
+					cause: base._cause,
+					errors: Array.isArray(base._errors) ? [...base._errors] : [],
+					metadata: { ...base.metadata, ...options.metadata },
+					stack: base._stack,
+					timestamp: base.timestamp,
+				});
+			}
+			return base;
 		}
 
 		// Native Error - preserve original stack and cause chain
@@ -219,50 +244,6 @@ export class Err {
 	}
 
 	/**
-	 * Static convenience method to wrap an error with a context message.
-	 *
-	 * @param message - Context message explaining what operation failed
-	 * @param error - The original error (Err, Error, or string)
-	 * @param options - Optional code and metadata for the wrapper
-	 * @returns New Err instance with the original as cause
-	 *
-	 * @see {@link Err.prototype.wrap} for the instance method
-	 */
-	static wrap(
-		message: string,
-		error: Err | Error | string,
-		options?: ErrOptions,
-	): Err {
-		const cause = Err.isErr(error) ? error : Err.from(error);
-		return new Err(message, {
-			code: options?.code,
-			cause,
-			metadata: options?.metadata,
-		});
-	}
-
-	/**
-	 * Create an aggregate error for collecting multiple errors.
-	 *
-	 * @param message - Parent error message describing the aggregate
-	 * @param errors - Optional initial list of errors
-	 * @param options - Optional code and metadata for the aggregate
-	 * @returns New aggregate Err instance
-	 */
-	static aggregate(
-		message: string,
-		errors: Array<Err | Error | string> = [],
-		options?: ErrOptions,
-	): Err {
-		const wrapped = errors.map((e) => (Err.isErr(e) ? e : Err.from(e)));
-		return new Err(message, {
-			code: options?.code ?? "AGGREGATE",
-			errors: wrapped,
-			metadata: options?.metadata,
-		});
-	}
-
-	/**
 	 * Deserialize an Err from JSON representation.
 	 *
 	 * @param json - JSON object matching ErrJSON structure
@@ -297,7 +278,10 @@ export class Err {
 			throw new Error("Invalid ErrJSON: stack must be a string");
 		}
 
-		if (obj.metadata !== undefined && typeof obj.metadata !== "object") {
+		if (
+			obj.metadata !== undefined &&
+			(obj.metadata === null || typeof obj.metadata !== "object")
+		) {
 			throw new Error("Invalid ErrJSON: metadata must be an object");
 		}
 
@@ -365,18 +349,15 @@ export class Err {
 	/**
 	 * Wrap this error with additional context.
 	 *
-	 * @param context - Either a message string or full options object
+	 * @param message - Context message explaining what operation failed
+	 * @param options - Optional code and metadata for the wrapper
 	 * @returns New Err instance with this error as cause
-	 *
-	 * @see {@link Err.wrap} for the static version (useful in catch blocks)
 	 */
-	// biome-ignore lint/suspicious/useAdjacentOverloadSignatures: bug, notice static and non-static signatures as of 31/12/2025
-	wrap(context: string | ErrOptions): Err {
-		const opts = typeof context === "string" ? { message: context } : context;
-		return new Err(opts.message ?? this.message, {
-			code: opts.code,
+	wrap(message: string, options?: ErrOptions): Err {
+		return new Err(message, {
+			code: options?.code,
 			cause: this,
-			metadata: opts.metadata,
+			metadata: options?.metadata,
 			// New stack captured - intentional, shows wrap location
 		});
 	}
@@ -547,16 +528,6 @@ export class Err {
 	 */
 	get isAggregate(): boolean {
 		return this._errors.length > 0;
-	}
-
-	/**
-	 * Total count of errors (including nested aggregates).
-	 */
-	get count(): number {
-		if (this.isAggregate) {
-			return this._errors.reduce((sum, e) => sum + e.count, 0);
-		}
-		return 1;
 	}
 
 	/**
