@@ -44,7 +44,7 @@ function parseConfig(raw: string): Outcome<Config> {
     try {
       json = JSON.parse(raw);
     } catch (e) {
-      return Err.wrap("Invalid JSON", e as Error, { code: "PARSE_ERROR" });
+      return Err.from(e as Error).wrap("Invalid JSON", { code: "PARSE_ERROR" });
     }
 
     const obj = json as Record<string, unknown>;

@@ -46,11 +46,11 @@ const err = Err.from("User not found", "NOT_FOUND");
 const wrapped = err.wrap("Failed to load profile");
 
 // Aggregate multiple errors
-let errors = Err.aggregate("Validation failed");
+let errors = Err.from("Validation failed");
 errors = errors.add("Name is required");
 errors = errors.add(Err.from("Invalid email", "INVALID_EMAIL"));
 
-if (errors.count > 0) {
+if (errors.isAggregate) {
   console.log(errors.toString());
 }
 ```
@@ -74,11 +74,11 @@ try {
   Err.from(e as Error, { code: "OPERATION_FAILED" });
 }
 
-// Static wrap for catch blocks
+// Wrap native errors with context
 try {
   await db.query(sql);
 } catch (e) {
-  Err.wrap("Database query failed", e as Error);
+  Err.from(e as Error).wrap("Database query failed");
 }
 ```
 
