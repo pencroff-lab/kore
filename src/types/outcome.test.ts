@@ -280,7 +280,6 @@ describe("Outcome", () => {
 				const result = Outcome.any(outcomes);
 				expect(result.isErr).toBe(true);
 				expect(result.error?.isAggregate).toBe(true);
-				expect(result.error?.count).toBe(2);
 			});
 
 			it("should return error for empty array", () => {

@@ -143,7 +143,10 @@ export class Outcome<T> {
 
 		// If second arg is Err or Error, wrap it
 		if (Err.isErr(codeOrOptionsOrErr) || codeOrOptionsOrErr instanceof Error) {
-			const wrapped = Err.wrap(message, codeOrOptionsOrErr, options);
+			const cause = Err.isErr(codeOrOptionsOrErr)
+				? codeOrOptionsOrErr
+				: Err.from(codeOrOptionsOrErr);
+			const wrapped = cause.wrap(message, options);
 			return new Outcome<never>([null, wrapped]);
 		}
 
@@ -252,7 +255,7 @@ export class Outcome<T> {
 	/**
 	 * Combines multiple Outcomes, succeeding if all succeed with an array of values.
 	 *
-	 * Non-short-circuiting: collects all errors via `Err.aggregate()`.
+	 * Non-short-circuiting: collects all errors via `addAll()`.
 	 * For empty arrays, returns `Outcome.ok([])`.
 	 *
 	 * @param outcomes - Array of Outcomes to combine
@@ -273,7 +276,7 @@ export class Outcome<T> {
 		}
 
 		if (errors.length > 0) {
-			return Outcome.err(Err.aggregate("Multiple failed", errors));
+			return Outcome.err(Err.from("Multiple failed").addAll(errors));
 		}
 
 		return new Outcome<T[]>([values, null]);
@@ -301,7 +304,7 @@ export class Outcome<T> {
 			}
 			errors.push(outcome._tuple[1] as Err);
 		}
-		const aggregate = Err.aggregate("All failed", errors);
+		const aggregate = Err.from("All failed").addAll(errors);
 		return new Outcome<T>([null, aggregate]);
 	}
 

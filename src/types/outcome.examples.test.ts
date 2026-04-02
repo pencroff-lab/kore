@@ -146,16 +146,15 @@ describe("Factory methods", () => {
 
 	test("Outcome.fromAsync() with error aggregation pattern", async () => {
 		const outcome = await Outcome.fromAsync(async () => {
-			let errors = Err.aggregate("Batch failed");
+			let errors = Err.from("Batch failed");
 			errors = errors.add(Err.from("task A failed"));
 			errors = errors.add(Err.from("task B failed"));
 
-			if (errors.count > 0) return errors;
+			if (errors.isAggregate) return errors;
 			return [null, null] as [null, null];
 		});
 		expect(outcome.isErr).toBe(true);
 		expect(outcome.error?.isAggregate).toBe(true);
-		expect(outcome.error?.count).toBe(2);
 	});
 
 	test("Outcome.fromTuple() from a tuple", () => {
@@ -618,7 +617,6 @@ describe("Combinators", () => {
 		];
 		const failed = Outcome.all(mixed);
 		expect(failed.isErr).toBe(true);
-		expect(failed.error?.count).toBe(2);
 	});
 
 	test("Outcome.all() with empty array returns ok([])", () => {

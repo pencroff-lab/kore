@@ -16,7 +16,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Run a single test file | `bun test src/types/err.test.ts` |
 | Run tests matching pattern | `bun test --test-name-pattern "pattern"` |
 | Watch mode | `bun test --watch` |
-| Lint & format (auto-fix) | `bunx biome check --fix src/` |
+| **Lint (all checks)** | **`bun run lint`** (biome fix + type check + doc check) |
+| Lint & format only | `bunx biome check --fix src/` |
 | Lint (CI, no writes) | `bunx biome ci src/` |
 | Build (ESM + CJS) | `bun run build` |
 | Fix CJS compatibility | `bun scripts/fix-cjs.sh.ts` (runs automatically in build) |

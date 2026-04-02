@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.4.0] - 2026-04-02
+
+### Bug Fixes
+
+- Capture native Error .code (4f7505a)
+
+### Documentation
+
+- Replace Err.aggregate with Err.from (499adea)
+- Update error handling patterns guide (dbb1155)
+
+### Features
+
+- Refactor static wrap/aggregate, simplify API (b779e69)
+
+### Refactor
+
+- Use addAll for outcome error aggregation (64255f4)
+
+## [0.3.1] - 2026-03-19
+
+### Documentation
+
+- Rename and reorganize guide files in documentation (d8a7447)
+- Update error handling guide link to reflect new naming convention (7220943)
+
+### Other
+
+- Merge pull request #11 from pencroff-lab/docs_refactoring (49d81d0)
+
 ## [0.3.0] - 2026-03-17
 
 ### Bug Fixes
@@ -44,6 +74,7 @@
 - Phase 4 - Trim JSDoc in source files of doc migration (dc1c7c6)
 - Phase 5 - Update CLAUDE.md of doc migration (dfe815c)
 - Phase 6 - Verify and format of doc migration (d115a06)
+- Merge pull request #10 from pencroff-lab/8-refine-doc-approach (063e378)
 
 ### Refactor
 

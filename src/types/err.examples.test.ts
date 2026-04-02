@@ -122,8 +122,7 @@ describe("Error wrapping", () => {
 
 	test("wrapping with full options object", () => {
 		const originalErr = Err.from("Original error");
-		const wrapped = originalErr.wrap({
-			message: "Service unavailable",
+		const wrapped = originalErr.wrap("Service unavailable", {
 			code: "SERVICE_ERROR",
 			metadata: { service: "user-service", retryAfter: 30 },
 		});
@@ -174,12 +173,12 @@ describe("Error wrapping", () => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe("Catching native errors", () => {
-	test("Err.wrap in catch block", () => {
+	test("Err.from + wrap in catch block", () => {
 		function parseData(raw: string): [unknown, null] | [null, Err] {
 			try {
 				return [JSON.parse(raw), null];
 			} catch (e) {
-				return [null, Err.wrap("Failed to parse data", e as Error)];
+				return [null, Err.from(e as Error).wrap("Failed to parse data")];
 			}
 		}
 
@@ -190,12 +189,12 @@ describe("Catching native errors", () => {
 		expect(err?.unwrap()).not.toBeUndefined();
 	});
 
-	test("Err.wrap with code and metadata", () => {
+	test("Err.from + wrap with code and metadata", () => {
 		function fetchUser(id: string): [null, Err] {
 			const cause = new Error("Connection refused");
 			return [
 				null,
-				Err.wrap("Failed to fetch user", cause, {
+				Err.from(cause).wrap("Failed to fetch user", {
 					code: "USER_FETCH_ERROR",
 					metadata: { userId: id },
 				}),
@@ -237,7 +236,7 @@ describe("Error aggregation", () => {
 		}
 
 		function validateUser(input: UserInput): [UserInput, null] | [null, Err] {
-			let errors = Err.aggregate("Validation failed");
+			let errors = Err.from("Validation failed");
 
 			if (!input.name?.trim()) {
 				errors = errors.add("Name is required");
@@ -249,7 +248,7 @@ describe("Error aggregation", () => {
 				errors = errors.add("Age cannot be negative");
 			}
 
-			if (errors.count > 0) {
+			if (errors.isAggregate) {
 				return [null, errors.withCode("VALIDATION_ERROR")];
 			}
 
@@ -259,16 +258,14 @@ describe("Error aggregation", () => {
 		const [, err] = validateUser({ name: "", email: "bad", age: -1 });
 		expect(err).not.toBeNull();
 		expect(err?.code).toBe("VALIDATION_ERROR");
-		expect(err?.count).toBe(3);
 	});
 
 	test("aggregate with chained adds", () => {
-		const errors = Err.aggregate("Multiple operations failed")
+		const errors = Err.from("Multiple operations failed")
 			.add(Err.from("Database write failed"))
 			.add(Err.from("Cache invalidation failed"))
 			.add("Notification send failed");
 
-		expect(errors.count).toBe(3);
 		expect(errors.flatten()).toHaveLength(3);
 	});
 
@@ -279,29 +276,20 @@ describe("Error aggregation", () => {
 			new Error("Age must be positive"),
 		];
 
-		const aggregate =
-			Err.aggregate("Validation failed").addAll(validationErrors);
-		expect(aggregate.count).toBe(3);
+		const aggregate = Err.from("Validation failed").addAll(validationErrors);
+		expect(aggregate.errors.length).toBe(3);
 	});
 
 	test("isAggregate distinguishes single from multiple errors", () => {
 		const single = Err.from("Single error");
-		const multi = Err.aggregate("Multiple").add("One").add("Two");
+		const multi = Err.from("Multiple").add("One").add("Two");
 
 		expect(single.isAggregate).toBe(false);
 		expect(multi.isAggregate).toBe(true);
 	});
 
-	test("count recursively counts nested aggregates", () => {
-		const nested = Err.aggregate("Parent")
-			.add("Error 1")
-			.add(Err.aggregate("Child").add("Error 2").add("Error 3"));
-
-		expect(nested.count).toBe(3);
-	});
-
 	test("errors returns direct child errors", () => {
-		const aggregate = Err.aggregate("Batch failed")
+		const aggregate = Err.from("Batch failed")
 			.add("Task 1 failed")
 			.add("Task 2 failed");
 
@@ -310,9 +298,9 @@ describe("Error aggregation", () => {
 	});
 
 	test("flatten recursively collects all leaf errors", () => {
-		const nested = Err.aggregate("All errors")
+		const nested = Err.from("All errors")
 			.add("Error A")
-			.add(Err.aggregate("Group B").add("Error B1").add("Error B2"))
+			.add(Err.from("Group B").add("Error B1").add("Error B2"))
 			.add("Error C");
 
 		const flat = nested.flatten();
@@ -329,7 +317,7 @@ describe("Error aggregation", () => {
 			email?: string;
 			name?: string;
 		}): [typeof data, null] | [null, Err] {
-			let errors = Err.aggregate("Validation failed");
+			let errors = Err.from("Validation failed");
 
 			if (!data.email) errors = errors.add("Email is required");
 			if (!data.name) errors = errors.add("Name is required");
@@ -343,7 +331,6 @@ describe("Error aggregation", () => {
 		const [, err] = validate({});
 		expect(err).not.toBeNull();
 		expect(err?.code).toBe("VALIDATION_ERROR");
-		expect(err?.count).toBe(2);
 
 		const [result, err2] = validate({ email: "a@b.com", name: "Test" });
 		expect(err2).toBeNull();
@@ -413,7 +400,7 @@ describe("JSON serialization", () => {
 	});
 
 	test("fromJSON reconstructs aggregated errors", () => {
-		const original = Err.aggregate("Validation failed")
+		const original = Err.from("Validation failed")
 			.add("Name required")
 			.add("Email invalid");
 		const json = original.toJSON();
@@ -572,17 +559,19 @@ describe("Error codes", () => {
 	});
 
 	test("hasCodePrefix searches error tree", () => {
-		const err = Err.from("DB error", { code: "DB:CONNECTION" }).wrap({
-			message: "Service failed",
-			code: "SERVICE:UNAVAILABLE",
-		});
+		const err = Err.from("DB error", { code: "DB:CONNECTION" }).wrap(
+			"Service failed",
+			{
+				code: "SERVICE:UNAVAILABLE",
+			},
+		);
 
 		expect(err.hasCodePrefix("DB")).toBe(true);
 		expect(err.hasCodePrefix("SERVICE")).toBe(true);
 	});
 
 	test("find locates first error matching predicate", () => {
-		const err = Err.aggregate("Multiple failures")
+		const err = Err.from("Multiple failures")
 			.add(Err.from("Not found", "NOT_FOUND"))
 			.add(Err.from("Timeout", "TIMEOUT"));
 
@@ -591,7 +580,7 @@ describe("Error codes", () => {
 	});
 
 	test("filter finds all errors matching predicate", () => {
-		const err = Err.aggregate("Validation failed")
+		const err = Err.from("Validation failed")
 			.add(Err.from("Name required", "REQUIRED"))
 			.add(Err.from("Invalid email", "INVALID"))
 			.add(Err.from("Age required", "REQUIRED"));
@@ -626,7 +615,7 @@ describe("Error codes", () => {
 	});
 
 	test("toString formats aggregate errors", () => {
-		const err = Err.aggregate("Validation failed", [], {
+		const err = Err.from("Validation failed", {
 			code: "VALIDATION",
 		})
 			.add("Name required")

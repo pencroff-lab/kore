@@ -1,6 +1,6 @@
 # Error Handling Patterns
 
-How `Err` and `Outcome` compose in practice within `@pencroff-lab/kore`.
+Patterns for creating, wrapping, inspecting, and serializing `Err` within `@pencroff-lab/kore`. For operation flow patterns using `Outcome`, see [outcome-operation-flows.md](./outcome-operation-flows.md).
 
 ## When to use `Err` directly vs `Outcome`
 
@@ -8,10 +8,135 @@ How `Err` and `Outcome` compose in practice within `@pencroff-lab/kore`.
 |----------|-----|
 | Returning `[value, null] \| [null, Err]` tuples from functions | `Err` directly |
 | Chaining transformations, recovery, or combinators | `Outcome` |
-| Validation collecting multiple errors | `Err.aggregate()` |
+| Validation collecting multiple errors | `Err.from()` + `add()`/`addAll()` |
 | Wrapping third-party code that throws | `Outcome.from()` / `Outcome.fromAsync()` |
 
-**Rule of thumb:** Use raw tuples at module boundaries (simple, no overhead). Use `Outcome` when you need to chain operations or combine results.
+**Rule of thumb:** Use raw tuples at module boundaries (lower ceremony, no `Outcome` wrapper). Use `Outcome` when you need to chain operations or combine results.
+
+## Creating errors
+
+### From a string message
+
+```typescript
+const err = Err.from("User not found", "NOT_FOUND");
+```
+
+With full options (code + metadata):
+
+```typescript
+const err = Err.from("Connection timeout", {
+  code: "TIMEOUT",
+  metadata: { host: "api.example.com", timeoutMs: 5000 },
+});
+```
+
+### From a native Error
+
+`Err.from()` preserves the original stack trace, cause chain, and `name`. Node.js system error `.code` (e.g., `ENOENT`, `EACCES`) is captured automatically:
+
+```typescript
+try {
+  fs.readFileSync("/missing");
+} catch (e) {
+  const err = Err.from(e as Error);
+  // err.code === "ENOENT" (captured from native Error .code)
+  // err.metadata.originalName === "Error"
+  // err.stack points to the original throw location
+}
+```
+
+Override code or add metadata:
+
+```typescript
+const err = Err.from(nativeError, { code: "PARSE_ERROR" });
+```
+
+### From unknown values (safe in catch blocks)
+
+`Err.from()` handles any thrown value. Strings are preserved as the message. Other non-Error values become a generic error with the original value in metadata:
+
+```typescript
+try {
+  riskyThirdPartyCall();
+} catch (e) {
+  const err = Err.from(e); // handles Error, string, number, anything
+  // String values: message = the thrown string
+  // Other non-Error values: message = "Unknown error", code = "UNKNOWN",
+  //   metadata.originalValue = the thrown value
+}
+```
+
+### Cloning with overrides
+
+```typescript
+const original = Err.from("Original error");
+const modified = Err.from(original, { code: "NEW_CODE" });
+// modified.message === "Original error", modified.code === "NEW_CODE"
+// original is unchanged
+```
+
+## Type guard: `Err.isErr()`
+
+Works across module boundaries via duck typing — checks for `instanceof Err`, `isErr === true`, or `kind === "Err"`:
+
+```typescript
+if (Err.isErr(value)) {
+  // value is narrowed to Err
+  console.log(value.message);
+}
+```
+
+## Wrapping errors (cause chains)
+
+### Instance method: `err.wrap()`
+
+Adds context to an existing `Err`, making it the cause of a new wrapper. Each `wrap()` call captures a new stack trace at the wrap site, so `err.stack` points to where wrapping happened. Use `err.root.stack` to reach the original error location:
+
+```typescript
+const dbErr = Err.from("Connection refused");
+const repoErr = dbErr.wrap("Repository query failed");
+const serviceErr = repoErr.wrap("User lookup failed");
+// serviceErr.message === "User lookup failed"
+// serviceErr.unwrap().message === "Repository query failed"
+```
+
+Wrap with options:
+
+```typescript
+const wrapped = dbErr.wrap("Service unavailable", {
+  code: "SERVICE_ERROR",
+  metadata: { service: "user-service" },
+});
+```
+
+### Wrapping in catch blocks
+
+Use `Err.from()` to normalize the caught value, then `wrap()` to add context:
+
+```typescript
+try {
+  JSON.parse("{invalid");
+} catch (e) {
+  return [null, Err.from(e as Error).wrap("Failed to parse config", {
+    code: "CONFIG_ERROR",
+    metadata: { path: "/etc/app.json" },
+  })];
+}
+```
+
+### Navigating cause chains
+
+```typescript
+const err = Err.from("DB error")
+  .wrap("Repository failed")
+  .wrap("Service error");
+
+err.unwrap()?.message;  // "Repository failed" (immediate cause)
+err.root.message;       // "DB error" (deepest cause)
+
+err.chain().map(e => e.message);
+// ["DB error", "Repository failed", "Service error"] (root → current)
+```
 
 ## Propagation through call stacks
 
@@ -46,86 +171,274 @@ function handleRequest(id: string): HttpResponse {
 }
 ```
 
-The cause chain is preserved: `handleRequest` can inspect the root cause via `err.root` or `err.chain()`.
+## Error codes
 
-## Real-world scenarios
-
-### API handler with validation
+### Setting codes
 
 ```typescript
-function createOrder(input: OrderInput): Outcome<Order> {
-  return Outcome.from(() => {
-    let errors = Err.aggregate("Validation failed");
-    if (!input.items?.length) errors = errors.add("Items required");
-    if (!input.address) errors = errors.add("Address required");
-
-    if (errors.count > 0) {
-      return errors.withCode("VALIDATION_ERROR");
-    }
-
-    return [{ id: generateId(), ...input, status: "pending" }, null];
-  });
-}
-
-// Usage
-const response = createOrder(body).either(
-  (order) => ({ status: 201, body: order }),
-  (err) => ({ status: 422, body: err.toJSON({ stack: false }) }),
-);
+const err = Err.from("Record not found").withCode("NOT_FOUND");
 ```
 
-### File processing pipeline
+`withCode` returns a new instance — the original is unchanged.
+
+### Hierarchical codes
+
+Use colon-separated segments for prefix matching:
 
 ```typescript
-async function processFile(path: string): Promise<Outcome<Report>> {
-  return Outcome.fromAsync(async () => {
-    const [content, readErr] = await readFile(path);
-    if (readErr) return readErr.wrap("processFile: read failed");
+const err = Err.from("Token expired", { code: "AUTH:TOKEN:EXPIRED" });
 
-    const [parsed, parseErr] = parse(content);
-    if (parseErr) return parseErr.wrap("processFile: parse failed");
-
-    const [report, genErr] = await generateReport(parsed);
-    if (genErr) return genErr.wrap("processFile: report failed");
-
-    return [report, null];
-  });
-}
+err.hasCode("AUTH:TOKEN:EXPIRED"); // true (exact match)
+err.hasCodePrefix("AUTH");         // true (prefix match)
+err.hasCodePrefix("AUTH:TOKEN");   // true
+err.hasCodePrefix("AUTHORIZATION"); // false (not a prefix boundary)
 ```
 
-Or with `pipeAsync` for a more declarative style:
+Custom boundary character:
 
 ```typescript
-async function processFile(path: string): Promise<Outcome<Report>> {
-  return Outcome.ok(path).pipeAsync(
-    async ([p, err]) => {
-      if (err) return err;
-      return await readFile(p);
-    },
-    async ([content, err]) => {
-      if (err) return err;
-      return parse(content);
-    },
-    async ([parsed, err]) => {
-      if (err) return err;
-      return await generateReport(parsed);
-    },
-  );
+const err = Err.from("Not found", { code: "HTTP.404.NOT_FOUND" });
+err.hasCodePrefix("HTTP", ".");     // true
+err.hasCodePrefix("HTTP.404", "."); // true
+```
+
+### Searching the error tree
+
+Both `hasCode` and `hasCodePrefix` search the entire error tree — cause chain and aggregated errors:
+
+```typescript
+const err = Err.from("DB error", { code: "DB:CONNECTION" })
+  .wrap("Service failed", { code: "SERVICE:UNAVAILABLE" });
+
+err.hasCodePrefix("DB");      // true (found in cause)
+err.hasCodePrefix("SERVICE"); // true (found on wrapper)
+```
+
+## Metadata
+
+### Attaching metadata
+
+```typescript
+const err = Err.from("Request failed")
+  .withMetadata({ url: "/api/users" })
+  .withMetadata({ statusCode: 500 }); // merges with existing
+// err.metadata === { url: "/api/users", statusCode: 500 }
+```
+
+`withMetadata` returns a new instance — immutable.
+
+### Querying metadata
+
+```typescript
+const err = Err.from("Test").withMetadata({
+  url: "/api",
+  status: null,
+});
+
+// hasMetadata checks value existence (non-null, non-undefined) by default
+err.hasMetadata("url");                        // true
+err.hasMetadata("status");                     // false (null)
+err.hasMetadata("status", { keyCheck: true }); // true (key exists)
+
+// getMetadata with typed retrieval and defaults
+err.getMetadata<string>("url");           // "/api"
+err.getMetadata("missing");              // undefined
+err.getMetadata("missing", "fallback");  // "fallback"
+```
+
+### Removing metadata
+
+```typescript
+const err = Err.from("Test", {
+  metadata: { url: "/api", token: "secret", retryable: true },
+});
+
+const safe = err.omitMetadata("token");
+// safe.metadata === { url: "/api", retryable: true }
+
+const minimal = err.omitMetadata(["url", "retryable"]);
+// minimal.metadata === { token: "secret" }
+```
+
+When all keys are removed, `metadata` becomes `undefined`.
+
+## Node-local vs tree-wide operations
+
+Methods that **modify** — `withCode`, `withMetadata`, `omitMetadata` — affect only the current `Err` node and return a new instance. Methods that **search** — `hasCode`, `hasCodePrefix`, `find`, `filter` — traverse the entire error tree (current node, cause chain, and aggregate children).
+
+## Error aggregation
+
+Any `Err` becomes an aggregate once child errors are added via `add()` or `addAll()`. The `isAggregate` getter returns `true` when children are present — no special code is required. You can optionally use a code like `"VALIDATION_ERROR"` to classify the aggregate, but that is a naming convention, not a mechanism:
+
+### Collecting validation errors
+
+```typescript
+function validateUser(input: UserInput): [UserInput, null] | [null, Err] {
+  let errors = Err.from("Validation failed");
+
+  if (!input.name?.trim()) errors = errors.add("Name is required");
+  if (!input.email?.includes("@")) {
+    errors = errors.add(Err.from("Invalid email", "INVALID_EMAIL"));
+  }
+  if (input.age !== undefined && input.age < 0) {
+    errors = errors.add("Age cannot be negative");
+  }
+
+  if (errors.isAggregate) {
+    return [null, errors.withCode("VALIDATION_ERROR")];
+  }
+  return [input, null];
 }
 ```
 
-## Key patterns
+### Batch adding
 
-- **`Err.wrap(message, cause)`** — static factory to wrap a native Error with context
-- **`err.wrap(message)`** — instance method to add context to an existing Err
-- **`Outcome.from(fn)`** — catches throws from synchronous code
-- **`Outcome.fromAsync(fn)`** — catches throws from async code
-- **`outcome.either(onOk, onErr)`** — terminal fold into a single type
-- **`outcome.defaultTo(fallback)`** — extract value with a fallback on error
-- **`Outcome.all(outcomes)`** — succeed only if all succeed, aggregate errors
-- **`Outcome.any(outcomes)`** — succeed if any succeeds
+```typescript
+const aggregate = Err.from("Validation failed").addAll([
+  "Name too short",
+  Err.from("Invalid email format").withCode("INVALID_EMAIL"),
+  new Error("Age must be positive"),
+]);
+```
+
+### Inspecting aggregates
+
+```typescript
+const err = Err.from("All errors")
+  .add("Error A")
+  .add(Err.from("Group B").add("Error B1").add("Error B2"))
+  .add("Error C");
+
+err.isAggregate;      // true
+err.errors;           // ReadonlyArray<Err> — direct children only
+err.errors.length;    // 3
+
+// flatten() recursively collects all leaf errors
+err.flatten().length; // 4
+err.flatten().map(e => e.message);
+// ["Error A", "Error B1", "Error B2", "Error C"]
+```
+
+### Finding and filtering
+
+```typescript
+const err = Err.from("Validation failed")
+  .add(Err.from("Name required", "REQUIRED"))
+  .add(Err.from("Invalid email", "INVALID"))
+  .add(Err.from("Age required", "REQUIRED"));
+
+// find() — first match in tree
+err.find(e => e.code === "INVALID")?.message; // "Invalid email"
+
+// filter() — all matches in tree
+err.filter(e => e.code === "REQUIRED").length; // 2
+```
+
+Both `find` and `filter` search the full error tree in order: current error first, then cause chain, then aggregate children. `find()` returns the first match in that order.
+
+## Serialization
+
+### JSON round-trip
+
+```typescript
+const err = Err.from("Not found", {
+  code: "NOT_FOUND",
+  metadata: { userId: "123" },
+});
+
+// Serialize
+const json = err.toJSON();
+// { message, code, metadata, timestamp, kind: "Err", isErr: true, stack, cause, errors }
+
+// Deserialize
+const restored = Err.fromJSON(json);
+restored.hasCode("NOT_FOUND"); // true
+```
+
+Cause chains and aggregated errors are serialized/deserialized recursively.
+
+**Note:** `Err.fromJSON()` throws on invalid payloads (missing fields, wrong types). This contrasts with `Outcome.fromJSON()`, which returns an error `Outcome` instead of throwing.
+
+### Controlling serialized fields
+
+Strip sensitive data at API boundaries:
+
+```typescript
+err.toJSON({ stack: false });               // no stack traces
+err.toJSON({ metadata: false });            // no metadata
+err.toJSON({ stack: false, metadata: false }); // minimal payload
+```
+
+### Native Error conversion
+
+Convert to native `Error` for interop with throw-based APIs:
+
+```typescript
+const err = Err.from("Something failed", "MY_ERROR");
+const nativeErr = err.toError();
+// nativeErr.name === "MY_ERROR"
+// nativeErr.message === "Something failed"
+// Cause chain is preserved as native Error.cause
+```
+
+## Formatting with `toString()`
+
+```typescript
+const err = Err.from("Connection failed", {
+  code: "DB:CONNECTION",
+  metadata: { host: "localhost", port: 5432 },
+});
+
+err.toString();
+// "[DB:CONNECTION] Connection failed"
+
+err.toString({ date: true, metadata: true });
+// "[2024-01-15T10:30:00.000Z] [DB:CONNECTION] Connection failed"
+// "  metadata: {"host":"localhost","port":5432}"
+```
+
+### Cause chain formatting
+
+```typescript
+const deep = Err.from("Root").wrap("Level 1").wrap("Level 2").wrap("Level 3");
+
+deep.toString();
+// [ERROR] Level 3
+//   Caused by: [ERROR] Level 2
+//     Caused by: [ERROR] Level 1
+//       Caused by: [ERROR] Root
+
+deep.toString({ maxDepth: 2 });
+// [ERROR] Level 3
+//   Caused by: [ERROR] Level 2
+//     ... (1 more cause)
+```
+
+### Aggregate formatting
+
+```typescript
+Err.from("Validation failed", { code: "VALIDATION" })
+  .add("Name required")
+  .add("Email invalid")
+  .toString();
+// [VALIDATION] Validation failed
+//   Errors (2):
+//     - [ERROR] Name required
+//     - [ERROR] Email invalid
+```
+
+### `toString()` options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `stack` | `boolean \| number` | `undefined` | `true` = full stack, `number` = top N frames |
+| `date` | `boolean` | `false` | Prefix with ISO 8601 timestamp |
+| `metadata` | `boolean` | `false` | Show metadata object |
+| `maxDepth` | `number` | `undefined` | Truncate cause chain after N levels |
+| `indent` | `string` | `"  "` | Indentation per nesting level |
 
 ## See also
 
+- [outcome-operation-flows.md](./outcome-operation-flows.md) — Outcome patterns for operation flows
 - [err.examples.test.ts](../../src/types/err.examples.test.ts) — Err usage examples
 - [outcome.examples.test.ts](../../src/types/outcome.examples.test.ts) — Outcome usage examples
