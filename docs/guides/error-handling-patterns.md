@@ -1,6 +1,6 @@
 # Error Handling Patterns
 
-How `Err` works in practice within `@pencroff-lab/kore`. For operation flow patterns using `Outcome`, see [outcome-operation-flows.md](./outcome-operation-flows.md).
+Patterns for creating, wrapping, inspecting, and serializing `Err` within `@pencroff-lab/kore`. For operation flow patterns using `Outcome`, see [outcome-operation-flows.md](./outcome-operation-flows.md).
 
 ## When to use `Err` directly vs `Outcome`
 
@@ -11,7 +11,7 @@ How `Err` works in practice within `@pencroff-lab/kore`. For operation flow patt
 | Validation collecting multiple errors | `Err.from()` + `add()`/`addAll()` |
 | Wrapping third-party code that throws | `Outcome.from()` / `Outcome.fromAsync()` |
 
-**Rule of thumb:** Use raw tuples at module boundaries (simple, no overhead). Use `Outcome` when you need to chain operations or combine results.
+**Rule of thumb:** Use raw tuples at module boundaries (lower ceremony, no `Outcome` wrapper). Use `Outcome` when you need to chain operations or combine results.
 
 ## Creating errors
 
@@ -53,13 +53,16 @@ const err = Err.from(nativeError, { code: "PARSE_ERROR" });
 
 ### From unknown values (safe in catch blocks)
 
+`Err.from()` handles any thrown value. Strings are preserved as the message. Other non-Error values become a generic error with the original value in metadata:
+
 ```typescript
 try {
   riskyThirdPartyCall();
 } catch (e) {
   const err = Err.from(e); // handles Error, string, number, anything
-  // Non-Error values: message = "Unknown error", code = "UNKNOWN",
-  // metadata.originalValue = the thrown value
+  // String values: message = the thrown string
+  // Other non-Error values: message = "Unknown error", code = "UNKNOWN",
+  //   metadata.originalValue = the thrown value
 }
 ```
 
@@ -87,7 +90,7 @@ if (Err.isErr(value)) {
 
 ### Instance method: `err.wrap()`
 
-Adds context to an existing `Err`, making it the cause of a new wrapper:
+Adds context to an existing `Err`, making it the cause of a new wrapper. Each `wrap()` call captures a new stack trace at the wrap site, so `err.stack` points to where wrapping happened. Use `err.root.stack` to reach the original error location:
 
 ```typescript
 const dbErr = Err.from("Connection refused");
@@ -259,15 +262,19 @@ const minimal = err.omitMetadata(["url", "retryable"]);
 
 When all keys are removed, `metadata` becomes `undefined`.
 
+## Node-local vs tree-wide operations
+
+Methods that **modify** — `withCode`, `withMetadata`, `omitMetadata` — affect only the current `Err` node and return a new instance. Methods that **search** — `hasCode`, `hasCodePrefix`, `find`, `filter` — traverse the entire error tree (current node, cause chain, and aggregate children).
+
 ## Error aggregation
 
-When collecting multiple errors, use the `"AGGREGATE"` code to signal that the error is a container:
+Any `Err` becomes an aggregate once child errors are added via `add()` or `addAll()`. The `isAggregate` getter returns `true` when children are present — no special code is required. You can optionally use a code like `"VALIDATION_ERROR"` to classify the aggregate, but that is a naming convention, not a mechanism:
 
 ### Collecting validation errors
 
 ```typescript
 function validateUser(input: UserInput): [UserInput, null] | [null, Err] {
-  let errors = Err.from("Validation failed", "AGGREGATE");
+  let errors = Err.from("Validation failed");
 
   if (!input.name?.trim()) errors = errors.add("Name is required");
   if (!input.email?.includes("@")) {
@@ -287,7 +294,7 @@ function validateUser(input: UserInput): [UserInput, null] | [null, Err] {
 ### Batch adding
 
 ```typescript
-const aggregate = Err.from("Validation failed", "AGGREGATE").addAll([
+const aggregate = Err.from("Validation failed").addAll([
   "Name too short",
   Err.from("Invalid email format").withCode("INVALID_EMAIL"),
   new Error("Age must be positive"),
@@ -327,7 +334,7 @@ err.find(e => e.code === "INVALID")?.message; // "Invalid email"
 err.filter(e => e.code === "REQUIRED").length; // 2
 ```
 
-Both `find` and `filter` search the full error tree (current, cause chain, and aggregate children).
+Both `find` and `filter` search the full error tree in order: current error first, then cause chain, then aggregate children. `find()` returns the first match in that order.
 
 ## Serialization
 
@@ -349,6 +356,8 @@ restored.hasCode("NOT_FOUND"); // true
 ```
 
 Cause chains and aggregated errors are serialized/deserialized recursively.
+
+**Note:** `Err.fromJSON()` throws on invalid payloads (missing fields, wrong types). This contrasts with `Outcome.fromJSON()`, which returns an error `Outcome` instead of throwing.
 
 ### Controlling serialized fields
 
