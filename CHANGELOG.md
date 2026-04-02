@@ -18,6 +18,7 @@
 ### Refactor
 
 - Use addAll for outcome error aggregation (64255f4)
+- Simplify aggregation API (86127e3)
 
 ## [0.3.1] - 2026-03-19
 
