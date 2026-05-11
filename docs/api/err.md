@@ -137,7 +137,7 @@ The root/original error in a wrapped error chain.
 
 > **get** **stack**(): `string` \| `undefined`
 
-Defined in: [types/err.ts:883](../../src/types/err.ts#L883)
+Defined in: [types/err.ts:884](../../src/types/err.ts#L884)
 
 Get the captured stack trace.
 
@@ -215,7 +215,7 @@ Array of Err instances in causal order
 
 > **filter**(`predicate`): [`Err`](#err)[]
 
-Defined in: [types/err.ts:648](../../src/types/err.ts#L648)
+Defined in: [types/err.ts:649](../../src/types/err.ts#L649)
 
 Find all errors matching a predicate.
 
@@ -237,7 +237,7 @@ Array of all matching Err instances
 
 > **find**(`predicate`): [`Err`](#err) \| `undefined`
 
-Defined in: [types/err.ts:628](../../src/types/err.ts#L628)
+Defined in: [types/err.ts:629](../../src/types/err.ts#L629)
 
 Find the first error matching a predicate.
 
@@ -339,11 +339,29 @@ The metadata value or default, cast to type T
 
 ##### hasCode()
 
+###### Call Signature
+
+> **hasCode**(): `boolean`
+
+Defined in: [types/err.ts:594](../../src/types/err.ts#L594)
+
+Check if this error or any error in its chain/aggregate has a specific code,
+or — when called with no argument — whether any code is present in the tree.
+
+###### Returns
+
+`boolean`
+
+`true` if the code is found (or any code exists, when called with no argument)
+
+###### Call Signature
+
 > **hasCode**(`code`): `boolean`
 
-Defined in: [types/err.ts:593](../../src/types/err.ts#L593)
+Defined in: [types/err.ts:595](../../src/types/err.ts#L595)
 
-Check if this error or any error in its chain/aggregate has a specific code.
+Check if this error or any error in its chain/aggregate has a specific code,
+or — when called with no argument — whether any code is present in the tree.
 
 ###### Parameters
 
@@ -351,19 +369,19 @@ Check if this error or any error in its chain/aggregate has a specific code.
 
 `string`
 
-The error code to search for
+The error code to search for. Omit to check for the presence of any code.
 
 ###### Returns
 
 `boolean`
 
-`true` if the code is found anywhere in the error tree
+`true` if the code is found (or any code exists, when called with no argument)
 
 ##### hasCodePrefix()
 
 > **hasCodePrefix**(`prefix`, `boundary?`): `boolean`
 
-Defined in: [types/err.ts:607](../../src/types/err.ts#L607)
+Defined in: [types/err.ts:608](../../src/types/err.ts#L608)
 
 Check if this error or any error in its chain/aggregate has a code matching the given prefix.
 
@@ -445,7 +463,7 @@ New Err instance with keys omitted
 
 > **toError**(): `Error`
 
-Defined in: [types/err.ts:858](../../src/types/err.ts#L858)
+Defined in: [types/err.ts:859](../../src/types/err.ts#L859)
 
 Convert to a native Error for interop with throw-based APIs.
 
@@ -459,7 +477,7 @@ Native Error instance
 
 > **toJSON**(`options?`): [`ErrJSON`](#errjson)
 
-Defined in: [types/err.ts:672](../../src/types/err.ts#L672)
+Defined in: [types/err.ts:673](../../src/types/err.ts#L673)
 
 Convert to a JSON-serializable object.
 
@@ -485,7 +503,7 @@ Plain object representation
 
 > **toString**(`options?`): `string`
 
-Defined in: [types/err.ts:780](../../src/types/err.ts#L780)
+Defined in: [types/err.ts:781](../../src/types/err.ts#L781)
 
 Convert to a formatted string for logging/display.
 

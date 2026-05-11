@@ -585,15 +585,16 @@ export class Err {
 	// ══════════════════════════════════════════════════════════════════════════
 
 	/**
-	 * Check if this error or any error in its chain/aggregate has a specific code.
+	 * Check if this error or any error in its chain/aggregate has a specific code,
+	 * or — when called with no argument — whether any code is present in the tree.
 	 *
-	 * @param code - The error code to search for
-	 * @returns `true` if the code is found anywhere in the error tree
+	 * @param code - The error code to search for. Omit to check for the presence of any code.
+	 * @returns `true` if the code is found (or any code exists, when called with no argument)
 	 */
-	hasCode(code: ErrCode): boolean {
-		// if (this.code === code) return true;
-		// if (this._cause?.hasCode(code)) return true;
-		// return this._errors.some((e) => e.hasCode(code));
+	hasCode(): boolean;
+	hasCode(code: ErrCode): boolean;
+	hasCode(code?: ErrCode): boolean {
+		if (code === undefined) return this._searchCode(() => true);
 		return this._searchCode((c) => c === code);
 	}
 

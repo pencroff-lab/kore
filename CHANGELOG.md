@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.0] - 2026-05-11
+
+### Features
+
+- Check for any code in error tree (0247f5f)
+
 ## [0.4.0] - 2026-04-02
 
 ### Bug Fixes
@@ -14,6 +20,12 @@
 ### Features
 
 - Refactor static wrap/aggregate, simplify API (b779e69)
+
+### Other
+
+- Merge pull request #13 from pencroff-lab/12-native-err-code-capture (68d7a2d)
+- Update package.json version (1c1132d)
+- Merge pull request #14 from pencroff-lab/12-native-err-code-capture (53c44d2)
 
 ### Refactor
 
