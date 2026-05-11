@@ -1105,6 +1105,43 @@ describe("Err", () => {
 				expect(aggregate.hasCode("CODE2")).toBe(true);
 				expect(aggregate.hasCode("MISSING_CODE")).toBe(false);
 			});
+
+			test("returns false with no argument when no code anywhere", () => {
+				const err = Err.from("no code");
+				expect(err.hasCode()).toBe(false);
+			});
+
+			test("returns false when multiple wraps exist but none have a code", () => {
+				const err = Err.from("original")
+					.wrap("middle")
+					.wrap("outer");
+				expect(err.hasCode()).toBe(false);
+			});
+
+			test("returns true with no argument when current error has code", () => {
+				const err = Err.from("test", "CODE");
+				expect(err.hasCode()).toBe(true);
+			});
+
+			test("returns true with no argument when code exists in cause chain", () => {
+				const err = Err.from("DB error", "DB_ERROR")
+					.wrap("Service error")
+					.wrap("User error");
+				expect(err.hasCode()).toBe(true);
+			});
+
+			test("returns true with no argument when code exists in aggregate child", () => {
+				const aggregate = Err.from("Many errors")
+					.add(Err.from("Error 1"))
+					.add(Err.from("Error 2", "CODE2"));
+				expect(aggregate.hasCode()).toBe(true);
+			});
+
+			test("treats empty-string code as a present code", () => {
+				const err = Err.from("test", "");
+				expect(err.hasCode()).toBe(true);
+				expect(err.hasCode("")).toBe(true);
+			});
 		});
 
 		describe("hasCodePrefix()", () => {

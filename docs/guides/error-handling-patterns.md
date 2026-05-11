@@ -214,6 +214,14 @@ err.hasCodePrefix("DB");      // true (found in cause)
 err.hasCodePrefix("SERVICE"); // true (found on wrapper)
 ```
 
+Call `hasCode()` with no argument to test whether any code is set anywhere in the tree:
+
+```typescript
+Err.from("plain").hasCode();                       // false
+Err.from("test", "CODE").hasCode();                // true
+Err.from("wrap").wrap("outer", { code: "X" }).hasCode(); // true (found on wrapper)
+```
+
 ## Metadata
 
 ### Attaching metadata
