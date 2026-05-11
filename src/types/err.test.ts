@@ -1112,9 +1112,7 @@ describe("Err", () => {
 			});
 
 			test("returns false when multiple wraps exist but none have a code", () => {
-				const err = Err.from("original")
-					.wrap("middle")
-					.wrap("outer");
+				const err = Err.from("original").wrap("middle").wrap("outer");
 				expect(err.hasCode()).toBe(false);
 			});
 
