@@ -1,9 +1,10 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, test } from "bun:test";
 import { Err } from "./err";
 import {
 	type CallbackReturn,
 	type NullErr,
 	Outcome,
+	type PipeFn,
 	type ResultTuple,
 } from "./outcome";
 
@@ -204,6 +205,137 @@ describe("Outcome", () => {
 				});
 				expect(outcome.isErr).toBe(true);
 				expect(outcome.error?.message).toBe("rejected");
+			});
+		});
+
+		describe("invalid callback returns", () => {
+			test("bare string return is rejected, not destructured per char", () => {
+				const fn = (() => "hello") as unknown as () => CallbackReturn<string>;
+				const outcome = Outcome.from(fn);
+				expect(outcome.isErr).toBe(true);
+				expect(outcome.error?.code).toBe("INVALID_CALLBACK_RETURN");
+				expect(outcome.error?.message).toContain("Invalid callback return");
+				expect(outcome.error?.metadata?.received).toBe("string");
+				expect(outcome.value).not.toBe("h");
+			});
+
+			test("bare number return is rejected without cryptic TypeError", () => {
+				const fn = (() => 42) as unknown as () => CallbackReturn<number>;
+				const outcome = Outcome.from(fn);
+				expect(outcome.isErr).toBe(true);
+				expect(outcome.error?.code).toBe("INVALID_CALLBACK_RETURN");
+				expect(outcome.error?.message).not.toContain("not iterable");
+			});
+
+			test("bare object return is rejected", () => {
+				const fn = (() => ({
+					a: 1,
+				})) as unknown as () => CallbackReturn<object>;
+				const outcome = Outcome.from(fn);
+				expect(outcome.isErr).toBe(true);
+				expect(outcome.error?.code).toBe("INVALID_CALLBACK_RETURN");
+				expect(outcome.error?.metadata?.received).toBe("object");
+			});
+
+			test("undefined return is rejected", () => {
+				const fn = (() => undefined) as unknown as () => CallbackReturn<null>;
+				const outcome = Outcome.from(fn);
+				expect(outcome.isErr).toBe(true);
+				expect(outcome.error?.code).toBe("INVALID_CALLBACK_RETURN");
+				expect(outcome.error?.metadata?.received).toBe("undefined");
+			});
+
+			test("one-element array is rejected", () => {
+				const fn = (() => ["only"]) as unknown as () => CallbackReturn<string>;
+				const outcome = Outcome.from(fn);
+				expect(outcome.isErr).toBe(true);
+				expect(outcome.error?.code).toBe("INVALID_CALLBACK_RETURN");
+				expect(outcome.error?.metadata).toEqual({
+					received: "array",
+					length: 1,
+				});
+			});
+
+			test("three-element array is rejected", () => {
+				const fn = (() => [
+					"a",
+					null,
+					"extra",
+				]) as unknown as () => CallbackReturn<string>;
+				const outcome = Outcome.from(fn);
+				expect(outcome.isErr).toBe(true);
+				expect(outcome.error?.code).toBe("INVALID_CALLBACK_RETURN");
+				expect(outcome.error?.metadata).toEqual({
+					received: "array",
+					length: 3,
+				});
+			});
+
+			test("empty array is rejected", () => {
+				const fn = (() => []) as unknown as () => CallbackReturn<null>;
+				const outcome = Outcome.from(fn);
+				expect(outcome.isErr).toBe(true);
+				expect(outcome.error?.code).toBe("INVALID_CALLBACK_RETURN");
+				expect(outcome.error?.metadata).toEqual({
+					received: "array",
+					length: 0,
+				});
+			});
+
+			test("non-null non-Err second slot is rejected, not swallowed", () => {
+				const fn = (() => [
+					null,
+					"string error",
+				]) as unknown as () => CallbackReturn<null>;
+				const outcome = Outcome.from(fn);
+				expect(outcome.isErr).toBe(true);
+				expect(outcome.error?.code).toBe("INVALID_CALLBACK_RETURN");
+			});
+
+			test("bare two-element array is rejected, not read as tuple", () => {
+				const fn = (() => [
+					"a",
+					"b",
+				]) as unknown as () => CallbackReturn<string>;
+				const outcome = Outcome.from(fn);
+				expect(outcome.isErr).toBe(true);
+				expect(outcome.error?.code).toBe("INVALID_CALLBACK_RETURN");
+				expect(outcome.value).not.toBe("a");
+			});
+
+			test("array success value wrapped in tuple still works", () => {
+				const outcome = Outcome.from(
+					() => [["a", "b"], null] as ResultTuple<string[]>,
+				);
+				expect(outcome.isOk).toBe(true);
+				expect(outcome.value).toEqual(["a", "b"]);
+			});
+
+			test("map() with bare value return is rejected", () => {
+				const outcome = Outcome.ok(1).map(
+					((v: number) => `${v}`) as unknown as (
+						v: number,
+					) => CallbackReturn<string>,
+				);
+				expect(outcome.isErr).toBe(true);
+				expect(outcome.error?.code).toBe("INVALID_CALLBACK_RETURN");
+			});
+
+			test("pipe() with bare value return is rejected", () => {
+				const outcome = Outcome.ok(1).pipe(
+					(() => "bare") as unknown as PipeFn<number, string>,
+				);
+				expect(outcome.isErr).toBe(true);
+				expect(outcome.error?.code).toBe("INVALID_CALLBACK_RETURN");
+			});
+
+			test("fromAsync() with bare value return is rejected", async () => {
+				const fn = (async () => "hello") as unknown as () => Promise<
+					CallbackReturn<string>
+				>;
+				const outcome = await Outcome.fromAsync(fn);
+				expect(outcome.isErr).toBe(true);
+				expect(outcome.error?.code).toBe("INVALID_CALLBACK_RETURN");
 			});
 		});
 

@@ -310,7 +310,9 @@ export class Outcome<T> {
 
 	/**
 	 * Process a CallbackReturn value into an Outcome.
-	 * Handles discrimination: Err → null (void) → tuple destructure.
+	 * Handles discrimination: Err → null (void) → validated 2-element tuple.
+	 * Invalid shapes yield an `INVALID_CALLBACK_RETURN` error instead of
+	 * destructuring arbitrary iterables (e.g. a bare string) or dropping data.
 	 * @internal
 	 */
 	private static _processCallbackReturn<T>(
@@ -326,13 +328,41 @@ export class Outcome<T> {
 			return new Outcome<T>([null as T, null]);
 		}
 
-		// Case 3: Tuple [T, null] | [null, Err]
+		// Case 3: Must be an array to be a ResultTuple. Strings and other
+		// iterables would silently destructure into wrong values otherwise.
+		if (!Array.isArray(result) || result.length !== 2) {
+			return Outcome._invalidCallbackReturn(result);
+		}
+
+		// Case 4: Tuple [T, null] | [null, Err]
 		const [value, error] = result;
 		if (Err.isErr(error)) {
 			return new Outcome<T>([null, error]);
 		}
 
+		// Case 5: Second slot must be null (success) or Err — anything else
+		// would silently discard the error slot.
+		if (error !== null) {
+			return Outcome._invalidCallbackReturn(result);
+		}
+
 		return new Outcome<T>([value as T, null]);
+	}
+
+	// Build the error Outcome for callback returns violating the CallbackReturn contract.
+	private static _invalidCallbackReturn(result: unknown): Outcome<never> {
+		return new Outcome<never>([
+			null,
+			Err.from(
+				"Invalid callback return: expected [value, null], [null, Err], Err, or null",
+				{
+					code: "INVALID_CALLBACK_RETURN",
+					metadata: Array.isArray(result)
+						? { received: "array", length: result.length }
+						: { received: typeof result },
+				},
+			),
+		]);
 	}
 
 	// ══════════════════════════════════════════════════════════════════════════
