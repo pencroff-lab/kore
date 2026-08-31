@@ -482,6 +482,29 @@ describe("Outcome", () => {
 	});
 
 	describe("Instance Accessors", () => {
+		describe("isOk / isErr deprecation (methods in v0.7.0)", () => {
+			test("remain accessors, not methods, in v0.6.x", () => {
+				const outcome = Outcome.ok(42);
+				expect(typeof outcome.isOk).toBe("boolean");
+				expect(typeof outcome.isErr).toBe("boolean");
+			});
+
+			test("stay mutually exclusive across both states", () => {
+				const ok = Outcome.ok(1);
+				const err = Outcome.err("failed");
+				expect(ok.isOk).toBe(!ok.isErr);
+				expect(err.isOk).toBe(!err.isErr);
+			});
+
+			test("agree with the toTuple() narrowing path that replaces them", () => {
+				for (const outcome of [Outcome.ok(1), Outcome.err("failed")]) {
+					const [, err] = outcome.toTuple();
+					expect(outcome.isErr).toBe(err !== null);
+					expect(outcome.isOk).toBe(err === null);
+				}
+			});
+		});
+
 		describe("isOk / isErr", () => {
 			test("report correctly for success", () => {
 				const outcome = Outcome.ok(42);

@@ -39,8 +39,10 @@ export type { CallbackReturn, NullErr, PipeFn, PipeFnAsync, ResultTuple };
  */
 export class Outcome<T> {
 	/**
-	 * Discriminator property for type narrowing.
-	 * `true` for success outcomes, `false` for error outcomes.
+	 * Whether this Outcome is in success state.
+	 *
+	 * @deprecated Since v0.6.0 — becomes the type-guard method `isOk()` in v0.7.0;
+	 * a property cannot narrow. Narrow via `toTuple()`; codemod `.isOk` → `.isOk()`.
 	 */
 	readonly isOk: boolean;
 
@@ -56,11 +58,20 @@ export class Outcome<T> {
 		this.isOk = tuple[1] === null;
 	}
 
+	// Internal success check. Mirrors `isOk` without touching the deprecated
+	// accessor, so library internals stay clean through the deprecation cycle.
+	private get _ok(): boolean {
+		return this._tuple[1] === null;
+	}
+
 	/**
 	 * Whether this Outcome is in error state.
+	 *
+	 * @deprecated Since v0.6.0 — becomes the type-guard method `isErr()` in v0.7.0;
+	 * a getter cannot narrow. Narrow via `toTuple()`; codemod `.isErr` → `.isErr()`.
 	 */
 	get isErr(): boolean {
-		return !this.isOk;
+		return !this._ok;
 	}
 
 	// ══════════════════════════════════════════════════════════════════════════
@@ -289,7 +300,7 @@ export class Outcome<T> {
 		const errors: Err[] = [];
 
 		for (const outcome of outcomes) {
-			if (outcome.isErr) {
+			if (!outcome._ok) {
 				//
 				errors.push(outcome._tuple[1] as Err);
 				continue;
@@ -322,7 +333,7 @@ export class Outcome<T> {
 		const errors: Err[] = [];
 
 		for (const outcome of outcomes) {
-			if (outcome.isOk) {
+			if (outcome._ok) {
 				return outcome;
 			}
 			errors.push(outcome._tuple[1] as Err);
@@ -423,7 +434,7 @@ export class Outcome<T> {
 	 * @see {@link mapErr} for transforming or recovering from errors
 	 */
 	map<U>(fn: (value: T) => U): Outcome<U> {
-		if (this.isErr) {
+		if (!this._ok) {
 			return new Outcome<U>([null, this._tuple[1] as Err]);
 		}
 		try {
@@ -442,7 +453,7 @@ export class Outcome<T> {
 	 * @see {@link map} for the synchronous version
 	 */
 	async mapAsync<U>(fn: (value: T) => Promise<U>): Promise<Outcome<U>> {
-		if (this.isErr) {
+		if (!this._ok) {
 			return new Outcome<U>([null, this._tuple[1] as Err]);
 		}
 		try {
@@ -465,7 +476,7 @@ export class Outcome<T> {
 	 * @see {@link map} for callbacks that return a plain value
 	 */
 	flatMap<U>(fn: (value: T) => Outcome<U>): Outcome<U> {
-		if (this.isErr) {
+		if (!this._ok) {
 			return new Outcome<U>([null, this._tuple[1] as Err]);
 		}
 		try {
@@ -486,7 +497,7 @@ export class Outcome<T> {
 	async flatMapAsync<U>(
 		fn: (value: T) => Promise<Outcome<U>>,
 	): Promise<Outcome<U>> {
-		if (this.isErr) {
+		if (!this._ok) {
 			return new Outcome<U>([null, this._tuple[1] as Err]);
 		}
 		try {
@@ -508,7 +519,7 @@ export class Outcome<T> {
 	 * @see {@link map} for transforming success values
 	 */
 	mapErr<U>(fn: (error: Err) => CallbackReturn<U>): Outcome<T | U> {
-		if (this.isOk) {
+		if (this._ok) {
 			return this as Outcome<T | U>;
 		}
 
@@ -531,7 +542,7 @@ export class Outcome<T> {
 	async mapErrAsync<U>(
 		fn: (error: Err) => Promise<CallbackReturn<U>>,
 	): Promise<Outcome<T | U>> {
-		if (this.isOk) {
+		if (this._ok) {
 			return this as Outcome<T | U>;
 		}
 
@@ -623,7 +634,7 @@ export class Outcome<T> {
 
 	/* Implementation for defaultTo overloads. */
 	defaultTo(fallbackOrHandler: T | ((error: Err) => T), asValue?: boolean): T {
-		if (this.isOk) {
+		if (this._ok) {
 			return this._tuple[0] as T;
 		}
 		if (asValue === true) {
@@ -644,7 +655,7 @@ export class Outcome<T> {
 	 * @throws If either callback throws, the exception propagates to the caller
 	 */
 	either<U>(onOk: (value: T) => U, onErr: (error: Err) => U): U {
-		if (this.isOk) {
+		if (this._ok) {
 			return onOk(this._tuple[0] as T);
 		}
 		return onErr(this._tuple[1] as Err);
@@ -882,7 +893,7 @@ export class Outcome<T> {
 	 * @see {@link fromJSON} for deserializing an Outcome from JSON
 	 */
 	toJSON(): [T, null] | [null, ReturnType<Err["toJSON"]>] {
-		if (this.isOk) {
+		if (this._ok) {
 			return [this._tuple[0] as T, null];
 		}
 		return [null, (this._tuple[1] as Err).toJSON()];
@@ -894,7 +905,7 @@ export class Outcome<T> {
 	 * @returns String representation
 	 */
 	toString(): string {
-		if (this.isOk) {
+		if (this._ok) {
 			return `Outcome.ok(${fmt(this._tuple[0])})`;
 		}
 		return `Outcome.err(${(this._tuple[1] as Err).toString()})`;

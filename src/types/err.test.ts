@@ -605,6 +605,79 @@ describe("Err", () => {
 			});
 		});
 
+		describe("metadata immutability", () => {
+			test("does not alias the caller's metadata object", () => {
+				const meta: Record<string, unknown> = { userId: 1, role: "admin" };
+				const err = Err.from("access denied", { code: "AUTH", metadata: meta });
+
+				meta.userId = 999;
+				meta.role = "root";
+
+				expect(err.metadata).toEqual({ userId: 1, role: "admin" });
+				expect(err.metadata).not.toBe(meta);
+			});
+
+			test("rejects writes through the exposed metadata object", () => {
+				const err = Err.from("y", { metadata: { n: 1 } });
+
+				expect(Object.isFrozen(err.metadata)).toBe(true);
+				expect(() => {
+					(err.metadata as Record<string, unknown>).n = 42;
+				}).toThrow();
+				expect(err.metadata?.n).toBe(1);
+			});
+
+			test("rejects added and deleted metadata keys", () => {
+				const err = Err.from("y", { metadata: { n: 1 } });
+
+				expect(() => {
+					(err.metadata as Record<string, unknown>).added = true;
+				}).toThrow();
+				expect(() => {
+					delete (err.metadata as Record<string, unknown>).n;
+				}).toThrow();
+				expect(err.metadata).toEqual({ n: 1 });
+			});
+
+			test("freezes metadata built by withMetadata()", () => {
+				const err = Err.from("y", { metadata: { a: 1 } }).withMetadata({
+					b: 2,
+				});
+
+				expect(Object.isFrozen(err.metadata)).toBe(true);
+				expect(err.metadata).toEqual({ a: 1, b: 2 });
+			});
+
+			test("freezes metadata built by wrap()", () => {
+				const err = Err.from("inner").wrap("outer", {
+					metadata: { ctx: "req-1" },
+				});
+
+				expect(Object.isFrozen(err.metadata)).toBe(true);
+			});
+
+			test("hands toJSON() a mutable copy the caller owns", () => {
+				const err = Err.from("z", { metadata: { k: 1 } });
+				const json = err.toJSON();
+
+				expect(json.metadata).not.toBe(err.metadata);
+				expect(json.metadata).toEqual({ k: 1 });
+
+				(json.metadata as Record<string, unknown>).k = 2;
+				expect(err.metadata?.k).toBe(1);
+			});
+
+			test("leaves nested metadata values owned by the caller", () => {
+				// Documented boundary: the copy and freeze are both shallow.
+				const nested = { count: 1 };
+				const err = Err.from("y", { metadata: { nested } });
+
+				nested.count = 99;
+
+				expect((err.metadata?.nested as { count: number }).count).toBe(99);
+			});
+		});
+
 		describe("hasMetadata()", () => {
 			describe("default mode (value check)", () => {
 				test("returns true for key with non-null value", () => {

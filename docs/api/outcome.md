@@ -46,14 +46,18 @@ The type of the success value
 
 #### Properties
 
-##### isOk
+##### ~~isOk~~
 
 > `readonly` **isOk**: `boolean`
 
-Defined in: [types/outcome.ts:45](../../src/types/outcome.ts#L45)
+Defined in: [types/outcome.ts:47](../../src/types/outcome.ts#L47)
 
-Discriminator property for type narrowing.
-`true` for success outcomes, `false` for error outcomes.
+Whether this Outcome is in success state.
+
+###### Deprecated
+
+Since v0.6.0 — becomes the type-guard method `isOk()` in v0.7.0;
+a property cannot narrow. Narrow via `toTuple()`; codemod `.isOk` → `.isOk()`.
 
 #### Accessors
 
@@ -63,7 +67,7 @@ Discriminator property for type narrowing.
 
 > **get** **error**(): [`Err`](err.md#err) \| `null`
 
-Defined in: [types/outcome.ts:80](../../src/types/outcome.ts#L80)
+Defined in: [types/outcome.ts:91](../../src/types/outcome.ts#L91)
 
 The error, or null if in success state.
 
@@ -77,9 +81,14 @@ The error, or null if in success state.
 
 > **get** **isErr**(): `boolean`
 
-Defined in: [types/outcome.ts:62](../../src/types/outcome.ts#L62)
+Defined in: [types/outcome.ts:73](../../src/types/outcome.ts#L73)
 
 Whether this Outcome is in error state.
+
+###### Deprecated
+
+Since v0.6.0 — becomes the type-guard method `isErr()` in v0.7.0;
+a getter cannot narrow. Narrow via `toTuple()`; codemod `.isErr` → `.isErr()`.
 
 ###### Returns
 
@@ -91,7 +100,7 @@ Whether this Outcome is in error state.
 
 > **get** **value**(): `T` \| `null`
 
-Defined in: [types/outcome.ts:73](../../src/types/outcome.ts#L73)
+Defined in: [types/outcome.ts:84](../../src/types/outcome.ts#L84)
 
 The success value, or null if in error state.
 
@@ -107,7 +116,7 @@ The success value, or null if in error state.
 
 > **defaultTo**(`fallback`): `T`
 
-Defined in: [types/outcome.ts:602](../../src/types/outcome.ts#L602)
+Defined in: [types/outcome.ts:613](../../src/types/outcome.ts#L613)
 
 Extract the success value, or use a fallback value on error.
 
@@ -133,7 +142,7 @@ If the outcome is an error and computing fallback throws
 
 > **defaultTo**(`handler`): `T`
 
-Defined in: [types/outcome.ts:611](../../src/types/outcome.ts#L611)
+Defined in: [types/outcome.ts:622](../../src/types/outcome.ts#L622)
 
 Extract the success value, or compute a fallback from the error.
 
@@ -159,7 +168,7 @@ If the handler throws, the exception propagates to the caller
 
 > **defaultTo**(`fallback`, `asValue`): `T`
 
-Defined in: [types/outcome.ts:622](../../src/types/outcome.ts#L622)
+Defined in: [types/outcome.ts:633](../../src/types/outcome.ts#L633)
 
 Extract the success value, or use the provided fallback value.
 
@@ -189,7 +198,7 @@ The success value or the fallback
 
 > **effect**(`fn`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:561](../../src/types/outcome.ts#L561)
+Defined in: [types/outcome.ts:572](../../src/types/outcome.ts#L572)
 
 Execute a side effect with access to the full tuple.
 
@@ -218,7 +227,7 @@ This Outcome (for chaining), or error Outcome if callback throws
 
 > **effectAsync**(`fn`): `Promise`\<[`Outcome`](#outcome)\<`T`\>\>
 
-Defined in: [types/outcome.ts:579](../../src/types/outcome.ts#L579)
+Defined in: [types/outcome.ts:590](../../src/types/outcome.ts#L590)
 
 Async version of `effect()`.
 
@@ -244,7 +253,7 @@ Promise of this Outcome
 
 > **either**\<`U`\>(`onOk`, `onErr`): `U`
 
-Defined in: [types/outcome.ts:646](../../src/types/outcome.ts#L646)
+Defined in: [types/outcome.ts:657](../../src/types/outcome.ts#L657)
 
 Transform the Outcome into a final value by handling both cases.
 
@@ -282,7 +291,7 @@ If either callback throws, the exception propagates to the caller
 
 > **flatMap**\<`U`\>(`fn`): [`Outcome`](#outcome)\<`U`\>
 
-Defined in: [types/outcome.ts:467](../../src/types/outcome.ts#L467)
+Defined in: [types/outcome.ts:478](../../src/types/outcome.ts#L478)
 
 Chain a callback that returns an `Outcome`, flattening the result.
 
@@ -318,7 +327,7 @@ The Outcome returned by the callback, or the original error
 
 > **flatMapAsync**\<`U`\>(`fn`): `Promise`\<[`Outcome`](#outcome)\<`U`\>\>
 
-Defined in: [types/outcome.ts:486](../../src/types/outcome.ts#L486)
+Defined in: [types/outcome.ts:497](../../src/types/outcome.ts#L497)
 
 Async version of `flatMap()`.
 
@@ -350,7 +359,7 @@ Promise of the flattened Outcome
 
 > **map**\<`U`\>(`fn`): [`Outcome`](#outcome)\<`U`\>
 
-Defined in: [types/outcome.ts:425](../../src/types/outcome.ts#L425)
+Defined in: [types/outcome.ts:436](../../src/types/outcome.ts#L436)
 
 Transform the success value with a plain function.
 
@@ -390,7 +399,7 @@ New Outcome with the transformed value, or the original error
 
 > **mapAsync**\<`U`\>(`fn`): `Promise`\<[`Outcome`](#outcome)\<`U`\>\>
 
-Defined in: [types/outcome.ts:444](../../src/types/outcome.ts#L444)
+Defined in: [types/outcome.ts:455](../../src/types/outcome.ts#L455)
 
 Async version of `map()`.
 
@@ -422,7 +431,7 @@ Promise of new Outcome
 
 > **mapErr**\<`U`\>(`fn`): [`Outcome`](#outcome)\<`T` \| `U`\>
 
-Defined in: [types/outcome.ts:510](../../src/types/outcome.ts#L510)
+Defined in: [types/outcome.ts:521](../../src/types/outcome.ts#L521)
 
 Transform or recover from an error using a callback.
 
@@ -457,7 +466,7 @@ New Outcome with transformed error or recovered value
 
 > **mapErrAsync**\<`U`\>(`fn`): `Promise`\<[`Outcome`](#outcome)\<`T` \| `U`\>\>
 
-Defined in: [types/outcome.ts:531](../../src/types/outcome.ts#L531)
+Defined in: [types/outcome.ts:542](../../src/types/outcome.ts#L542)
 
 Async version of `mapErr()`.
 
@@ -491,7 +500,7 @@ Promise of new Outcome
 
 > **pipe**\<`A`\>(`f1`): [`Outcome`](#outcome)\<`A`\>
 
-Defined in: [types/outcome.ts:667](../../src/types/outcome.ts#L667)
+Defined in: [types/outcome.ts:678](../../src/types/outcome.ts#L678)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -524,7 +533,7 @@ enabling mid-chain recovery or conditional transformations.
 
 > **pipe**\<`A`, `B`\>(`f1`, `f2`): [`Outcome`](#outcome)\<`B`\>
 
-Defined in: [types/outcome.ts:668](../../src/types/outcome.ts#L668)
+Defined in: [types/outcome.ts:679](../../src/types/outcome.ts#L679)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -565,7 +574,7 @@ enabling mid-chain recovery or conditional transformations.
 
 > **pipe**\<`A`, `B`, `C`\>(`f1`, `f2`, `f3`): [`Outcome`](#outcome)\<`C`\>
 
-Defined in: [types/outcome.ts:669](../../src/types/outcome.ts#L669)
+Defined in: [types/outcome.ts:680](../../src/types/outcome.ts#L680)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -614,7 +623,7 @@ enabling mid-chain recovery or conditional transformations.
 
 > **pipe**\<`A`, `B`, `C`, `D`\>(`f1`, `f2`, `f3`, `f4`): [`Outcome`](#outcome)\<`D`\>
 
-Defined in: [types/outcome.ts:674](../../src/types/outcome.ts#L674)
+Defined in: [types/outcome.ts:685](../../src/types/outcome.ts#L685)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -671,7 +680,7 @@ enabling mid-chain recovery or conditional transformations.
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`\>(`f1`, `f2`, `f3`, `f4`, `f5`): [`Outcome`](#outcome)\<`E`\>
 
-Defined in: [types/outcome.ts:680](../../src/types/outcome.ts#L680)
+Defined in: [types/outcome.ts:691](../../src/types/outcome.ts#L691)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -736,7 +745,7 @@ enabling mid-chain recovery or conditional transformations.
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`): [`Outcome`](#outcome)\<`F`\>
 
-Defined in: [types/outcome.ts:687](../../src/types/outcome.ts#L687)
+Defined in: [types/outcome.ts:698](../../src/types/outcome.ts#L698)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -809,7 +818,7 @@ enabling mid-chain recovery or conditional transformations.
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`): [`Outcome`](#outcome)\<`G`\>
 
-Defined in: [types/outcome.ts:695](../../src/types/outcome.ts#L695)
+Defined in: [types/outcome.ts:706](../../src/types/outcome.ts#L706)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -890,7 +899,7 @@ enabling mid-chain recovery or conditional transformations.
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`): [`Outcome`](#outcome)\<`H`\>
 
-Defined in: [types/outcome.ts:704](../../src/types/outcome.ts#L704)
+Defined in: [types/outcome.ts:715](../../src/types/outcome.ts#L715)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -979,7 +988,7 @@ enabling mid-chain recovery or conditional transformations.
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`, `f9`): [`Outcome`](#outcome)\<`I`\>
 
-Defined in: [types/outcome.ts:714](../../src/types/outcome.ts#L714)
+Defined in: [types/outcome.ts:725](../../src/types/outcome.ts#L725)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -1076,7 +1085,7 @@ enabling mid-chain recovery or conditional transformations.
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`, `f9`, `f10`): [`Outcome`](#outcome)\<`J`\>
 
-Defined in: [types/outcome.ts:725](../../src/types/outcome.ts#L725)
+Defined in: [types/outcome.ts:736](../../src/types/outcome.ts#L736)
 
 Chain synchronous transformations using tuple-based predicates.
 
@@ -1183,7 +1192,7 @@ enabling mid-chain recovery or conditional transformations.
 
 > **pipeAsync**\<`A`\>(`f1`): `Promise`\<[`Outcome`](#outcome)\<`A`\>\>
 
-Defined in: [types/outcome.ts:767](../../src/types/outcome.ts#L767)
+Defined in: [types/outcome.ts:778](../../src/types/outcome.ts#L778)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -1215,7 +1224,7 @@ Predicates are executed sequentially, each awaiting the previous result.
 
 > **pipeAsync**\<`A`, `B`\>(`f1`, `f2`): `Promise`\<[`Outcome`](#outcome)\<`B`\>\>
 
-Defined in: [types/outcome.ts:768](../../src/types/outcome.ts#L768)
+Defined in: [types/outcome.ts:779](../../src/types/outcome.ts#L779)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -1255,7 +1264,7 @@ Predicates are executed sequentially, each awaiting the previous result.
 
 > **pipeAsync**\<`A`, `B`, `C`\>(`f1`, `f2`, `f3`): `Promise`\<[`Outcome`](#outcome)\<`C`\>\>
 
-Defined in: [types/outcome.ts:772](../../src/types/outcome.ts#L772)
+Defined in: [types/outcome.ts:783](../../src/types/outcome.ts#L783)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -1303,7 +1312,7 @@ Predicates are executed sequentially, each awaiting the previous result.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`\>(`f1`, `f2`, `f3`, `f4`): `Promise`\<[`Outcome`](#outcome)\<`D`\>\>
 
-Defined in: [types/outcome.ts:777](../../src/types/outcome.ts#L777)
+Defined in: [types/outcome.ts:788](../../src/types/outcome.ts#L788)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -1359,7 +1368,7 @@ Predicates are executed sequentially, each awaiting the previous result.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`\>(`f1`, `f2`, `f3`, `f4`, `f5`): `Promise`\<[`Outcome`](#outcome)\<`E`\>\>
 
-Defined in: [types/outcome.ts:783](../../src/types/outcome.ts#L783)
+Defined in: [types/outcome.ts:794](../../src/types/outcome.ts#L794)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -1423,7 +1432,7 @@ Predicates are executed sequentially, each awaiting the previous result.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`): `Promise`\<[`Outcome`](#outcome)\<`F`\>\>
 
-Defined in: [types/outcome.ts:790](../../src/types/outcome.ts#L790)
+Defined in: [types/outcome.ts:801](../../src/types/outcome.ts#L801)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -1495,7 +1504,7 @@ Predicates are executed sequentially, each awaiting the previous result.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`): `Promise`\<[`Outcome`](#outcome)\<`G`\>\>
 
-Defined in: [types/outcome.ts:798](../../src/types/outcome.ts#L798)
+Defined in: [types/outcome.ts:809](../../src/types/outcome.ts#L809)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -1575,7 +1584,7 @@ Predicates are executed sequentially, each awaiting the previous result.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`): `Promise`\<[`Outcome`](#outcome)\<`H`\>\>
 
-Defined in: [types/outcome.ts:807](../../src/types/outcome.ts#L807)
+Defined in: [types/outcome.ts:818](../../src/types/outcome.ts#L818)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -1663,7 +1672,7 @@ Predicates are executed sequentially, each awaiting the previous result.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`, `f9`): `Promise`\<[`Outcome`](#outcome)\<`I`\>\>
 
-Defined in: [types/outcome.ts:817](../../src/types/outcome.ts#L817)
+Defined in: [types/outcome.ts:828](../../src/types/outcome.ts#L828)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -1759,7 +1768,7 @@ Predicates are executed sequentially, each awaiting the previous result.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`f1`, `f2`, `f3`, `f4`, `f5`, `f6`, `f7`, `f8`, `f9`, `f10`): `Promise`\<[`Outcome`](#outcome)\<`J`\>\>
 
-Defined in: [types/outcome.ts:828](../../src/types/outcome.ts#L828)
+Defined in: [types/outcome.ts:839](../../src/types/outcome.ts#L839)
 
 Chain asynchronous transformations using tuple-based predicates.
 
@@ -1863,7 +1872,7 @@ Predicates are executed sequentially, each awaiting the previous result.
 
 > **toJSON**(): \[`T`, `null`\] \| \[`null`, [`ErrJSON`](err.md#errjson)\]
 
-Defined in: [types/outcome.ts:884](../../src/types/outcome.ts#L884)
+Defined in: [types/outcome.ts:895](../../src/types/outcome.ts#L895)
 
 Convert to JSON-serializable tuple.
 
@@ -1881,7 +1890,7 @@ JSON-serializable representation
 
 > **toString**(): `string`
 
-Defined in: [types/outcome.ts:896](../../src/types/outcome.ts#L896)
+Defined in: [types/outcome.ts:907](../../src/types/outcome.ts#L907)
 
 Convert to a human-readable string.
 
@@ -1895,7 +1904,7 @@ String representation
 
 > **toTuple**(): [`ResultTuple`](#resulttuple)\<`T`\>
 
-Defined in: [types/outcome.ts:872](../../src/types/outcome.ts#L872)
+Defined in: [types/outcome.ts:883](../../src/types/outcome.ts#L883)
 
 Extract the internal tuple.
 
@@ -1913,7 +1922,7 @@ The internal ResultTuple<T>
 
 > `static` **all**\<`T`\>(`outcomes`): [`Outcome`](#outcome)\<`T`[]\>
 
-Defined in: [types/outcome.ts:287](../../src/types/outcome.ts#L287)
+Defined in: [types/outcome.ts:298](../../src/types/outcome.ts#L298)
 
 Combines multiple Outcomes, succeeding if all succeed with an array of values.
 
@@ -1944,7 +1953,7 @@ Outcome containing array of all success values, or aggregate error
 
 > `static` **any**\<`T`\>(`outcomes`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:317](../../src/types/outcome.ts#L317)
+Defined in: [types/outcome.ts:328](../../src/types/outcome.ts#L328)
 
 Return the first successful Outcome from an array.
 
@@ -1977,7 +1986,7 @@ First successful Outcome, or aggregate of all errors
 
 > `static` **err**(`error`): [`Outcome`](#outcome)\<`never`\>
 
-Defined in: [types/outcome.ts:118](../../src/types/outcome.ts#L118)
+Defined in: [types/outcome.ts:129](../../src/types/outcome.ts#L129)
 
 Create an error Outcome from an existing Err.
 
@@ -1999,7 +2008,7 @@ Outcome in error state
 
 > `static` **err**(`message`, `code?`): [`Outcome`](#outcome)\<`never`\>
 
-Defined in: [types/outcome.ts:127](../../src/types/outcome.ts#L127)
+Defined in: [types/outcome.ts:138](../../src/types/outcome.ts#L138)
 
 Create an error Outcome from a message with optional code.
 
@@ -2027,7 +2036,7 @@ Outcome in error state
 
 > `static` **err**(`message`, `options`): [`Outcome`](#outcome)\<`never`\>
 
-Defined in: [types/outcome.ts:136](../../src/types/outcome.ts#L136)
+Defined in: [types/outcome.ts:147](../../src/types/outcome.ts#L147)
 
 Create an error Outcome from a message with options.
 
@@ -2055,7 +2064,7 @@ Outcome in error state
 
 > `static` **err**(`message`, `error`, `options?`): [`Outcome`](#outcome)\<`never`\>
 
-Defined in: [types/outcome.ts:146](../../src/types/outcome.ts#L146)
+Defined in: [types/outcome.ts:157](../../src/types/outcome.ts#L157)
 
 Create an error Outcome by wrapping another error.
 
@@ -2089,7 +2098,7 @@ Outcome in error state with wrapped cause
 
 > `static` **from**\<`T`\>(`fn`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:201](../../src/types/outcome.ts#L201)
+Defined in: [types/outcome.ts:212](../../src/types/outcome.ts#L212)
 
 Create an Outcome from a callback that returns `CallbackReturn<T>`.
 
@@ -2123,7 +2132,7 @@ Outcome<T>
 
 > `static` **fromAsync**\<`T`\>(`fn`): `Promise`\<[`Outcome`](#outcome)\<`T`\>\>
 
-Defined in: [types/outcome.ts:218](../../src/types/outcome.ts#L218)
+Defined in: [types/outcome.ts:229](../../src/types/outcome.ts#L229)
 
 Create an Outcome from an async callback that returns `Promise<CallbackReturn<T>>`.
 
@@ -2155,7 +2164,7 @@ Promise<Outcome<T>>
 
 > `static` **fromJSON**\<`T`\>(`payload`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:255](../../src/types/outcome.ts#L255)
+Defined in: [types/outcome.ts:266](../../src/types/outcome.ts#L266)
 
 Create an Outcome from a JSON tuple produced by `toJSON()`.
 
@@ -2189,7 +2198,7 @@ Outcome<T>
 
 > `static` **fromTuple**\<`T`\>(`tuple`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:237](../../src/types/outcome.ts#L237)
+Defined in: [types/outcome.ts:248](../../src/types/outcome.ts#L248)
 
 Create an Outcome from an existing ResultTuple.
 
@@ -2223,7 +2232,7 @@ Outcome<T>
 
 > `static` **ok**(): [`Outcome`](#outcome)\<`void`\>
 
-Defined in: [types/outcome.ts:89](../../src/types/outcome.ts#L89)
+Defined in: [types/outcome.ts:100](../../src/types/outcome.ts#L100)
 
 Create a success Outcome with no value (void success).
 
@@ -2237,7 +2246,7 @@ Outcome<void> carrying `undefined`
 
 > `static` **ok**(`value`): [`Outcome`](#outcome)\<`null`\>
 
-Defined in: [types/outcome.ts:97](../../src/types/outcome.ts#L97)
+Defined in: [types/outcome.ts:108](../../src/types/outcome.ts#L108)
 
 Create a success Outcome carrying an explicit `null` value.
 
@@ -2259,7 +2268,7 @@ Outcome<null>
 
 > `static` **ok**\<`T`\>(`value`): [`Outcome`](#outcome)\<`T`\>
 
-Defined in: [types/outcome.ts:105](../../src/types/outcome.ts#L105)
+Defined in: [types/outcome.ts:116](../../src/types/outcome.ts#L116)
 
 Create a success Outcome with the given value.
 
@@ -2287,7 +2296,7 @@ Outcome containing the success value
 
 > `static` **unit**(): [`Outcome`](#outcome)\<`null`\>
 
-Defined in: [types/outcome.ts:187](../../src/types/outcome.ts#L187)
+Defined in: [types/outcome.ts:198](../../src/types/outcome.ts#L198)
 
 Create a success Outcome with null value (void success).
 

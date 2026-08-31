@@ -72,6 +72,37 @@ failure.isOk;  // false
 failure.isErr; // true
 ```
 
+> **Deprecated:** `isOk` and `isErr` are deprecated as accessors since v0.6.0. In
+> v0.7.0 they become **methods** — `isOk()` / `isErr()` — that act as type guards.
+> Codemod when upgrading: `.isOk` → `.isOk()` (regex `\.isOk\b(?!\()`), same for
+> `.isErr`.
+
+Neither accessor narrows the type, and neither can. A type predicate is only legal in
+return-type position on a function or method (TS1228), so a getter or boolean property
+is incapable of narrowing no matter how it is declared:
+
+```typescript
+declare const o: Outcome<number>;
+if (o.isOk) {
+  o.value; // still number | null — not narrowed
+}
+```
+
+Until v0.7.0, destructure to narrow. This works today and keeps working afterwards:
+
+```typescript
+const [val, err] = o.toTuple();
+if (err !== null) return err;
+val; // number — narrowed
+```
+
+Once they are methods, the guard form narrows directly:
+
+```typescript
+if (o.isErr()) return o.error; //  o narrowed to the failure variant
+o.value;                       //  number
+```
+
 ### Direct accessors
 
 ```typescript

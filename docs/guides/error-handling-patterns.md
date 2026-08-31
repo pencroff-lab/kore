@@ -30,6 +30,21 @@ const err = Err.from("Connection timeout", {
 });
 ```
 
+`metadata` is copied and frozen when the `Err` is built, so later edits to the object
+you passed in do not reach the error, and writes through `err.metadata` throw:
+
+```typescript
+const meta = { userId: 1 };
+const err = Err.from("access denied", { code: "AUTH", metadata: meta });
+
+meta.userId = 999;      // err.metadata.userId is still 1
+err.metadata.userId = 2; // TypeError - frozen
+```
+
+Both the copy and the freeze are shallow: objects *nested* inside `metadata` are still
+the caller's, and mutating them is visible through the error. Use `withMetadata()` to
+derive a new `Err` with extra keys.
+
 ### From a native Error
 
 `Err.from()` preserves the original stack trace, cause chain, and `name`. Node.js system error `.code` (e.g., `ENOENT`, `EACCES`) is captured automatically:
