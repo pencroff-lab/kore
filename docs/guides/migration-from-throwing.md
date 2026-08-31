@@ -152,8 +152,8 @@ try {
 ## Gotchas
 
 - **`Outcome.from()` catches all throws** — including programming errors like `TypeError`. If you want to only catch expected errors, use explicit try/catch inside the callback.
-- **Callbacks must return tuples or Err** — returning a plain value (not wrapped in a tuple) is a type error.
-- **`null` return means void success** — `return null` inside `Outcome.from()` creates `Outcome.unit()`.
+- **`from`/`fromAsync` callbacks must return tuples or Err** — returning a plain value (not wrapped in a tuple) is a type error. This applies to `mapErr` and `pipe` too, but **not** to `map`, which takes a plain `(value) => value` and carries whatever it returns.
+- **`null` return means void success** — `return null` inside `Outcome.from()` is equivalent to `Outcome.ok(null)`. Note `Outcome.ok()` with no argument carries `undefined`, not `null`.
 - **Error codes are not inherited** — wrapping an Err does not copy the code. Use `err.hasCode()` to search the cause chain.
 
 ## See also

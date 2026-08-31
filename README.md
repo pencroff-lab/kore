@@ -111,7 +111,7 @@ throw err.toError();
 
 ### Outcome\<T\>
 
-Monadic container wrapping `ResultTuple<T>` (`[T, null] | [null, Err]`). Supports `map`/`mapErr`/`pipe`/`pipeAsync` chains, combinators (`all`, `any`), side effects (`effect`), and terminal operations (`toTuple`, `defaultTo`, `either`).
+Monadic container wrapping `ResultTuple<T>` (`[T, null] | [null, Err]`). Supports `map`/`flatMap`/`mapErr`/`pipe`/`pipeAsync` chains, combinators (`all`, `any`), side effects (`effect`), and terminal operations (`toTuple`, `defaultTo`, `either`).
 
 ```typescript
 import { Outcome, Err } from "@pencroff-lab/kore";
@@ -136,7 +136,9 @@ console.log(value);
 ```typescript
 Outcome.ok(42); // success
 Outcome.err("Failed", "ERROR_CODE"); // error
-Outcome.unit(); // void success (null value)
+Outcome.ok(); // void success (Outcome<void>, value undefined)
+Outcome.ok(null); // explicit null success (Outcome<null>)
+Outcome.unit(); // deprecated since v0.6.0 - use Outcome.ok(null), removed in v0.7.0
 
 // From sync callback (catches throws)
 Outcome.from(() => {
@@ -156,7 +158,8 @@ await Outcome.fromAsync(async () => {
 
 ```typescript
 const result = Outcome.ok(5)
-  .map((n) => [n * 2, null]) // transform success
+  .map((n) => n * 2) // transform success, cannot fail
+  .flatMap((n) => (n > 5 ? Outcome.err("Too big") : Outcome.ok(n))) // step that can fail
   .mapErr((err) => err.wrap("Added context")) // transform error
   .toTuple();
 

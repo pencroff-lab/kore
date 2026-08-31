@@ -98,7 +98,7 @@ Build entry is `index.ts` at root which re-exports from `src/`. Tests, benchmark
 ### Core Types (`src/types/`)
 
 - **`Err`** -- Immutable, value-based error type. Supports wrapping (cause chains), aggregation (multiple errors), hierarchical error codes (`AUTH:TOKEN:EXPIRED`), JSON serialization/deserialization, and conversion to native `Error`. All mutating methods (`wrap`, `withCode`, `withMetadata`, `add`) return new instances.
-- **`Outcome<T>`** -- Monadic container wrapping `ResultTuple<T>` (`[T, null] | [null, Err]`). Supports `map`/`mapErr`/`pipe`/`pipeAsync` chains, combinators (`all`, `any`), side effects (`effect`), and terminal operations (`toTuple`, `defaultTo`, `either`). Callbacks can return `[value, null]`, `[null, Err]`, `Err` directly, or `null` (void success).
+- **`Outcome<T>`** -- Monadic container wrapping `ResultTuple<T>` (`[T, null] | [null, Err]`). Supports `map`/`flatMap`/`mapErr`/`pipe`/`pipeAsync` chains, combinators (`all`, `any`), side effects (`effect`), and terminal operations (`toTuple`, `defaultTo`, `either`). `map` takes a plain `(T) => U` and cannot fail; `flatMap` takes `(T) => Outcome<U>` and can. `CallbackReturn` (`[value, null]`, `[null, Err]`, bare `Err`, or `null` for void success) applies to `from`/`fromAsync`, `mapErr` and `pipe` only. `Outcome.ok()` is `Outcome<void>` carrying `undefined`; `Outcome.ok(null)` carries an explicit `null`.
 
 ### Utilities (`src/utils/`)
 
