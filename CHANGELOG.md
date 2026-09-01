@@ -1,10 +1,23 @@
 # Changelog
 
+## [0.6.0] - 2026-09-01
+
+### Features
+
+- Reject invalid callback returns (2887ef2)
+- Add flatMap, deprecate unit (5c7a4dc)
+- Add metadata immutability support (811fc20)
+
 ## [0.5.0] - 2026-05-11
 
 ### Features
 
 - Check for any code in error tree (0247f5f)
+- Allow hasCode() to check any code (d256835)
+
+### Other
+
+- Merge pull request #16 from pencroff-lab/15-code-check---make-code-optional (4623e59)
 
 ## [0.4.0] - 2026-04-02
 
