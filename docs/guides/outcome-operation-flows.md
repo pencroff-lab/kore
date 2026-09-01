@@ -13,6 +13,15 @@ outcome.value;   // 42
 outcome.error;   // null
 ```
 
+`ok()` has three forms. An explicit argument is carried verbatim; no argument means
+"no value", which is `undefined`:
+
+```typescript
+Outcome.ok(42);     // Outcome<number>, value 42
+Outcome.ok();       // Outcome<void>,   value undefined
+Outcome.ok(null);   // Outcome<null>,   value null
+```
+
 ### Error
 
 ```typescript
@@ -32,13 +41,24 @@ Outcome.err("Parse failed", new Error("bad json"), { code: "PARSE_ERROR" });
 
 ### Void success
 
-For operations that succeed but return no value:
+For operations that succeed but return no value, call `ok()` with no argument:
 
 ```typescript
-const outcome = Outcome.unit(); // Outcome<null>
+const outcome = Outcome.ok(); // Outcome<void>
 outcome.isOk;   // true
-outcome.value;   // null
+outcome.value;   // undefined
 ```
+
+If you need a real `null` in the value slot — for example round-tripping through
+JSON — pass it explicitly:
+
+```typescript
+const outcome = Outcome.ok(null); // Outcome<null>, value null
+```
+
+> **Deprecated:** `Outcome.unit()` is deprecated since v0.6.0 and removed in v0.7.0.
+> Its replacement is `Outcome.ok(null)`, not `Outcome.ok()` — `unit()` carries `null`,
+> while `ok()` carries `undefined`.
 
 ### State checking
 
@@ -50,6 +70,37 @@ success.isErr; // false
 const failure = Outcome.err("Failed");
 failure.isOk;  // false
 failure.isErr; // true
+```
+
+> **Deprecated:** `isOk` and `isErr` are deprecated as accessors since v0.6.0. In
+> v0.7.0 they become **methods** — `isOk()` / `isErr()` — that act as type guards.
+> Codemod when upgrading: `.isOk` → `.isOk()` (regex `\.isOk\b(?!\()`), same for
+> `.isErr`.
+
+Neither accessor narrows the type, and neither can. A type predicate is only legal in
+return-type position on a function or method (TS1228), so a getter or boolean property
+is incapable of narrowing no matter how it is declared:
+
+```typescript
+declare const o: Outcome<number>;
+if (o.isOk) {
+  o.value; // still number | null — not narrowed
+}
+```
+
+Until v0.7.0, destructure to narrow. This works today and keeps working afterwards:
+
+```typescript
+const [val, err] = o.toTuple();
+if (err !== null) return err;
+val; // number — narrowed
+```
+
+Once they are methods, the guard form narrows directly:
+
+```typescript
+if (o.isErr()) return o.error; //  o narrowed to the failure variant
+o.value;                       //  number
 ```
 
 ### Direct accessors
@@ -112,34 +163,51 @@ const restored = Outcome.fromTuple(Outcome.ok(42).toTuple());
 
 ### `map()` — transform success values
 
-Only called when in success state. Errors pass through unchanged. Thrown exceptions are caught and wrapped:
+Takes a plain `(value: T) => U`. Only called when in success state; errors pass through unchanged. Thrown exceptions are caught and wrapped:
 
 ```typescript
 const outcome = Outcome.ok(5)
-  .map((n) => [n * 2, null] as [number, null])
-  .map((n) => [n.toString(), null] as [string, null]);
+  .map((n) => n * 2)
+  .map((n) => n.toString());
 // outcome.value === "10"
 ```
 
-A map callback can fail:
+`map` cannot fail on its own — whatever the callback returns becomes the success value. A returned tuple or `Err` is **data**, not control flow:
 
 ```typescript
-const outcome = Outcome.ok("not json").map((s) => {
-  try {
-    return [JSON.parse(s), null] as [unknown, null];
-  } catch {
-    return Err.from("Invalid JSON");
-  }
-});
+Outcome.ok(5).map(() => Err.from("carried"));
+// isOk === true, value is the Err instance
+```
+
+### `flatMap()` — chain a step that can fail
+
+Takes `(value: T) => Outcome<U>` and flattens the result, so the callback decides success or failure:
+
+```typescript
+const outcome = Outcome.ok("not json").flatMap((s) =>
+  Outcome.from(() => [JSON.parse(s), null]).mapErr((err) =>
+    err.wrap("Invalid JSON"),
+  ),
+);
 // outcome.isErr === true
 ```
 
-### `mapAsync()` — async transformation
+An error returned by the callback short-circuits the rest of the chain:
 
 ```typescript
-const outcome = await Outcome.ok("user-123").mapAsync(async (id) => {
-  const user = await fetchUser(id);
-  return [user, null] as [User, null];
+Outcome.ok(10)
+  .flatMap((n) => (n > 5 ? Outcome.err("Too big", "RANGE") : Outcome.ok(n)))
+  .map((n) => n * 2); // never runs
+```
+
+### `mapAsync()` / `flatMapAsync()` — async transformation
+
+```typescript
+const outcome = await Outcome.ok("user-123").mapAsync(async (id) => id.length);
+
+const user = await Outcome.ok("user-123").flatMapAsync(async (id) => {
+  const found = await fetchUser(id);
+  return found ? Outcome.ok(found) : Outcome.err("Not found", "NOT_FOUND");
 });
 ```
 
@@ -238,13 +306,17 @@ const result = await Outcome.ok("user-1").pipeAsync(
 );
 ```
 
-### When to use `pipe` vs `map`
+### When to use `map`, `flatMap` or `pipe`
 
-| Use `map` / `mapAsync` when | Use `pipe` / `pipeAsync` when |
-|------------------------------|-------------------------------|
-| Transforming success only | Need access to both value and error |
-| Errors should pass through | Mid-chain recovery is needed |
-| Simple A → B mapping | Conditional branching on error codes |
+| Use | When |
+|-----|------|
+| `map` / `mapAsync` | Transforming success only, with a step that cannot fail. Simple A → B. |
+| `flatMap` / `flatMapAsync` | The step itself can fail and returns an `Outcome`. Errors short-circuit the rest of the chain. |
+| `pipe` / `pipeAsync` | Need access to both value and error — mid-chain recovery, conditional branching on error codes. |
+
+A step that can fail belongs in `flatMap`, not `map`: whatever `map` returns becomes the
+success value, so returning an `Err` from `map` produces a *successful* `Outcome` carrying
+that `Err` as data.
 
 ## Side effects
 
@@ -258,7 +330,7 @@ const outcome = Outcome.ok(42)
     if (err) logger.error(`Failed: ${err.message}`);
     else logger.info(`Success: ${val}`);
   })
-  .map((v) => [v * 2, null] as [number, null]);
+  .map((v) => v * 2);
 // logged "Success: 42", outcome.value === 84
 ```
 
@@ -407,7 +479,9 @@ const bad = Outcome.fromJSON({ not: "a tuple" });
 ### String representation
 
 ```typescript
-Outcome.ok(42).toString();       // "Outcome.ok(42)"
+Outcome.ok(42).toString();        // "Outcome.ok(42)"
+Outcome.ok().toString();          // "Outcome.ok(undefined)"
+Outcome.ok(null).toString();      // "Outcome.ok(null)"
 Outcome.err("Failed").toString(); // "Outcome.err([ERROR] Failed)"
 ```
 

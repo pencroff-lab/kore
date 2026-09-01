@@ -8,6 +8,9 @@
  *
  * **Key concepts:**
  * - **Immutability** — every mutating method (`wrap`, `withCode`, `add`) returns a new instance.
+ *   `metadata` is copied on construction and frozen, so neither the caller's original
+ *   object nor a cast can write into it. The copy and freeze are shallow: values nested
+ *   inside `metadata` remain the caller's to mutate.
  * - **Hierarchical codes** — colon-separated segments (`AUTH:TOKEN:EXPIRED`) enable prefix matching.
  * - **Cause chains** — `wrap()` links errors into a chain queryable via `root`, `chain()`, and `unwrap()`.
  * - **Aggregation** — `add()` / `addAll()` collect multiple independent errors under one parent.
@@ -30,6 +33,7 @@ export type { ErrCode, ErrJSON, ErrJSONOptions, ErrOptions, ToStringOptions };
  * A value-based error type that supports wrapping, aggregation, and serialization.
  *
  * All instances are immutable - methods return new instances rather than mutating.
+ * `metadata` is copied and frozen on construction (shallowly - nested values are not).
  */
 export class Err {
 	/**
@@ -50,7 +54,7 @@ export class Err {
 	/** Error code for programmatic handling */
 	readonly code?: ErrCode;
 
-	/** Additional contextual data */
+	/** Additional contextual data. Frozen; nested values are not. */
 	readonly metadata?: Record<string, unknown>;
 
 	/**
@@ -91,7 +95,12 @@ export class Err {
 	) {
 		this.message = message;
 		this.code = options.code;
-		this.metadata = options.metadata;
+		// Copy then freeze: the caller keeps no handle on our object (A3), and the
+		// object we expose cannot be written through a cast (A4). Both are shallow —
+		// nested values remain the caller's, as documented on the class.
+		this.metadata = options.metadata
+			? Object.freeze({ ...options.metadata })
+			: undefined;
 		this.timestamp = options.timestamp ?? new Date().toISOString();
 		this._cause = options.cause;
 		this._errors = options.errors ?? [];
@@ -678,7 +687,9 @@ export class Err {
 			kind: "Err",
 			isErr: true,
 			code: this.code,
-			metadata: metadata ? this.metadata : undefined,
+			// Hand out a mutable copy — the payload belongs to the caller, and our
+			// own metadata object is frozen.
+			metadata: metadata && this.metadata ? { ...this.metadata } : undefined,
 			timestamp: this.timestamp,
 			stack: stack ? this._stack : undefined,
 			cause: this._cause?.toJSON(options),

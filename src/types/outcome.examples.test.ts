@@ -52,8 +52,14 @@ describe("Creating outcomes", () => {
 		expect(outcome.error?.unwrap()).not.toBeUndefined();
 	});
 
-	test("Outcome.unit() creates a void success", () => {
-		const outcome = Outcome.unit();
+	test("Outcome.ok() creates a void success", () => {
+		const outcome = Outcome.ok();
+		expect(outcome.isOk).toBe(true);
+		expect(outcome.value).toBeUndefined();
+	});
+
+	test("Outcome.ok(null) carries an explicit null value", () => {
+		const outcome = Outcome.ok(null);
 		expect(outcome.isOk).toBe(true);
 		expect(outcome.value).toBeNull();
 	});
@@ -202,58 +208,71 @@ describe("Factory methods", () => {
 describe("Transformations", () => {
 	test("map() simple transformation", () => {
 		const outcome = Outcome.ok(5)
-			.map((n) => [n * 2, null] as [number, null])
-			.map((n) => [n.toString(), null] as [string, null]);
+			.map((n) => n * 2)
+			.map((n) => n.toString());
 
 		expect(outcome.value).toBe("10");
 	});
 
 	test("map() chaining from class docblock", () => {
 		const result = Outcome.ok(5)
-			.map((n) => [n * 2, null] as [number, null])
-			.map((n) => [n.toString(), null] as [string, null])
+			.map((n) => n * 2)
+			.map((n) => n.toString())
 			.toTuple();
 		expect(result).toEqual(["10", null]);
 	});
 
-	test("map() transformation that can fail", () => {
-		const outcome = Outcome.ok('{"name":"John"}').map((json) => {
-			try {
-				return [JSON.parse(json), null] as [unknown, null];
-			} catch {
-				return Err.from("Invalid JSON");
-			}
-		});
+	test("flatMap() transformation that can fail", () => {
+		const outcome = Outcome.ok('{"name":"John"}').flatMap((json) =>
+			Outcome.from(() => [JSON.parse(json), null]),
+		);
 		expect(outcome.isOk).toBe(true);
 		expect(outcome.value).toEqual({ name: "John" });
 	});
 
-	test("map() transformation that fails with invalid JSON", () => {
-		const outcome = Outcome.ok("not json").map((json) => {
-			try {
-				return [JSON.parse(json), null] as [unknown, null];
-			} catch {
-				return Err.from("Invalid JSON");
-			}
-		});
+	test("flatMap() transformation that fails with invalid JSON", () => {
+		const outcome = Outcome.ok("not json").flatMap((json) =>
+			Outcome.from(() => [JSON.parse(json), null]).mapErr((err) =>
+				err.wrap("Invalid JSON"),
+			),
+		);
 		expect(outcome.isErr).toBe(true);
 		expect(outcome.error?.message).toBe("Invalid JSON");
 	});
 
+	test("flatMap() short-circuits on the returned error", () => {
+		const outcome = Outcome.ok(10)
+			.flatMap((n) => (n > 5 ? Outcome.err("Too big", "RANGE") : Outcome.ok(n)))
+			.map((n) => n * 2);
+		expect(outcome.isErr).toBe(true);
+		expect(outcome.error?.code).toBe("RANGE");
+	});
+
 	test("map() error passes through", () => {
-		const outcome = Outcome.err("Original error").map(
-			(v) => [v, null] as [never, null],
-		);
+		const outcome = Outcome.err("Original error").map((v) => v);
 		expect(outcome.error?.message).toBe("Original error");
 	});
 
 	test("mapAsync() transforms success value", async () => {
-		const outcome = await Outcome.ok("user-123").mapAsync(async (id) => {
-			const user = { id, name: "John" };
-			return [user, null] as [typeof user, null];
-		});
+		const outcome = await Outcome.ok("user-123").mapAsync(async (id) => ({
+			id,
+			name: "John",
+		}));
 		expect(outcome.isOk).toBe(true);
 		expect(outcome.value).toEqual({ id: "user-123", name: "John" });
+	});
+
+	test("flatMapAsync() chains an async step that can fail", async () => {
+		const load = async (id: string) =>
+			id === "user-123"
+				? Outcome.ok({ id, name: "John" })
+				: Outcome.err("Not found", "NOT_FOUND");
+
+		const found = await Outcome.ok("user-123").flatMapAsync(load);
+		const missing = await Outcome.ok("nobody").flatMapAsync(load);
+
+		expect(found.value).toEqual({ id: "user-123", name: "John" });
+		expect(missing.error?.code).toBe("NOT_FOUND");
 	});
 
 	test("mapErr() recovery from error", () => {
@@ -520,7 +539,7 @@ describe("Side effects", () => {
 				if (err) logged = `Failed: ${err.message}`;
 				else logged = `Success: ${val}`;
 			})
-			.map((v) => [v * 2, null] as [number, null]);
+			.map((v) => v * 2);
 
 		expect(logged).toBe("Success: 42");
 		expect(outcome.value).toBe(84);

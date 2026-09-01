@@ -2,15 +2,18 @@
  * Monadic container for safe success/error propagation using tuple-first design.
  *
  * `Outcome<T>` wraps a `ResultTuple<T>` — either `[T, null]` (success) or
- * `[null, Err]` (error) — and provides chainable transforms (`map`, `pipe`),
- * combinators (`all`, `any`), and terminal operations (`toTuple`, `defaultTo`,
- * `either`). Callbacks may return tuples, `null` (void success), or a bare
- * `Err` (shorthand error).
+ * `[null, Err]` (error) — and provides chainable transforms (`map`, `flatMap`,
+ * `pipe`), combinators (`all`, `any`), and terminal operations (`toTuple`,
+ * `defaultTo`, `either`).
  *
  * **Key concepts:**
  * - **Tuple-first** — `toTuple()` is the primary extraction; destructure as `[val, err]`.
  * - **Immutability** — every transform returns a new `Outcome`, never mutates.
- * - **Auto-catch** — `from`, `map`, and `pipe` catch thrown exceptions and wrap them as `Err`.
+ * - **map vs flatMap** — `map` takes `(T) => U` and cannot fail; `flatMap` takes
+ *   `(T) => Outcome<U>` and can. Tuple/`Err` returns are data in `map`, never control flow.
+ * - **CallbackReturn** — tuple, `null` (void success) or bare `Err` shorthand; accepted
+ *   by `from`/`fromAsync`, `mapErr` and `pipe`, where wrapping Go-style functions is the job.
+ * - **Auto-catch** — `from`, `map`, `flatMap` and `pipe` catch thrown exceptions and wrap them as `Err`.
  * - **Combinators** — `all` collects every error (non-short-circuit), `any` short-circuits on first success.
  *
  * @see [outcome.examples.test.ts](../../src/types/outcome.examples.test.ts) for usage patterns
@@ -36,8 +39,10 @@ export type { CallbackReturn, NullErr, PipeFn, PipeFnAsync, ResultTuple };
  */
 export class Outcome<T> {
 	/**
-	 * Discriminator property for type narrowing.
-	 * `true` for success outcomes, `false` for error outcomes.
+	 * Whether this Outcome is in success state.
+	 *
+	 * @deprecated Since v0.6.0 — becomes the type-guard method `isOk()` in v0.7.0;
+	 * a property cannot narrow. Narrow via `toTuple()`; codemod `.isOk` → `.isOk()`.
 	 */
 	readonly isOk: boolean;
 
@@ -53,11 +58,20 @@ export class Outcome<T> {
 		this.isOk = tuple[1] === null;
 	}
 
+	// Internal success check. Mirrors `isOk` without touching the deprecated
+	// accessor, so library internals stay clean through the deprecation cycle.
+	private get _ok(): boolean {
+		return this._tuple[1] === null;
+	}
+
 	/**
 	 * Whether this Outcome is in error state.
+	 *
+	 * @deprecated Since v0.6.0 — becomes the type-guard method `isErr()` in v0.7.0;
+	 * a getter cannot narrow. Narrow via `toTuple()`; codemod `.isErr` → `.isErr()`.
 	 */
 	get isErr(): boolean {
-		return !this.isOk;
+		return !this._ok;
 	}
 
 	// ══════════════════════════════════════════════════════════════════════════
@@ -79,13 +93,31 @@ export class Outcome<T> {
 	}
 
 	/**
+	 * Create a success Outcome with no value (void success).
+	 *
+	 * @returns Outcome<void> carrying `undefined`
+	 */
+	static ok(): Outcome<void>;
+
+	/**
+	 * Create a success Outcome carrying an explicit `null` value.
+	 *
+	 * @param value - The literal `null`
+	 * @returns Outcome<null>
+	 */
+	static ok(value: null): Outcome<null>;
+
+	/**
 	 * Create a success Outcome with the given value.
 	 *
 	 * @param value - The success value
 	 * @returns Outcome containing the success value
 	 */
-	static ok<T>(value: T): Outcome<T> {
-		return new Outcome<T>([value, null]);
+	static ok<T>(value: T): Outcome<T>;
+
+	/* Implementation signature for ok(). Absent argument yields `undefined`. */
+	static ok<T>(...args: [] | [T]): Outcome<T> {
+		return new Outcome<T>([args[0] as T, null]);
 	}
 
 	/**
@@ -159,6 +191,8 @@ export class Outcome<T> {
 	/**
 	 * Create a success Outcome with null value (void success).
 	 *
+	 * @deprecated Since v0.6.0 — use `Outcome.ok(null)` instead (`Outcome.ok()`
+	 * carries `undefined`, not `null`). Removed in v0.7.0.
 	 * @returns Outcome<null> representing void success
 	 */
 	static unit(): Outcome<null> {
@@ -266,7 +300,7 @@ export class Outcome<T> {
 		const errors: Err[] = [];
 
 		for (const outcome of outcomes) {
-			if (outcome.isErr) {
+			if (!outcome._ok) {
 				//
 				errors.push(outcome._tuple[1] as Err);
 				continue;
@@ -299,7 +333,7 @@ export class Outcome<T> {
 		const errors: Err[] = [];
 
 		for (const outcome of outcomes) {
-			if (outcome.isOk) {
+			if (outcome._ok) {
 				return outcome;
 			}
 			errors.push(outcome._tuple[1] as Err);
@@ -310,7 +344,9 @@ export class Outcome<T> {
 
 	/**
 	 * Process a CallbackReturn value into an Outcome.
-	 * Handles discrimination: Err → null (void) → tuple destructure.
+	 * Handles discrimination: Err → null (void) → validated 2-element tuple.
+	 * Invalid shapes yield an `INVALID_CALLBACK_RETURN` error instead of
+	 * destructuring arbitrary iterables (e.g. a bare string) or dropping data.
 	 * @internal
 	 */
 	private static _processCallbackReturn<T>(
@@ -326,13 +362,55 @@ export class Outcome<T> {
 			return new Outcome<T>([null as T, null]);
 		}
 
-		// Case 3: Tuple [T, null] | [null, Err]
+		// Case 3: Must be an array to be a ResultTuple. Strings and other
+		// iterables would silently destructure into wrong values otherwise.
+		if (!Array.isArray(result) || result.length !== 2) {
+			return Outcome._invalidCallbackReturn(result);
+		}
+
+		// Case 4: Tuple [T, null] | [null, Err]
 		const [value, error] = result;
 		if (Err.isErr(error)) {
 			return new Outcome<T>([null, error]);
 		}
 
+		// Case 5: Second slot must be null (success) or Err — anything else
+		// would silently discard the error slot.
+		if (error !== null) {
+			return Outcome._invalidCallbackReturn(result);
+		}
+
 		return new Outcome<T>([value as T, null]);
+	}
+
+	// Guard flatMap callbacks: untyped callers can still return a non-Outcome.
+	private static _requireOutcome<U>(result: Outcome<U>): Outcome<U> {
+		if (result instanceof Outcome) {
+			return result;
+		}
+		return new Outcome<never>([
+			null,
+			Err.from("Invalid flatMap return: expected an Outcome", {
+				code: "INVALID_FLATMAP_RETURN",
+				metadata: { received: typeof result },
+			}),
+		]);
+	}
+
+	// Build the error Outcome for callback returns violating the CallbackReturn contract.
+	private static _invalidCallbackReturn(result: unknown): Outcome<never> {
+		return new Outcome<never>([
+			null,
+			Err.from(
+				"Invalid callback return: expected [value, null], [null, Err], Err, or null",
+				{
+					code: "INVALID_CALLBACK_RETURN",
+					metadata: Array.isArray(result)
+						? { received: "array", length: result.length }
+						: { received: typeof result },
+				},
+			),
+		]);
 	}
 
 	// ══════════════════════════════════════════════════════════════════════════
@@ -340,24 +418,27 @@ export class Outcome<T> {
 	// ══════════════════════════════════════════════════════════════════════════
 
 	/**
-	 * Transform the success value using a callback.
+	 * Transform the success value with a plain function.
+	 *
+	 * The return value is carried as-is — a tuple, an `Err`, or `null` stays the
+	 * success value. Use {@link flatMap} to return an `Outcome` that can fail.
 	 *
 	 * Only called if successful. Errors pass through unchanged.
 	 * If the callback throws, the exception is caught and wrapped.
 	 *
 	 * @param fn - Transformation function receiving the success value
-	 * @returns New Outcome with transformed value or original/new error
+	 * @returns New Outcome with the transformed value, or the original error
 	 *
 	 * @see {@link mapAsync} for the async version
+	 * @see {@link flatMap} for callbacks that return an Outcome
 	 * @see {@link mapErr} for transforming or recovering from errors
 	 */
-	map<U>(fn: (value: T) => CallbackReturn<U>): Outcome<U> {
-		if (this.isErr) {
+	map<U>(fn: (value: T) => U): Outcome<U> {
+		if (!this._ok) {
 			return new Outcome<U>([null, this._tuple[1] as Err]);
 		}
 		try {
-			const result = fn(this._tuple[0] as T);
-			return Outcome._processCallbackReturn(result);
+			return new Outcome<U>([fn(this._tuple[0] as T), null]);
 		} catch (e) {
 			return new Outcome<U>([null, Err.from(e)]);
 		}
@@ -371,15 +452,56 @@ export class Outcome<T> {
 	 *
 	 * @see {@link map} for the synchronous version
 	 */
-	async mapAsync<U>(
-		fn: (value: T) => Promise<CallbackReturn<U>>,
-	): Promise<Outcome<U>> {
-		if (this.isErr) {
+	async mapAsync<U>(fn: (value: T) => Promise<U>): Promise<Outcome<U>> {
+		if (!this._ok) {
 			return new Outcome<U>([null, this._tuple[1] as Err]);
 		}
 		try {
-			const result = await fn(this._tuple[0] as T);
-			return Outcome._processCallbackReturn(result);
+			return new Outcome<U>([await fn(this._tuple[0] as T), null]);
+		} catch (e) {
+			return new Outcome<U>([null, Err.from(e)]);
+		}
+	}
+
+	/**
+	 * Chain a callback that returns an `Outcome`, flattening the result.
+	 *
+	 * Only called if successful. Errors pass through unchanged.
+	 * If the callback throws, the exception is caught and wrapped.
+	 *
+	 * @param fn - Function receiving the success value, returning an Outcome
+	 * @returns The Outcome returned by the callback, or the original error
+	 *
+	 * @see {@link flatMapAsync} for the async version
+	 * @see {@link map} for callbacks that return a plain value
+	 */
+	flatMap<U>(fn: (value: T) => Outcome<U>): Outcome<U> {
+		if (!this._ok) {
+			return new Outcome<U>([null, this._tuple[1] as Err]);
+		}
+		try {
+			return Outcome._requireOutcome(fn(this._tuple[0] as T));
+		} catch (e) {
+			return new Outcome<U>([null, Err.from(e)]);
+		}
+	}
+
+	/**
+	 * Async version of `flatMap()`.
+	 *
+	 * @param fn - Async function returning a Promise of an Outcome
+	 * @returns Promise of the flattened Outcome
+	 *
+	 * @see {@link flatMap} for the synchronous version
+	 */
+	async flatMapAsync<U>(
+		fn: (value: T) => Promise<Outcome<U>>,
+	): Promise<Outcome<U>> {
+		if (!this._ok) {
+			return new Outcome<U>([null, this._tuple[1] as Err]);
+		}
+		try {
+			return Outcome._requireOutcome(await fn(this._tuple[0] as T));
 		} catch (e) {
 			return new Outcome<U>([null, Err.from(e)]);
 		}
@@ -397,7 +519,7 @@ export class Outcome<T> {
 	 * @see {@link map} for transforming success values
 	 */
 	mapErr<U>(fn: (error: Err) => CallbackReturn<U>): Outcome<T | U> {
-		if (this.isOk) {
+		if (this._ok) {
 			return this as Outcome<T | U>;
 		}
 
@@ -420,7 +542,7 @@ export class Outcome<T> {
 	async mapErrAsync<U>(
 		fn: (error: Err) => Promise<CallbackReturn<U>>,
 	): Promise<Outcome<T | U>> {
-		if (this.isOk) {
+		if (this._ok) {
 			return this as Outcome<T | U>;
 		}
 
@@ -512,7 +634,7 @@ export class Outcome<T> {
 
 	/* Implementation for defaultTo overloads. */
 	defaultTo(fallbackOrHandler: T | ((error: Err) => T), asValue?: boolean): T {
-		if (this.isOk) {
+		if (this._ok) {
 			return this._tuple[0] as T;
 		}
 		if (asValue === true) {
@@ -533,7 +655,7 @@ export class Outcome<T> {
 	 * @throws If either callback throws, the exception propagates to the caller
 	 */
 	either<U>(onOk: (value: T) => U, onErr: (error: Err) => U): U {
-		if (this.isOk) {
+		if (this._ok) {
 			return onOk(this._tuple[0] as T);
 		}
 		return onErr(this._tuple[1] as Err);
@@ -771,7 +893,7 @@ export class Outcome<T> {
 	 * @see {@link fromJSON} for deserializing an Outcome from JSON
 	 */
 	toJSON(): [T, null] | [null, ReturnType<Err["toJSON"]>] {
-		if (this.isOk) {
+		if (this._ok) {
 			return [this._tuple[0] as T, null];
 		}
 		return [null, (this._tuple[1] as Err).toJSON()];
@@ -783,7 +905,7 @@ export class Outcome<T> {
 	 * @returns String representation
 	 */
 	toString(): string {
-		if (this.isOk) {
+		if (this._ok) {
 			return `Outcome.ok(${fmt(this._tuple[0])})`;
 		}
 		return `Outcome.err(${(this._tuple[1] as Err).toString()})`;
