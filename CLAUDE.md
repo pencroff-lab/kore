@@ -98,7 +98,13 @@ Build entry is `index.ts` at root which re-exports from `src/`. Tests, benchmark
 ### Core Types (`src/types/`)
 
 - **`Err`** -- Immutable, value-based error type. Supports wrapping (cause chains), aggregation (multiple errors), hierarchical error codes (`AUTH:TOKEN:EXPIRED`), JSON serialization/deserialization, and conversion to native `Error`. All mutating methods (`wrap`, `withCode`, `withMetadata`, `add`) return new instances. `metadata` is copied and frozen on construction, so neither the caller's original object nor a cast can write into it; the copy and freeze are shallow, so nested values stay the caller's.
-- **`Outcome<T>`** -- Monadic container wrapping `ResultTuple<T>` (`[T, null] | [null, Err]`). Supports `map`/`flatMap`/`mapErr`/`pipe`/`pipeAsync` chains, combinators (`all`, `any`), side effects (`effect`), and terminal operations (`toTuple`, `defaultTo`, `either`). `map` takes a plain `(T) => U` and cannot fail; `flatMap` takes `(T) => Outcome<U>` and can. `CallbackReturn` (`[value, null]`, `[null, Err]`, bare `Err`, or `null` for void success) applies to `from`/`fromAsync`, `mapErr` and `pipe` only. `Outcome.ok()` is `Outcome<void>` carrying `undefined`; `Outcome.ok(null)` carries an explicit `null`. `isOk`/`isErr` are deprecated as accessors in v0.6.0 and become type-guard **methods** in v0.7.0 — a property or getter can never narrow (TS1228), so narrow via `toTuple()` destructuring until then. Library internals use the private `_ok` getter, not the deprecated accessors.
+- **`Outcome<T>`** — Monadic container wrapping `ResultTuple<T>` (`[T, null] | [null, Err]`). Supports `map`/`flatMap`/`mapErr`/`pipe`/`pipeAsync` chains, combinators (`all`, `any`), side effects (`effect`), and terminal operations (`toTuple`, `defaultTo`, `either`). Two callback protocols since v0.7.0:
+  - **Value protocol** (`from`/`fromAsync`, `flatMap`, `mapErr`, `pipe`/`pipeAsync`) — a returned `Err` is the failure, a returned `Outcome` passes through by reference, and **anything else is the success value**, tuples included. Typed as `ValueOf<R>`. To carry an `Err` or an `Outcome` as a value, wrap it: `Outcome.ok(x)`.
+  - **Tuple protocol** (`fromTuple`/`fromTupleAsync`) — the only entry points that read `[value, error]` as control flow. Each accepts the tuple directly or a callback producing one; the callback form catches throws. **Never overload a callback-taking signature** — more than one call signature strips the callback body's contextual type (bare tuple literals widen to arrays, multi-branch callbacks fail with TS2769); use one signature with a union parameter.
+  - `map` stays total: `(T) => U`, its return is never inspected, so an `Err` or a tuple returned from `map` is data — it is the only operator where that holds.
+  - `Outcome.ok()` is `Outcome<void>` carrying `undefined`; `Outcome.ok(null)` carries an explicit `null`.
+  - `toTuple()` is the **sole** extraction. `value`, `error`, `isOk` and `isErr` were removed in v0.7.0 — a `this is` guard narrows only its positive branch, while `const [v, e] = o.toTuple()` narrows both ways. Filter collections by mapping to tuples first: `list.map((x) => x.toTuple()).filter((t) => t[1] === null).map((t) => t[0])`. Library internals use the private `_ok` getter.
+  - A callback returning the pre-v0.7.0 `[value, error]` shape triggers a one-time `console.warn` (`Outcome._legacyTupleWarned`), closing the one silent window in the migration. The test asserting it must stay first in `outcome.test.ts`.
 
 ### Utilities (`src/utils/`)
 
@@ -160,5 +166,4 @@ Tiered by file size (threshold: 100 non-blank lines). The first `@module` JSDoc 
 
 ### TypeScript patterns
 
-- `Outcome.err()` returns `Outcome<never>` — when testing `defaultTo`/`either`, cast first: `const o = Outcome.err("msg") as Outcome<number>`
-- Do not use `Outcome.err<T>()` — the static method accepts 0 type parameters
+- `Outcome.err()` returns `Outcome<never>`, which is assignable everywhere but does not chain. Claim the success type instead of casting: `Outcome.err<number>("msg").defaultTo(0)`. `T` appears in no parameter position, so bare `Outcome.err("msg")` still infers `Outcome<never>`.

@@ -9,85 +9,85 @@ import { Outcome } from "./outcome";
 
 describe("Creating outcomes", () => {
 	test("Outcome.ok() creates a success outcome", () => {
-		const outcome = Outcome.ok(42);
-		expect(outcome.isOk).toBe(true);
-		expect(outcome.value).toBe(42);
-
-		const [val, err] = outcome.toTuple();
+		const [val, err] = Outcome.ok(42).toTuple();
 		expect(val).toBe(42);
 		expect(err).toBeNull();
 	});
 
 	test("Outcome.err() creates an error outcome from Err instance", () => {
 		const err = Err.from("Something failed");
-		const outcome = Outcome.err(err);
-		expect(outcome.isErr).toBe(true);
-		expect(outcome.error?.message).toBe("Something failed");
+		const [value, error] = Outcome.err(err).toTuple();
+		expect(value).toBeNull();
+		expect(error?.message).toBe("Something failed");
 	});
 
 	test("Outcome.err() creates an error outcome from message with code", () => {
-		const outcome = Outcome.err("Not found", "NOT_FOUND");
-		const [, err] = outcome.toTuple();
+		const [, err] = Outcome.err("Not found", "NOT_FOUND").toTuple();
 		expect(err?.code).toBe("NOT_FOUND");
 	});
 
 	test("Outcome.err() creates an error outcome from message with options", () => {
-		const outcome = Outcome.err("Timeout", {
+		const [, err] = Outcome.err("Timeout", {
 			code: "TIMEOUT",
 			metadata: { durationMs: 5000 },
-		});
-		expect(outcome.isErr).toBe(true);
-		expect(outcome.error?.code).toBe("TIMEOUT");
-		expect(outcome.error?.metadata).toEqual({ durationMs: 5000 });
+		}).toTuple();
+		expect(err?.code).toBe("TIMEOUT");
+		expect(err?.metadata).toEqual({ durationMs: 5000 });
 	});
 
 	test("Outcome.err() wraps a native Error", () => {
 		const nativeErr = new Error("parse error");
-		const outcome = Outcome.err("Parse failed", nativeErr, {
+		const [, err] = Outcome.err("Parse failed", nativeErr, {
 			code: "PARSE_ERROR",
-		});
-		expect(outcome.isErr).toBe(true);
-		expect(outcome.error?.message).toBe("Parse failed");
-		expect(outcome.error?.code).toBe("PARSE_ERROR");
-		expect(outcome.error?.unwrap()).not.toBeUndefined();
+		}).toTuple();
+		expect(err?.message).toBe("Parse failed");
+		expect(err?.code).toBe("PARSE_ERROR");
+		expect(err?.unwrap()).not.toBeUndefined();
+	});
+
+	test("Outcome.err<T>() claims a success type so the chain keeps working", () => {
+		const count = Outcome.err<number>("bad input").defaultTo(0);
+		expect(count).toBe(0);
 	});
 
 	test("Outcome.ok() creates a void success", () => {
-		const outcome = Outcome.ok();
-		expect(outcome.isOk).toBe(true);
-		expect(outcome.value).toBeUndefined();
+		const [val, err] = Outcome.ok().toTuple();
+		expect(val).toBeUndefined();
+		expect(err).toBeNull();
 	});
 
 	test("Outcome.ok(null) carries an explicit null value", () => {
-		const outcome = Outcome.ok(null);
-		expect(outcome.isOk).toBe(true);
-		expect(outcome.value).toBeNull();
+		const [val, err] = Outcome.ok(null).toTuple();
+		expect(val).toBeNull();
+		expect(err).toBeNull();
 	});
 
-	test("isOk and isErr are complementary", () => {
-		const success = Outcome.ok(42);
-		const failure = Outcome.err("Failed");
+	test("toTuple() is the single extraction point, narrowing both branches", () => {
+		const describeOutcome = (outcome: Outcome<number>): string => {
+			const [val, err] = outcome.toTuple();
+			if (err !== null) return `failed: ${err.message}`;
+			return `ok: ${val.toFixed(1)}`;
+		};
 
-		expect(success.isOk).toBe(true);
-		expect(success.isErr).toBe(false);
-		expect(failure.isOk).toBe(false);
-		expect(failure.isErr).toBe(true);
+		expect(describeOutcome(Outcome.ok(42))).toBe("ok: 42.0");
+		expect(describeOutcome(Outcome.err<number>("Failed"))).toBe(
+			"failed: Failed",
+		);
 	});
 
-	test("value is null for error outcomes", () => {
-		const success = Outcome.ok(42);
-		const failure = Outcome.err("Failed");
+	test("collections narrow once mapped to tuples", () => {
+		const list: Outcome<number>[] = [
+			Outcome.ok(1),
+			Outcome.err<number>("skipped"),
+			Outcome.ok(3),
+		];
 
-		expect(success.value).toBe(42);
-		expect(failure.value).toBeNull();
-	});
+		const values: number[] = list
+			.map((o) => o.toTuple())
+			.filter((t) => t[1] === null)
+			.map((t) => t[0]);
 
-	test("error is null for success outcomes", () => {
-		const success = Outcome.ok(42);
-		const failure = Outcome.err("Failed");
-
-		expect(success.error).toBeNull();
-		expect(failure.error?.message).toBe("Failed");
+		expect(values).toEqual([1, 3]);
 	});
 });
 
@@ -96,108 +96,139 @@ describe("Creating outcomes", () => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe("Factory methods", () => {
-	test("Outcome.from() with success tuple", () => {
-		const outcome = Outcome.from(() => {
-			return [42, null] as [number, null];
-		});
-		expect(outcome.value).toBe(42);
-	});
-
-	test("Outcome.from() with Err shorthand", () => {
-		const outcome = Outcome.from(() => {
-			return Err.from("Invalid input");
-		});
-		expect(outcome.isErr).toBe(true);
-		expect(outcome.error?.message).toBe("Invalid input");
-	});
-
-	test("Outcome.from() catches throws from external libraries", () => {
-		const outcome = Outcome.from(() => {
-			const data = JSON.parse("not valid json");
-			return [data, null] as [unknown, null];
-		});
-		expect(outcome.isErr).toBe(true);
-	});
-
-	test("Outcome.from() basic usage from module header", () => {
-		const [val, err] = Outcome.from(
-			() => [42, null] as [number, null],
-		).toTuple();
+	test("Outcome.from() carries whatever the callback returns", () => {
+		const [val, err] = Outcome.from(() => 42).toTuple();
 		expect(val).toBe(42);
 		expect(err).toBeNull();
 	});
 
+	test("Outcome.from() with Err shorthand", () => {
+		const [, err] = Outcome.from(() => Err.from("Invalid input")).toTuple();
+		expect(err?.message).toBe("Invalid input");
+	});
+
+	test("Outcome.from() passes a returned Outcome through", () => {
+		const [val] = Outcome.from(() => Outcome.ok("inner")).toTuple();
+		expect(val).toBe("inner");
+	});
+
+	test("Outcome.from() catches throws from external libraries", () => {
+		const [, err] = Outcome.from(() => JSON.parse("not valid json")).toTuple();
+		expect(err).not.toBeNull();
+	});
+
+	test("Outcome.ok() is how an Err becomes a success value", () => {
+		const carried = Err.from("validation detail");
+
+		const asFailure = Outcome.from(() => carried).toTuple();
+		const asValue = Outcome.from(() => Outcome.ok(carried)).toTuple();
+
+		expect(asFailure[1]).toBe(carried);
+		expect(asValue[0]).toBe(carried);
+	});
+
 	test("Outcome.fromAsync() with success", async () => {
-		const outcome = await Outcome.fromAsync(async () => {
-			return [42, null] as [number, null];
-		});
-		expect(outcome.isOk).toBe(true);
-		expect(outcome.value).toBe(42);
+		const [val, err] = (await Outcome.fromAsync(async () => 42)).toTuple();
+		expect(val).toBe(42);
+		expect(err).toBeNull();
 	});
 
 	test("Outcome.fromAsync() with error", async () => {
-		const outcome = await Outcome.fromAsync(async () => {
-			return Err.from("Request failed", { code: "HTTP_ERROR" });
-		});
-		expect(outcome.isErr).toBe(true);
-		expect(outcome.error?.code).toBe("HTTP_ERROR");
+		const [, err] = (
+			await Outcome.fromAsync(async () =>
+				Err.from("Request failed", { code: "HTTP_ERROR" }),
+			)
+		).toTuple();
+		expect(err?.code).toBe("HTTP_ERROR");
 	});
 
 	test("Outcome.fromAsync() catches async throws", async () => {
-		const outcome = await Outcome.fromAsync(async () => {
-			throw new Error("network failure");
-		});
-		expect(outcome.isErr).toBe(true);
+		const [, err] = (
+			await Outcome.fromAsync(async () => {
+				throw new Error("network failure");
+			})
+		).toTuple();
+		expect(err).not.toBeNull();
 	});
 
 	test("Outcome.fromAsync() with error aggregation pattern", async () => {
-		const outcome = await Outcome.fromAsync(async () => {
-			let errors = Err.from("Batch failed");
-			errors = errors.add(Err.from("task A failed"));
-			errors = errors.add(Err.from("task B failed"));
+		const [, err] = (
+			await Outcome.fromAsync(async () => {
+				let errors = Err.from("Batch failed");
+				errors = errors.add(Err.from("task A failed"));
+				errors = errors.add(Err.from("task B failed"));
 
-			if (errors.isAggregate) return errors;
-			return [null, null] as [null, null];
-		});
-		expect(outcome.isErr).toBe(true);
-		expect(outcome.error?.isAggregate).toBe(true);
+				if (errors.isAggregate) return errors;
+				return null;
+			})
+		).toTuple();
+		expect(err?.isAggregate).toBe(true);
 	});
 
 	test("Outcome.fromTuple() from a tuple", () => {
 		const tuple: ResultTuple<string> = ["hello", null];
-		const outcome = Outcome.fromTuple(tuple);
-		expect(outcome.value).toBe("hello");
+		expect(Outcome.fromTuple(tuple).toTuple()[0]).toBe("hello");
+	});
+
+	test("Outcome.fromTuple() wraps a Go-style function", () => {
+		// The tuple protocol lives here and nowhere else.
+		const parsePort = (raw: string) =>
+			Outcome.fromTuple(() => {
+				const n = Number(raw);
+				if (Number.isNaN(n)) return [null, Err.from("not a number", "PARSE")];
+				return [n, null];
+			});
+
+		expect(parsePort("8080").toTuple()[0]).toBe(8080);
+		expect(parsePort("nope").toTuple()[1]?.code).toBe("PARSE");
+	});
+
+	test("Outcome.fromTupleAsync() wraps an async Go-style function", async () => {
+		const load = async (id: string): Promise<ResultTuple<{ id: string }>> =>
+			id === "1" ? [{ id }, null] : [null, Err.from("missing", "NOT_FOUND")];
+
+		const found = await Outcome.fromTupleAsync(() => load("1"));
+		const missing = await Outcome.fromTupleAsync(() => load("2"));
+
+		expect(found.toTuple()[0]).toEqual({ id: "1" });
+		expect(missing.toTuple()[1]?.code).toBe("NOT_FOUND");
 	});
 
 	test("Outcome.fromTuple() round-trip", () => {
-		const original = Outcome.ok(42);
-		const tuple = original.toTuple();
-		const restored = Outcome.fromTuple(tuple);
-		expect(restored.value).toBe(42);
+		const tuple = Outcome.ok(42).toTuple();
+		expect(Outcome.fromTuple(tuple).toTuple()[0]).toBe(42);
+	});
+
+	test("a tuple returned from Outcome.from() is a plain value", () => {
+		// Under the value protocol only Err and Outcome are control flow.
+		const [val, err] = Outcome.fromTuple<[number, null]>(() => [
+			[1, null],
+			null,
+		]).toTuple();
+		expect(val).toEqual([1, null]);
+		expect(err).toBeNull();
 	});
 
 	test("Outcome.fromJSON() round-trip", () => {
-		const outcome = Outcome.ok({ name: "John" });
-		const json = JSON.stringify(outcome.toJSON());
+		const json = JSON.stringify(Outcome.ok({ name: "John" }).toJSON());
 		const restored = Outcome.fromJSON(JSON.parse(json));
-		expect(restored.value).toEqual({ name: "John" });
+		expect(restored.toTuple()[0]).toEqual({ name: "John" });
 	});
 
 	test("Outcome.fromJSON() with invalid payload", () => {
-		const result = Outcome.fromJSON({ not: "a tuple" } as unknown as [
+		const [, err] = Outcome.fromJSON({ not: "a tuple" } as unknown as [
 			unknown,
 			null,
-		]);
-		expect(result.isErr).toBe(true);
-		expect(result.error?.message).toBe("Invalid Outcome JSON");
+		]).toTuple();
+		expect(err?.message).toBe("Invalid Outcome JSON");
 	});
 
 	test("Outcome.fromJSON() with error outcome round-trip", () => {
-		const original = Outcome.err("Something failed", "FAIL_CODE");
-		const json = JSON.stringify(original.toJSON());
-		const restored = Outcome.fromJSON(JSON.parse(json));
-		expect(restored.isErr).toBe(true);
-		expect(restored.error?.message).toBe("Something failed");
+		const json = JSON.stringify(
+			Outcome.err("Something failed", "FAIL_CODE").toJSON(),
+		);
+		const [, err] = Outcome.fromJSON(JSON.parse(json)).toTuple();
+		expect(err?.message).toBe("Something failed");
 	});
 });
 
@@ -207,50 +238,60 @@ describe("Factory methods", () => {
 
 describe("Transformations", () => {
 	test("map() simple transformation", () => {
-		const outcome = Outcome.ok(5)
-			.map((n) => n * 2)
-			.map((n) => n.toString());
-
-		expect(outcome.value).toBe("10");
-	});
-
-	test("map() chaining from class docblock", () => {
-		const result = Outcome.ok(5)
+		const [val] = Outcome.ok(5)
 			.map((n) => n * 2)
 			.map((n) => n.toString())
 			.toTuple();
-		expect(result).toEqual(["10", null]);
+		expect(val).toBe("10");
+	});
+
+	test("map() carries the return value as-is, never as control flow", () => {
+		const [val, err] = Outcome.ok(5)
+			.map(() => Err.from("this is data"))
+			.toTuple();
+		expect(val).toBeInstanceOf(Err);
+		expect(err).toBeNull();
 	});
 
 	test("flatMap() transformation that can fail", () => {
-		const outcome = Outcome.ok('{"name":"John"}').flatMap((json) =>
-			Outcome.from(() => [JSON.parse(json), null]),
-		);
-		expect(outcome.isOk).toBe(true);
-		expect(outcome.value).toEqual({ name: "John" });
+		const [val, err] = Outcome.ok('{"name":"John"}')
+			.flatMap((json) => Outcome.from(() => JSON.parse(json)))
+			.toTuple();
+		expect(err).toBeNull();
+		expect(val).toEqual({ name: "John" });
 	});
 
 	test("flatMap() transformation that fails with invalid JSON", () => {
-		const outcome = Outcome.ok("not json").flatMap((json) =>
-			Outcome.from(() => [JSON.parse(json), null]).mapErr((err) =>
-				err.wrap("Invalid JSON"),
-			),
-		);
-		expect(outcome.isErr).toBe(true);
-		expect(outcome.error?.message).toBe("Invalid JSON");
+		const [, err] = Outcome.ok("not json")
+			.flatMap((json) =>
+				Outcome.from(() => JSON.parse(json)).mapErr((e) =>
+					e.wrap("Invalid JSON"),
+				),
+			)
+			.toTuple();
+		expect(err?.message).toBe("Invalid JSON");
+	});
+
+	test("flatMap() treats a bare Err return as the failure", () => {
+		const [, err] = Outcome.ok(10)
+			.flatMap((n) => (n > 5 ? Err.from("Too big", "RANGE") : n))
+			.toTuple();
+		expect(err?.code).toBe("RANGE");
 	});
 
 	test("flatMap() short-circuits on the returned error", () => {
-		const outcome = Outcome.ok(10)
-			.flatMap((n) => (n > 5 ? Outcome.err("Too big", "RANGE") : Outcome.ok(n)))
-			.map((n) => n * 2);
-		expect(outcome.isErr).toBe(true);
-		expect(outcome.error?.code).toBe("RANGE");
+		const [, err] = Outcome.ok(10)
+			.flatMap((n) => (n > 5 ? Outcome.err<number>("Too big", "RANGE") : n))
+			.map((n) => n * 2)
+			.toTuple();
+		expect(err?.code).toBe("RANGE");
 	});
 
 	test("map() error passes through", () => {
-		const outcome = Outcome.err("Original error").map((v) => v);
-		expect(outcome.error?.message).toBe("Original error");
+		const [, err] = Outcome.err<number>("Original error")
+			.map((v) => v)
+			.toTuple();
+		expect(err?.message).toBe("Original error");
 	});
 
 	test("mapAsync() transforms success value", async () => {
@@ -258,119 +299,99 @@ describe("Transformations", () => {
 			id,
 			name: "John",
 		}));
-		expect(outcome.isOk).toBe(true);
-		expect(outcome.value).toEqual({ id: "user-123", name: "John" });
+		expect(outcome.toTuple()[0]).toEqual({ id: "user-123", name: "John" });
 	});
 
 	test("flatMapAsync() chains an async step that can fail", async () => {
 		const load = async (id: string) =>
 			id === "user-123"
 				? Outcome.ok({ id, name: "John" })
-				: Outcome.err("Not found", "NOT_FOUND");
+				: Outcome.err<{ id: string; name: string }>("Not found", "NOT_FOUND");
 
 		const found = await Outcome.ok("user-123").flatMapAsync(load);
 		const missing = await Outcome.ok("nobody").flatMapAsync(load);
 
-		expect(found.value).toEqual({ id: "user-123", name: "John" });
-		expect(missing.error?.code).toBe("NOT_FOUND");
+		expect(found.toTuple()[0]).toEqual({ id: "user-123", name: "John" });
+		expect(missing.toTuple()[1]?.code).toBe("NOT_FOUND");
 	});
 
 	test("mapErr() recovery from error", () => {
-		const defaultValue = "default";
-		const outcome = Outcome.err("Not found", "NOT_FOUND").mapErr((err) => {
-			if (err.hasCode("NOT_FOUND")) {
-				return [defaultValue, null] as [string, null];
-			}
-			return err;
-		});
-		expect(outcome.isOk).toBe(true);
-		expect(outcome.value).toBe("default");
+		const [val, err] = Outcome.err<string>("Not found", "NOT_FOUND")
+			.mapErr((e) => (e.hasCode("NOT_FOUND") ? "default" : e))
+			.toTuple();
+		expect(err).toBeNull();
+		expect(val).toBe("default");
 	});
 
 	test("mapErr() error transformation via wrap", () => {
-		const outcome = Outcome.err("Low-level error").mapErr((err) =>
-			err.wrap("High-level context"),
-		);
-		expect(outcome.isErr).toBe(true);
-		expect(outcome.error?.message).toBe("High-level context");
-		expect(outcome.error?.unwrap()).not.toBeUndefined();
+		const [, err] = Outcome.err("Low-level error")
+			.mapErr((e) => e.wrap("High-level context"))
+			.toTuple();
+		expect(err?.message).toBe("High-level context");
+		expect(err?.unwrap()).not.toBeUndefined();
+	});
+
+	test("mapErr() recovery with a returned Outcome", () => {
+		const [val, err] = Outcome.err("Primary failed")
+			.mapErr(() => Outcome.ok("secondary"))
+			.toTuple();
+		expect(err).toBeNull();
+		expect(val).toBe("secondary");
 	});
 
 	test("mapErr() passes through on success", () => {
-		const outcome = Outcome.ok(42).mapErr((err) => {
-			return err;
-		});
-		expect(outcome.isOk).toBe(true);
-		expect(outcome.value).toBe(42);
+		const [val] = Outcome.ok(42)
+			.mapErr((e) => e)
+			.toTuple();
+		expect(val).toBe(42);
 	});
 
 	test("mapErrAsync() async recovery", async () => {
-		const outcome = await Outcome.err("Primary failed").mapErrAsync(
-			async (err) => {
+		const outcome = await Outcome.err<string>("Primary failed").mapErrAsync(
+			async (e) => {
 				const fallback = "backup-data";
-				if (fallback) return [fallback, null] as [string, null];
-				return err.wrap("Backup also failed");
+				if (fallback) return fallback;
+				return e.wrap("Backup also failed");
 			},
 		);
-		expect(outcome.isOk).toBe(true);
-		expect(outcome.value).toBe("backup-data");
+		expect(outcome.toTuple()[0]).toBe("backup-data");
 	});
 
 	test("pipe() basic pipeline", () => {
 		const validate = (s: string) => (s.length > 0 ? s : Err.from("empty"));
-		const transform = (s: string) => s.toUpperCase();
 
-		const result = Outcome.ok("hello").pipe(
-			([val, err]) => {
-				if (err) return err;
-				const v = validate(val as string);
-				if (Err.isErr(v)) return v;
-				return [v, null] as [string, null];
-			},
-			([val, err]) => {
-				if (err) return err;
-				return [transform(val as string), null] as [string, null];
-			},
-		);
-		expect(result.value).toBe("HELLO");
+		const [val] = Outcome.ok("hello")
+			.pipe(
+				([str, err]) => (err ? err : validate(str)),
+				([str, err]) => (err ? err : str.toUpperCase()),
+			)
+			.toTuple();
+		expect(val).toBe("HELLO");
 	});
 
 	test("pipe() mid-chain recovery", () => {
 		const DEFAULT_VALUE = "recovered";
 
-		const result = Outcome.ok("input").pipe(
-			([_val, err]) => {
-				if (err) return err;
-				return Err.from("Invalid", "VALIDATION");
-			},
-			([val, err]) => {
-				if (err?.hasCode("VALIDATION")) {
-					return [DEFAULT_VALUE, null] as [string, null];
-				}
-				if (err) return err;
-				return [val, null] as [string, null];
-			},
-		);
-		expect(result.isOk).toBe(true);
-		expect(result.value).toBe("recovered");
+		const [val, err] = Outcome.ok("input")
+			.pipe(
+				([, e]) => (e ? e : Err.from("Invalid", "VALIDATION")),
+				([str, e]) => {
+					if (e?.hasCode("VALIDATION")) return DEFAULT_VALUE;
+					if (e) return e;
+					return str;
+				},
+			)
+			.toTuple();
+		expect(err).toBeNull();
+		expect(val).toBe("recovered");
 	});
 
 	test("pipeAsync() async pipeline", async () => {
 		const result = await Outcome.ok("user-1").pipeAsync(
-			async ([val, err]) => {
-				if (err) return err;
-				const user = { id: val, name: "Alice" };
-				return [user, null] as [typeof user, null];
-			},
-			async ([user, err]) => {
-				if (err) return err;
-				const u = user as { id: string; name: string };
-				const profile = { ...u, bio: "Developer" };
-				return [profile, null] as [typeof profile, null];
-			},
+			async ([id, err]) => (err ? err : { id, name: "Alice" }),
+			async ([user, err]) => (err ? err : { ...user, bio: "Developer" }),
 		);
-		expect(result.isOk).toBe(true);
-		expect(result.value).toEqual({
+		expect(result.toTuple()[0]).toEqual({
 			id: "user-1",
 			name: "Alice",
 			bio: "Developer",
@@ -379,19 +400,10 @@ describe("Transformations", () => {
 
 	test("pipeAsync() async recovery", async () => {
 		const result = await Outcome.ok("id-1").pipeAsync(
-			async ([_val, err]) => {
-				if (err) return err;
-				return Err.from("primary down");
-			},
-			async ([val, err]) => {
-				if (err) {
-					return ["fallback-data", null] as [string, null];
-				}
-				return [val, null] as [string, null];
-			},
+			async ([, err]) => (err ? err : Err.from("primary down")),
+			async ([val, err]) => (err ? "fallback-data" : val),
 		);
-		expect(result.isOk).toBe(true);
-		expect(result.value).toBe("fallback-data");
+		expect(result.toTuple()[0]).toBe("fallback-data");
 	});
 });
 
@@ -401,52 +413,45 @@ describe("Transformations", () => {
 
 describe("Terminal operations", () => {
 	test("toTuple() extracts value and null error on success", () => {
-		const outcome = Outcome.ok(42);
-		const [value, error] = outcome.toTuple();
+		const [value, error] = Outcome.ok(42).toTuple();
 		expect(value).toBe(42);
 		expect(error).toBeNull();
 	});
 
 	test("toTuple() extracts null value and error on failure", () => {
-		const outcome = Outcome.err("Failed");
-		const [value, error] = outcome.toTuple();
+		const [value, error] = Outcome.err("Failed").toTuple();
 		expect(value).toBeNull();
-		expect(error).not.toBeNull();
 		expect(error?.message).toBe("Failed");
 	});
 
 	test("defaultTo() with static fallback", () => {
-		const errOutcome = Outcome.err("bad input") as Outcome<number>;
-		const count = errOutcome.defaultTo(0);
-		expect(count).toBe(0);
+		expect(Outcome.err<number>("bad input").defaultTo(0)).toBe(0);
 	});
 
 	test("defaultTo() returns success value when ok", () => {
-		const count = Outcome.ok(42).defaultTo(0);
-		expect(count).toBe(42);
+		expect(Outcome.ok(42).defaultTo(0)).toBe(42);
 	});
 
 	test("defaultTo() with object fallback", () => {
-		const errOutcome = Outcome.err("no config") as Outcome<{
-			port: number;
-			host: string;
-		}>;
-		const config = errOutcome.defaultTo({ port: 3000, host: "localhost" });
+		const config = Outcome.err<{ port: number; host: string }>(
+			"no config",
+		).defaultTo({ port: 3000, host: "localhost" });
 		expect(config).toEqual({ port: 3000, host: "localhost" });
 	});
 
 	test("defaultTo() with computed fallback from error", () => {
-		const errOutcome = Outcome.err("Not found", "NOT_FOUND") as Outcome<string>;
-		const name = errOutcome.defaultTo((err) =>
-			err.hasCode("NOT_FOUND") ? "Guest" : "Unknown",
+		const name = Outcome.err<string>("Not found", "NOT_FOUND").defaultTo(
+			(err) => (err.hasCode("NOT_FOUND") ? "Guest" : "Unknown"),
 		);
 		expect(name).toBe("Guest");
 	});
 
 	test("defaultTo() with function as value using asValue flag", () => {
 		const defaultHandler = () => "default";
-		const errOutcome = Outcome.err("no handler") as Outcome<() => string>;
-		const handler = errOutcome.defaultTo(defaultHandler, true);
+		const handler = Outcome.err<() => string>("no handler").defaultTo(
+			defaultHandler,
+			true,
+		);
 		expect(handler).toBe(defaultHandler);
 		expect(handler()).toBe("default");
 	});
@@ -458,10 +463,9 @@ describe("Terminal operations", () => {
 		);
 		expect(successMessage).toBe("Welcome, John!");
 
-		const errOutcome = Outcome.err("Connection lost") as Outcome<{
-			name: string;
-		}>;
-		const errorMessage = errOutcome.either(
+		const errorMessage = Outcome.err<{ name: string }>(
+			"Connection lost",
+		).either(
 			() => "ok",
 			(err) => `Error: ${err.message}`,
 		);
@@ -469,8 +473,7 @@ describe("Terminal operations", () => {
 	});
 
 	test("either() default value on error", () => {
-		const errOutcome = Outcome.err("bad") as Outcome<number>;
-		const count = errOutcome.either(
+		const count = Outcome.err<number>("bad").either(
 			(n) => n,
 			() => 0,
 		);
@@ -484,8 +487,7 @@ describe("Terminal operations", () => {
 		);
 		expect(successStatus).toBe("success");
 
-		const errOutcome = Outcome.err("fail") as Outcome<number>;
-		const errorStatus: "success" | "error" = errOutcome.either(
+		const errorStatus: "success" | "error" = Outcome.err<number>("fail").either(
 			() => "success" as const,
 			() => "error" as const,
 		);
@@ -511,10 +513,10 @@ describe("Terminal operations", () => {
 		expect(successResponse.status).toBe(200);
 		expect(successResponse.body).toEqual({ id: "ord-1", total: 99.99 });
 
-		const errOutcome = Outcome.err("Not found", "NOT_FOUND") as Outcome<{
-			id: string;
-		}>;
-		const errorResponse = errOutcome.either<HttpResponse>(
+		const errorResponse = Outcome.err<{ id: string }>(
+			"Not found",
+			"NOT_FOUND",
+		).either<HttpResponse>(
 			() => ({ status: 200, body: { id: "x" } }),
 			(err) => ({
 				status: err.hasCode("NOT_FOUND") ? 404 : 500,
@@ -534,23 +536,22 @@ describe("Side effects", () => {
 	test("effect() runs side effect on success and chains", () => {
 		let logged = "";
 
-		const outcome = Outcome.ok(42)
-			.effect(([val, err]) => {
-				if (err) logged = `Failed: ${err.message}`;
-				else logged = `Success: ${val}`;
+		const [val] = Outcome.ok(42)
+			.effect(([value, err]) => {
+				logged = err ? `Failed: ${err.message}` : `Success: ${value}`;
 			})
-			.map((v) => v * 2);
+			.map((v) => v * 2)
+			.toTuple();
 
 		expect(logged).toBe("Success: 42");
-		expect(outcome.value).toBe(84);
+		expect(val).toBe(84);
 	});
 
 	test("effect() runs side effect on error", () => {
 		let logged = "";
 
-		Outcome.err("Something broke").effect(([val, err]) => {
-			if (err) logged = `Failed: ${err.message}`;
-			else logged = `Success: ${val}`;
+		Outcome.err("Something broke").effect(([value, err]) => {
+			logged = err ? `Failed: ${err.message}` : `Success: ${value}`;
 		});
 
 		expect(logged).toBe("Failed: Something broke");
@@ -580,32 +581,30 @@ describe("Side effects", () => {
 	});
 
 	test("effect() becomes error outcome if callback throws", () => {
-		const outcome = Outcome.ok(42).effect(() => {
-			throw new Error("effect blew up");
-		});
-		expect(outcome.isErr).toBe(true);
-		expect(outcome.error?.message).toBe("effect blew up");
+		const [, err] = Outcome.ok(42)
+			.effect(() => {
+				throw new Error("effect blew up");
+			})
+			.toTuple();
+		expect(err?.message).toBe("effect blew up");
 	});
 
 	test("effectAsync() runs async side effect", async () => {
 		let logged = false;
 
-		const outcome = await Outcome.ok({ data: "test" }).effectAsync(
-			async ([_val, _err]) => {
-				logged = true;
-			},
-		);
+		const outcome = await Outcome.ok({ data: "test" }).effectAsync(async () => {
+			logged = true;
+		});
 
 		expect(logged).toBe(true);
-		expect(outcome.isOk).toBe(true);
-		expect(outcome.value).toEqual({ data: "test" });
+		expect(outcome.toTuple()[0]).toEqual({ data: "test" });
 	});
 
 	test("effectAsync() becomes error if async callback throws", async () => {
 		const outcome = await Outcome.ok(1).effectAsync(async () => {
 			throw new Error("async effect failed");
 		});
-		expect(outcome.isErr).toBe(true);
+		expect(outcome.toTuple()[1]).not.toBeNull();
 	});
 });
 
@@ -615,56 +614,54 @@ describe("Side effects", () => {
 
 describe("Combinators", () => {
 	test("Outcome.all() succeeds when all succeed", () => {
-		const outcomes = [Outcome.ok(1), Outcome.ok(2), Outcome.ok(3)];
-		const combined = Outcome.all(outcomes);
-		expect(combined.value).toEqual([1, 2, 3]);
+		const combined = Outcome.all([Outcome.ok(1), Outcome.ok(2), Outcome.ok(3)]);
+		expect(combined.toTuple()[0]).toEqual([1, 2, 3]);
 	});
 
 	test("Outcome.all() fails when one fails", () => {
-		const outcomes = [Outcome.ok(1), Outcome.err("Failed"), Outcome.ok(3)];
-		const combined = Outcome.all(outcomes);
-		expect(combined.isErr).toBe(true);
-		expect(combined.error?.isAggregate).toBe(true);
-		expect(combined.error?.message).toBe("Multiple failed");
+		const [, err] = Outcome.all([
+			Outcome.ok(1),
+			Outcome.err<number>("Failed"),
+			Outcome.ok(3),
+		]).toTuple();
+		expect(err?.isAggregate).toBe(true);
+		expect(err?.message).toBe("Multiple failed");
 	});
 
 	test("Outcome.all() collects multiple errors", () => {
-		const mixed = [
+		const [, err] = Outcome.all([
 			Outcome.ok(1),
-			Outcome.err("Error A"),
-			Outcome.err("Error B"),
-		];
-		const failed = Outcome.all(mixed);
-		expect(failed.isErr).toBe(true);
+			Outcome.err<number>("Error A"),
+			Outcome.err<number>("Error B"),
+		]).toTuple();
+		expect(err?.errors).toHaveLength(2);
 	});
 
 	test("Outcome.all() with empty array returns ok([])", () => {
-		const combined = Outcome.all([]);
-		expect(combined.value).toEqual([]);
+		expect(Outcome.all([]).toTuple()[0]).toEqual([]);
 	});
 
 	test("Outcome.any() returns first success", () => {
-		const outcomes = [
-			Outcome.err("First failed"),
+		const result = Outcome.any([
+			Outcome.err<number>("First failed"),
 			Outcome.ok(42),
 			Outcome.ok(100),
-		];
-		const result = Outcome.any(outcomes);
-		expect(result.value).toBe(42);
+		]);
+		expect(result.toTuple()[0]).toBe(42);
 	});
 
 	test("Outcome.any() fails when all fail", () => {
-		const outcomes = [Outcome.err("Error 1"), Outcome.err("Error 2")];
-		const result = Outcome.any(outcomes);
-		expect(result.isErr).toBe(true);
-		expect(result.error?.isAggregate).toBe(true);
+		const [, err] = Outcome.any([
+			Outcome.err<number>("Error 1"),
+			Outcome.err<number>("Error 2"),
+		]).toTuple();
+		expect(err?.isAggregate).toBe(true);
 	});
 
 	test("Outcome.any() with empty array returns error", () => {
-		const result = Outcome.any([]);
-		expect(result.isErr).toBe(true);
-		expect(result.error?.message).toBe("No outcomes provided");
-		expect(result.error?.code).toBe("EMPTY_INPUT");
+		const [, err] = Outcome.any([]).toTuple();
+		expect(err?.message).toBe("No outcomes provided");
+		expect(err?.code).toBe("EMPTY_INPUT");
 	});
 });
 
@@ -688,7 +685,7 @@ describe("Migration from throwing", () => {
 				const db = new Map([["123", { name: "Alice" }]]);
 				const user = db.get(id);
 				if (!user) return Err.from("Not found", "NOT_FOUND");
-				return [user, null] as [{ name: string }, null];
+				return user;
 			});
 		}
 
@@ -706,22 +703,19 @@ describe("Migration from throwing", () => {
 		// Outcome version: error
 		const [user2, err2] = getUserOutcome("999").toTuple();
 		expect(user2).toBeNull();
-		expect(err2).not.toBeNull();
 		expect(err2?.message).toBe("Not found");
 		expect(err2?.hasCode("NOT_FOUND")).toBe(true);
 	});
 
 	test("class docblock: from() with conditional success/error", () => {
-		// Simulates the class-level @example with a deterministic condition
 		const shouldSucceed = false;
 		const outcome = Outcome.from(() => {
-			if (shouldSucceed) return [42, null] as [number, null];
+			if (shouldSucceed) return 42;
 			return Err.from("Bad luck");
 		});
 
 		const [value, err] = outcome.toTuple();
 		expect(value).toBeNull();
-		expect(err).not.toBeNull();
 		expect(err?.message).toBe("Bad luck");
 	});
 
@@ -733,12 +727,10 @@ describe("Migration from throwing", () => {
 	});
 
 	test("toJSON() round-trip for success outcome", () => {
-		const outcome = Outcome.ok({ name: "John" });
-		const json = JSON.stringify(outcome.toJSON());
+		const json = JSON.stringify(Outcome.ok({ name: "John" }).toJSON());
 		expect(json).toBe('[{"name":"John"},null]');
 
 		const restored = Outcome.fromJSON(JSON.parse(json));
-		expect(restored.isOk).toBe(true);
-		expect(restored.value).toEqual({ name: "John" });
+		expect(restored.toTuple()[0]).toEqual({ name: "John" });
 	});
 });

@@ -113,13 +113,15 @@ throw err.toError();
 
 Monadic container wrapping `ResultTuple<T>` (`[T, null] | [null, Err]`). Supports `map`/`flatMap`/`mapErr`/`pipe`/`pipeAsync` chains, combinators (`all`, `any`), side effects (`effect`), and terminal operations (`toTuple`, `defaultTo`, `either`).
 
+Callbacks follow the **value protocol**: a returned `Err` is the failure, a returned `Outcome` passes through, and anything else is the success value. `fromTuple`/`fromTupleAsync` are the only entry points that read a `[value, error]` tuple as control flow.
+
 ```typescript
 import { Outcome, Err } from "@pencroff-lab/kore";
 
 // Create from callback
 const outcome = Outcome.from(() => {
   if (!isValid(input)) return Err.from("Invalid input", "VALIDATION");
-  return [processedValue, null];
+  return processedValue;
 });
 
 // Extract with tuple destructuring
@@ -135,23 +137,25 @@ console.log(value);
 
 ```typescript
 Outcome.ok(42); // success
-Outcome.err("Failed", "ERROR_CODE"); // error
+Outcome.err("Failed", "ERROR_CODE"); // error (Outcome<never>)
+Outcome.err<number>("Failed"); // error that still chains as Outcome<number>
 Outcome.ok(); // void success (Outcome<void>, value undefined)
 Outcome.ok(null); // explicit null success (Outcome<null>)
-Outcome.unit(); // deprecated since v0.6.0 - use Outcome.ok(null), removed in v0.7.0
+Outcome.ok(someErr); // an Err carried as the success value
 
 // From sync callback (catches throws)
-Outcome.from(() => {
-  const data = JSON.parse(input); // may throw
-  return [data, null];
-});
+Outcome.from(() => JSON.parse(input)); // may throw
 
 // From async callback
 await Outcome.fromAsync(async () => {
   const res = await fetch("/api/data");
   if (!res.ok) return Err.from("Request failed", "HTTP_ERROR");
-  return [await res.json(), null];
+  return await res.json();
 });
+
+// From a Go-style function returning [value, error]
+Outcome.fromTuple(() => readConfig());
+await Outcome.fromTupleAsync(() => loadConfig());
 ```
 
 #### Transformations
@@ -165,14 +169,8 @@ const result = Outcome.ok(5)
 
 // Pipe for sequential transformations with access to both value and error
 const piped = Outcome.ok(rawInput).pipe(
-  ([val, err]) => {
-    if (err) return err;
-    return [validate(val), null];
-  },
-  ([val, err]) => {
-    if (err) return err;
-    return [transform(val), null];
-  },
+  ([val, err]) => (err ? err : validate(val)),
+  ([val, err]) => (err ? err : transform(val)),
 );
 ```
 
@@ -181,7 +179,7 @@ const piped = Outcome.ok(rawInput).pipe(
 ```typescript
 // All must succeed (collects all errors)
 const all = Outcome.all([Outcome.ok(1), Outcome.ok(2), Outcome.ok(3)]);
-// all.value === [1, 2, 3]
+// all.toTuple() === [[1, 2, 3], null]
 
 // First success wins
 const any = Outcome.any([
@@ -189,7 +187,7 @@ const any = Outcome.any([
   Outcome.ok(42),
   Outcome.ok(100),
 ]);
-// any.value === 42
+// any.toTuple() === [42, null]
 ```
 
 #### Terminal operations

@@ -7,14 +7,14 @@
 ## Core Modules
 
 - [Err](src/types/err.ts): Immutable, value-based error type with wrapping (cause chains), aggregation, hierarchical error codes, JSON serialization, and conversion to native Error
-- [Outcome](src/types/outcome.ts): Monadic result container wrapping `[T, null] | [null, Err]` with map/pipe chains, combinators (all, any), side effects, and terminal operations
+- [Outcome](src/types/outcome.ts): Monadic result container wrapping `[T, null] | [null, Err]` with map/pipe chains, combinators (all, any), side effects, and terminal operations. Callbacks follow the value protocol (`Err` = failure, `Outcome` = passthrough, anything else = the success value); `fromTuple`/`fromTupleAsync` are the only tuple entry points, and `toTuple()` is the only extraction
 - [Logger](src/utils/logger.ts): Structured, level-filtered logging with pluggable transports and Err integration
 - [dtStamp](src/utils/format_dt.ts): Compact, sortable date/time stamps for file names, log prefixes, and IDs
 
 ## Type Definitions
 
 - [Err types](src/types/err.types.ts): ErrCode, ErrOptions, ErrJSON, ToStringOptions
-- [Outcome types](src/types/outcome.types.ts): ResultTuple, OutcomeCallback, PipeCallback
+- [Outcome types](src/types/outcome.types.ts): ResultTuple, CallbackReturn, ValueOf, PipeFn, PipeFnAsync
 
 ## Usage Examples
 
