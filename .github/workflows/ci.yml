@@ -25,11 +25,20 @@ jobs:
       - name: Lint
         run: bun run lint:ci
 
+      - name: Check import boundaries
+        run: bun run check:boundaries
+
       - name: Check docs
         run: bun run check:docs
 
       - name: Run tests
         run: bun run test:coverage
+
+      - name: Check release state
+        run: bun run check:release
+
+      - name: Build and verify package
+        run: bun run build
 
       - name: Publish to npm
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

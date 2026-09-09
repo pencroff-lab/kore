@@ -99,7 +99,7 @@ Stored as string for easy serialization and comparison.
 
 > **get** **errors**(): readonly [`Err`](#err)[]
 
-Defined in: [types/err.ts:545](../../src/types/err.ts#L545)
+Defined in: [types/err.ts:535](../../src/types/err.ts#L535)
 
 Direct child errors (for aggregates).
 
@@ -113,7 +113,7 @@ readonly [`Err`](#err)[]
 
 > **get** **isAggregate**(): `boolean`
 
-Defined in: [types/err.ts:538](../../src/types/err.ts#L538)
+Defined in: [types/err.ts:528](../../src/types/err.ts#L528)
 
 Whether this error is an aggregate containing multiple errors.
 
@@ -127,7 +127,7 @@ Whether this error is an aggregate containing multiple errors.
 
 > **get** **root**(): [`Err`](#err)
 
-Defined in: [types/err.ts:552](../../src/types/err.ts#L552)
+Defined in: [types/err.ts:542](../../src/types/err.ts#L542)
 
 The root/original error in a wrapped error chain.
 
@@ -141,7 +141,7 @@ The root/original error in a wrapped error chain.
 
 > **get** **stack**(): `string` \| `undefined`
 
-Defined in: [types/err.ts:895](../../src/types/err.ts#L895)
+Defined in: [types/err.ts:923](../../src/types/err.ts#L923)
 
 Get the captured stack trace.
 
@@ -161,7 +161,7 @@ Stack trace string or undefined
 
 > **add**(`error`): [`Err`](#err)
 
-Defined in: [types/err.ts:508](../../src/types/err.ts#L508)
+Defined in: [types/err.ts:498](../../src/types/err.ts#L498)
 
 Add an error to this aggregate.
 
@@ -183,7 +183,7 @@ New Err instance with the error added
 
 > **addAll**(`errors`): [`Err`](#err)
 
-Defined in: [types/err.ts:527](../../src/types/err.ts#L527)
+Defined in: [types/err.ts:517](../../src/types/err.ts#L517)
 
 Add multiple errors to this aggregate at once.
 
@@ -205,7 +205,7 @@ New Err instance with all errors added
 
 > **chain**(): [`Err`](#err)[]
 
-Defined in: [types/err.ts:570](../../src/types/err.ts#L570)
+Defined in: [types/err.ts:560](../../src/types/err.ts#L560)
 
 Get the full chain of wrapped errors from root to current.
 
@@ -219,7 +219,7 @@ Array of Err instances in causal order
 
 > **filter**(`predicate`): [`Err`](#err)[]
 
-Defined in: [types/err.ts:658](../../src/types/err.ts#L658)
+Defined in: [types/err.ts:648](../../src/types/err.ts#L648)
 
 Find all errors matching a predicate.
 
@@ -241,7 +241,7 @@ Array of all matching Err instances
 
 > **find**(`predicate`): [`Err`](#err) \| `undefined`
 
-Defined in: [types/err.ts:638](../../src/types/err.ts#L638)
+Defined in: [types/err.ts:628](../../src/types/err.ts#L628)
 
 Find the first error matching a predicate.
 
@@ -263,7 +263,7 @@ The first matching Err or undefined
 
 > **flatten**(): [`Err`](#err)[]
 
-Defined in: [types/err.ts:585](../../src/types/err.ts#L585)
+Defined in: [types/err.ts:575](../../src/types/err.ts#L575)
 
 Flatten all errors into a single array.
 
@@ -279,7 +279,7 @@ Flattened array of all individual errors
 
 > **getMetadata**\<`T`\>(`key`): `T` \| `undefined`
 
-Defined in: [types/err.ts:446](../../src/types/err.ts#L446)
+Defined in: [types/err.ts:436](../../src/types/err.ts#L436)
 
 Get metadata value for a given key.
 
@@ -309,7 +309,7 @@ The metadata value or default, cast to type T
 
 > **getMetadata**\<`T`\>(`key`, `defaultValue`): `T`
 
-Defined in: [types/err.ts:447](../../src/types/err.ts#L447)
+Defined in: [types/err.ts:437](../../src/types/err.ts#L437)
 
 Get metadata value for a given key.
 
@@ -347,7 +347,7 @@ The metadata value or default, cast to type T
 
 > **hasCode**(): `boolean`
 
-Defined in: [types/err.ts:603](../../src/types/err.ts#L603)
+Defined in: [types/err.ts:593](../../src/types/err.ts#L593)
 
 Check if this error or any error in its chain/aggregate has a specific code,
 or — when called with no argument — whether any code is present in the tree.
@@ -362,7 +362,7 @@ or — when called with no argument — whether any code is present in the tree.
 
 > **hasCode**(`code`): `boolean`
 
-Defined in: [types/err.ts:604](../../src/types/err.ts#L604)
+Defined in: [types/err.ts:594](../../src/types/err.ts#L594)
 
 Check if this error or any error in its chain/aggregate has a specific code,
 or — when called with no argument — whether any code is present in the tree.
@@ -385,7 +385,7 @@ The error code to search for. Omit to check for the presence of any code.
 
 > **hasCodePrefix**(`prefix`, `boundary?`): `boolean`
 
-Defined in: [types/err.ts:617](../../src/types/err.ts#L617)
+Defined in: [types/err.ts:607](../../src/types/err.ts#L607)
 
 Check if this error or any error in its chain/aggregate has a code matching the given prefix.
 
@@ -413,7 +413,7 @@ Separator character/string between code segments (default: ":")
 
 > **hasMetadata**(`key`, `options?`): `boolean`
 
-Defined in: [types/err.ts:420](../../src/types/err.ts#L420)
+Defined in: [types/err.ts:410](../../src/types/err.ts#L410)
 
 Check if metadata exists for a given key.
 
@@ -445,7 +445,7 @@ true if metadata exists according to the selected mode
 
 > **omitMetadata**(`key`): [`Err`](#err)
 
-Defined in: [types/err.ts:466](../../src/types/err.ts#L466)
+Defined in: [types/err.ts:456](../../src/types/err.ts#L456)
 
 Create a new Err instance with specified metadata keys removed.
 
@@ -467,7 +467,7 @@ New Err instance with keys omitted
 
 > **toError**(): `Error`
 
-Defined in: [types/err.ts:870](../../src/types/err.ts#L870)
+Defined in: [types/err.ts:898](../../src/types/err.ts#L898)
 
 Convert to a native Error for interop with throw-based APIs.
 
@@ -481,7 +481,7 @@ Native Error instance
 
 > **toJSON**(`options?`): [`ErrJSON`](#errjson)
 
-Defined in: [types/err.ts:682](../../src/types/err.ts#L682)
+Defined in: [types/err.ts:672](../../src/types/err.ts#L672)
 
 Convert to a JSON-serializable object.
 
@@ -507,7 +507,7 @@ Plain object representation
 
 > **toString**(`options?`): `string`
 
-Defined in: [types/err.ts:792](../../src/types/err.ts#L792)
+Defined in: [types/err.ts:820](../../src/types/err.ts#L820)
 
 Convert to a formatted string for logging/display.
 
@@ -529,7 +529,7 @@ Formatted error string
 
 > **unwrap**(): [`Err`](#err) \| `undefined`
 
-Defined in: [types/err.ts:561](../../src/types/err.ts#L561)
+Defined in: [types/err.ts:551](../../src/types/err.ts#L551)
 
 Get the directly wrapped error (one level up).
 
@@ -543,7 +543,7 @@ The wrapped Err or undefined
 
 > **withCode**(`code`): [`Err`](#err)
 
-Defined in: [types/err.ts:380](../../src/types/err.ts#L380)
+Defined in: [types/err.ts:370](../../src/types/err.ts#L370)
 
 Create a new Err with a different or added error code.
 
@@ -565,7 +565,7 @@ New Err instance with the specified code
 
 > **withMetadata**(`metadata`): [`Err`](#err)
 
-Defined in: [types/err.ts:397](../../src/types/err.ts#L397)
+Defined in: [types/err.ts:387](../../src/types/err.ts#L387)
 
 Create a new Err with additional metadata.
 
@@ -587,7 +587,7 @@ New Err instance with merged metadata
 
 > **wrap**(`message`, `options?`): [`Err`](#err)
 
-Defined in: [types/err.ts:365](../../src/types/err.ts#L365)
+Defined in: [types/err.ts:355](../../src/types/err.ts#L355)
 
 Wrap this error with additional context.
 
@@ -759,7 +759,7 @@ New Err instance
 
 > `static` **fromJSON**(`json`): [`Err`](#err)
 
-Defined in: [types/err.ts:264](../../src/types/err.ts#L264)
+Defined in: [types/err.ts:257](../../src/types/err.ts#L257)
 
 Deserialize an Err from JSON representation.
 
@@ -789,9 +789,12 @@ Error if json is invalid or missing required fields
 
 > `static` **isErr**(`value`): `value is Err`
 
-Defined in: [types/err.ts:344](../../src/types/err.ts#L344)
+Defined in: [types/err.ts:340](../../src/types/err.ts#L340)
 
 Type guard to check if a value is an Err instance.
+
+Nominal since v0.7.0: a plain object carrying `kind: "Err"` or `isErr: true`
+is data, not an error. Reconstruct one with `Err.from(value)`.
 
 ###### Parameters
 

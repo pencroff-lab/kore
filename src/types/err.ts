@@ -173,10 +173,15 @@ export class Err {
 				? { code: optionsOrCode }
 				: (optionsOrCode ?? {});
 
-		// Already an Err - clone with optional overrides
-		if (Err.isErr(input)) {
+		// Classifying an arbitrary caught value means touching it: `instanceof`
+		// walks a prototype chain, and the marker and native branches read
+		// properties. A hostile accessor or proxy trap can throw from any of
+		// those. Every catch boundary in the package converts with Err.from, so
+		// this conversion must be total: an unclassifiable value lands in the
+		// unknown branch instead of escaping.
+		try {
+			// Already an Err instance - clone with optional overrides
 			if (input instanceof Err) {
-				// Real instance — safe to access private fields
 				return new Err(options.message ?? input.message, {
 					code: options.code ?? input.code,
 					cause: input._cause,
@@ -186,63 +191,51 @@ export class Err {
 					timestamp: input.timestamp,
 				});
 			}
-			// Duck-typed object (e.g. from toJSON()) — sanitize and route through fromJSON
-			const raw = input as Record<string, unknown>;
-			const sanitized = {
-				...raw,
-				errors: Array.isArray(raw.errors) ? raw.errors : undefined,
-				metadata:
-					raw.metadata && typeof raw.metadata === "object"
-						? raw.metadata
-						: undefined,
-			};
-			const base = Err.fromJSON(sanitized);
-			if (options.message || options.code || options.metadata) {
-				return new Err(options.message ?? base.message, {
-					code: options.code ?? base.code,
-					cause: base._cause,
-					errors: Array.isArray(base._errors) ? [...base._errors] : [],
-					metadata: { ...base.metadata, ...options.metadata },
-					stack: base._stack,
-					timestamp: base.timestamp,
+
+			// Marker candidate (toJSON() output, or an Err from another package
+			// copy) — reconstruct it. A candidate that fails validation is not an
+			// error we can trust, so it falls through to the unknown-value branch.
+			if (hasErrMarker(input)) {
+				const reconstructed = Err._fromMarker(input, options);
+				if (reconstructed) return reconstructed;
+			}
+
+			// Native Error - preserve original stack and cause chain
+			if (input instanceof Error) {
+				// Convert error.cause to Err if it's an Error or string
+				let cause: Err | undefined;
+				if (input.cause instanceof Error) {
+					cause = Err.from(input.cause);
+				} else if (typeof input.cause === "string") {
+					cause = Err.from(input.cause);
+				}
+
+				// Capture .code from Node.js system errors (e.g., ENOENT, EACCES)
+				const nativeCode = (input as unknown as Record<string, unknown>).code;
+				const effectiveCode =
+					options.code ??
+					(typeof nativeCode === "string" ? nativeCode : undefined);
+
+				return new Err(options.message ?? input.message, {
+					code: effectiveCode,
+					cause,
+					metadata: {
+						originalName: input.name,
+						...options.metadata,
+					},
+					stack: input.stack, // Use original stack for better debugging
 				});
 			}
-			return base;
-		}
 
-		// Native Error - preserve original stack and cause chain
-		if (input instanceof Error) {
-			// Convert error.cause to Err if it's an Error or string
-			let cause: Err | undefined;
-			if (input.cause instanceof Error) {
-				cause = Err.from(input.cause);
-			} else if (typeof input.cause === "string") {
-				cause = Err.from(input.cause);
+			// String message
+			if (typeof input === "string") {
+				return new Err(input, {
+					code: options.code,
+					metadata: options.metadata,
+				});
 			}
-
-			// Capture .code from Node.js system errors (e.g., ENOENT, EACCES)
-			const nativeCode = (input as unknown as Record<string, unknown>).code;
-			const effectiveCode =
-				options.code ??
-				(typeof nativeCode === "string" ? nativeCode : undefined);
-
-			return new Err(options.message ?? input.message, {
-				code: effectiveCode,
-				cause,
-				metadata: {
-					originalName: input.name,
-					...options.metadata,
-				},
-				stack: input.stack, // Use original stack for better debugging
-			});
-		}
-
-		// String message
-		if (typeof input === "string") {
-			return new Err(input, {
-				code: options.code,
-				metadata: options.metadata,
-			});
+		} catch {
+			// Inspection itself failed — fall through to the unknown branch.
 		}
 
 		// Unknown value - create generic error with original value in metadata
@@ -338,17 +331,14 @@ export class Err {
 	/**
 	 * Type guard to check if a value is an Err instance.
 	 *
+	 * Nominal since v0.7.0: a plain object carrying `kind: "Err"` or `isErr: true`
+	 * is data, not an error. Reconstruct one with `Err.from(value)`.
+	 *
 	 * @param value - Any value to check
 	 * @returns `true` if value is an Err instance
 	 */
 	static isErr(value: unknown): value is Err {
-		return (
-			value instanceof Err ||
-			(!!value &&
-				typeof value === "object" &&
-				// biome-ignore lint/suspicious/noExplicitAny: value can be any in this check
-				((value as any).isErr === true || (value as any).kind === "Err"))
-		);
+		return value instanceof Err;
 	}
 
 	// ══════════════════════════════════════════════════════════════════════════
@@ -697,6 +687,44 @@ export class Err {
 		};
 	}
 
+	// Rebuild an Err from a marker candidate. Returns undefined when the payload
+	// is not valid wire data, so the caller can fall back to the unknown branch.
+	private static _fromMarker(
+		input: unknown,
+		options: ErrOptions,
+	): Err | undefined {
+		try {
+			const source = input as { toJSON?: () => unknown };
+			// A foreign instance exposes `stack` as a prototype getter, which a spread
+			// would drop; its own toJSON() renders the full wire shape.
+			const raw = (
+				typeof source.toJSON === "function" ? source.toJSON() : input
+			) as Record<string, unknown>;
+			const sanitized = {
+				...raw,
+				errors: Array.isArray(raw.errors) ? raw.errors : undefined,
+				metadata:
+					raw.metadata && typeof raw.metadata === "object"
+						? raw.metadata
+						: undefined,
+			};
+			const base = Err.fromJSON(sanitized);
+			if (options.message || options.code || options.metadata) {
+				return new Err(options.message ?? base.message, {
+					code: options.code ?? base.code,
+					cause: base._cause,
+					errors: [...base._errors],
+					metadata: { ...base.metadata, ...options.metadata },
+					stack: base._stack,
+					timestamp: base.timestamp,
+				});
+			}
+			return base;
+		} catch {
+			return undefined;
+		}
+	}
+
 	/**
 	 * Recursive code search helper.
 	 * @param matcher
@@ -895,4 +923,12 @@ export class Err {
 	get stack(): string | undefined {
 		return this._stack;
 	}
+}
+
+// Dispatch signal for Err.from: an object that claims to be an Err on the wire.
+// Internal only — recognition of real instances is nominal (`Err.isErr`).
+function hasErrMarker(value: unknown): boolean {
+	if (!value || typeof value !== "object") return false;
+	const obj = value as Record<string, unknown>;
+	return obj.isErr === true || obj.kind === "Err";
 }

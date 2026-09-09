@@ -8,6 +8,11 @@ const required: string[] = [
 	"dist/esm/index.d.ts",
 	"dist/cjs/index.js",
 	"dist/cjs/package.json",
+	// The @pencroff-lab/kore/test subpath.
+	"dist/esm/test.js",
+	"dist/esm/test.d.ts",
+	"dist/cjs/test.js",
+	"dist/cjs/test.d.ts",
 ];
 
 const optional: Array<{ path: string; label: string }> = [

@@ -8,22 +8,21 @@ const mediaDir = resolve(docsDir, "_media");
 const glob = new Glob("*.md");
 
 for await (const filePath of glob.scan({ cwd: docsDir, absolute: true })) {
-	let content = await Bun.file(filePath).text();
+	const content = await Bun.file(filePath).text();
 	let changed = false;
 
 	// Replace _media/ links with relative paths to src/
 	const mediaLinkRe = /\((_media\/(\w+\.examples\.test\.ts))\)/g;
-	const replaced = content.replace(mediaLinkRe, (_match, _media, filename) => {
-		changed = true;
-		// Find where this file lives in src/
-		const typesPath = resolve(root, "src/types", filename);
-		const utilsPath = resolve(root, "src/utils", filename);
+	// Source directories an examples file can live in, in lookup order.
+	const sourceDirs = ["src/flow", "src/types", "src/utils"];
 
-		if (Bun.file(typesPath).size) {
-			return `(../../src/types/${filename})`;
-		}
-		if (Bun.file(utilsPath).size) {
-			return `(../../src/utils/${filename})`;
+	const replaced = content.replace(mediaLinkRe, (_match, _media, filename) => {
+		// Find where this file lives in src/
+		for (const dir of sourceDirs) {
+			if (Bun.file(resolve(root, dir, filename)).size) {
+				changed = true;
+				return `(../../${dir}/${filename})`;
+			}
 		}
 		// Fallback: keep _media link
 		return `(${_media})`;

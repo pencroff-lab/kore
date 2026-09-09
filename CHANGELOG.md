@@ -1,5 +1,72 @@
 # Changelog
 
+## [0.7.0] - 2026-09-09
+
+### Features
+
+- Add the `flow` tier: free functions over `ResultTuple<T>` — `ok`, `fail`,
+  `attempt`/`attemptAsync`, `copy`, `map`/`flatMap`/`mapErr`/`effect` and their
+  async forms, `ensure`, the `onOk`/`onErr`/`onTuple` stage factories,
+  `pipe`/`pipeAsync` typed through ten stages, `defaultTo`, `either`, `all`,
+  `any`, and `fromJSON`. Exported from the package root.
+- Add `expectOk` and `expectErr`, published from the new
+  `@pencroff-lab/kore/test` subpath. They import no test framework and work in
+  any runner.
+- `Outcome` gains the value/tuple protocol split: `from`/`fromAsync`,
+  `flatMap`, `mapErr` and `pipe` read a returned `Err` as failure and anything
+  else as the success value, while `fromTuple`/`fromTupleAsync` are the only
+  entry points that read `[value, error]` as control flow.
+- Add `Outcome.flatMap`/`flatMapAsync`.
+
+### Breaking changes
+
+- **`ResultTuple<T>` is readonly** and now declared in
+  `src/types/common.types.ts`; `src/types/outcome.types.ts` re-exports it. This
+  is a type-only change — no runtime behavior differs — but code that writes
+  into a result tuple stops compiling.
+- **`Err.isErr` is nominal**: it is now `value instanceof Err`. A plain object
+  carrying `kind: "Err"` or `isErr: true` is data, not an error. Reconstruct a
+  real instance with `Err.from(value)`.
+- Three `Outcome` behaviors follow from that guard, with no change to the class
+  itself:
+  - `Outcome.from(() => ({ kind: "Err", message: "m" }))` is now a success
+    carrying the object, not a failure;
+  - `Outcome.err(markerObject)` now normalizes through `Err.from` instead of
+    storing the marker raw;
+  - a callback returning `[null, markerObject]` no longer fires the one-time
+    legacy tuple warning, because the second slot is not an `Err`.
+- `flow`'s `defaultTo` is **handler-only** — `defaultTo(tuple, () => 0)`. The
+  class-tier value form and its `asValue` flag are not reproduced; a
+  function-valued fallback must be wrapped in a thunk.
+- `Outcome.value`, `Outcome.error`, `Outcome.isOk` and `Outcome.isErr` are
+  removed. `toTuple()` is the sole extraction, and destructuring narrows both
+  branches.
+- `Outcome.unit()` is removed; use `Outcome.ok()`.
+
+### Bug Fixes
+
+- A marker candidate that fails validation inside `Err.from` now falls back to
+  the `UNKNOWN` branch instead of throwing, so a thrown marker object inside
+  `Outcome.from`/`fromAsync` becomes a failure tuple rather than escaping the
+  catch boundary.
+- `Err.from` is now total. Classifying a caught value touches it — `instanceof`
+  walks a prototype chain, and the marker and native-error branches read
+  properties — so a value with a throwing accessor, or a proxy with a throwing
+  trap, used to escape whichever boundary was converting it (`attempt`,
+  `attemptAsync`, a pipeline stage, `Outcome.from`). Such a value now lands in
+  the `UNKNOWN` branch with the value kept as `originalValue` metadata.
+- `Err.add` / `Err.addAll` reconstruct a marker-shaped child through `Err.from`
+  instead of storing it raw.
+
+### Deprecations
+
+- `Outcome` is deprecated. It stays exported, and its implementation, signatures
+  and overloads are frozen **from v0.7.0 onward** — this release is where it
+  changed. The freeze is relative to the v0.7.0 shape, not a compatibility claim
+  across the v0.6.x boundary: the removals, protocol split, and nominal-guard
+  consequences listed above all land in v0.7.0. The `flow` tier is the supported
+  API; see the migration map in the README.
+
 ## [0.6.0] - 2026-09-01
 
 ### Features

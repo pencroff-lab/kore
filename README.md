@@ -2,6 +2,12 @@
 
 TypeScript core utilities library providing value-based error handling types inspired by Go-style error handling. Published as a dual ESM/CJS package.
 
+Since v0.7.0 the primary API is **`flow`** — free functions over a plain
+`ResultTuple<T>` (`[value, null]` or `[null, Err]`). The `Outcome<T>` class is
+deprecated and frozen from v0.7.0 onward; v0.7.0 itself changed it, so see the
+[changelog](CHANGELOG.md) when upgrading and
+[Migrating from `Outcome`](#migrating-from-outcome) when moving off it.
+
 ## Install
 
 ```bash
@@ -17,13 +23,16 @@ Requires TypeScript 5.9+ as a peer dependency.
 Detailed API documentation for each module:
 
 - [Err](docs/api/err.md) -- Immutable, value-based error type with wrapping, aggregation, and serialization
-- [Outcome\<T\>](docs/api/outcome.md) -- Monadic container for type-safe error handling with tuple-first API
+- [flow](docs/api/flow.md) -- Free functions over result tuples: the primary API
+- [test helpers](docs/api/test.md) -- `expectOk` / `expectErr`, from `@pencroff-lab/kore/test`
+- [Outcome\<T\>](docs/api/outcome.md) -- **Deprecated** monadic container, frozen in v0.7.0
 - [dtStamp](docs/api/format_dt.md) -- Filesystem/log-safe date formatting utility
 - [Logger](docs/api/logger.md) -- Structured logging with transport DI and Err integration
 
 ### Guides
 
-- [Error handling guide](docs/guides/error-handling-patterns.md) -- `Err` and `Outcome` practical examples
+- [Flow operation flows](docs/guides/flow-operation-flows.md) -- how `flow` composes operations, end to end
+- [Error handling guide](docs/guides/error-handling-patterns.md) -- `Err` practical examples
   - [Migration from throwing](docs/guides/migration-from-throwing.md)
 - [Logging guide](docs/guides/logging_guide.md) -- Patterns, conventions, and integration strategies
 - [TS docstrings general guide](docs/guides/docs_guide.md)
@@ -109,7 +118,140 @@ const restored = Err.fromJSON(json);
 throw err.toError();
 ```
 
+### flow
+
+Free functions over `ResultTuple<T>` — `readonly [T, null]` on success,
+`readonly [null, Err]` on failure. There is no container to construct or unwrap:
+a result destructures at any point.
+
+```typescript
+import { ok, fail, pipe, onOk, onErr, defaultTo, type ResultTuple } from "@pencroff-lab/kore";
+
+const parsePort = (raw: string): ResultTuple<number> => {
+  const port = Number(raw);
+  return Number.isInteger(port) ? ok(port) : fail(`invalid port: ${raw}`, "PORT");
+};
+
+const [port, err] = parsePort("8080");
+if (err) return err;
+```
+
+#### The callback protocol
+
+Every fallible callback returns a `ResultTuple`. The error slot is the only
+failure signal — no operator inspects a value's runtime shape:
+
+```typescript
+flatMap(ok(2), (n) => ok(n * 2));        // success
+flatMap(ok(2), () => fail("nope"));       // failure
+flatMap(ok(1), readConfig);               // a tuple-returning callee composes directly
+```
+
+`ok(...)` is the one way to carry error- or tuple-shaped data as a success:
+
+```typescript
+ok(Err.from("this is data"));   // ResultTuple<Err>
+ok(ok(1));                      // ResultTuple<ResultTuple<number>> — nesting is explicit
+```
+
+`map` is the single exception: its return is never inspected, so an `Err` or a
+tuple returned from `map` is data. A callback that returns a bare value, a bare
+`Err`, or nothing at all does not compile.
+
+#### Boundaries and transformations
+
+```typescript
+ok(42);                       // [42, null]
+ok();                         // [undefined, null] — ResultTuple<void>
+fail("Not found", "NOT_FOUND");
+fail(Err.from(caught, { code: "READ_FAILED", metadata: { path } }));
+
+attempt(() => ok(JSON.parse(raw)));            // converts a throw to a failure
+await attemptAsync(async () => ok(await fetchUser(id)));
+
+map(result, (n) => n * 2);                     // total callback, return-preserving
+flatMap(result, readConfig);                   // fallible callback
+mapErr(result, (e) => fail(e.wrap("Failed to load project").withCode("LOAD")));
+effect(result, ([v, e]) => log(v ?? e));       // side effect on either channel
+ensure(result, isPositive, (n) => Err.from(`not positive: ${n}`, "RANGE"));
+```
+
+Error enrichment has no `flow` helpers of its own — chain the `Err` methods
+inside `mapErr` / `onErr`.
+
+#### Pipelines
+
+```typescript
+const loaded = pipe(
+  ok(raw),
+  onOk(parse),
+  onOk(validate),
+  onErr((e) => fail(e.wrap("Failed to load config", { code: "CONFIG" }))),
+);
+
+const fetched = await pipeAsync(
+  Promise.resolve(ok(userId)),          // a promised source needs no extra await
+  onOkAsync(fetchUser),
+  onOk(normalize),
+  onErr((e) => ok(anonymousUser(e))),   // recovery after a failed or throwing stage
+);
+```
+
+`pipe` and `pipeAsync` copy the source once on entry and catch each stage
+separately, so a later `onErr` stage can recover from a throwing custom stage.
+Both are typed through ten stages; past that the result widens to
+`ResultTuple<unknown>`. A reusable pipeline is an ordinary typed function:
+
+```typescript
+const transform = (source: ResultTuple<Input>) =>
+  pipe(source, onOk(step1), onOk(step2), onErr(recover));
+```
+
+#### Terminal operations, collections, serialization
+
+```typescript
+defaultTo(result, () => 0);              // handler-only — a constant fallback is a thunk
+defaultTo(result, (e) => recover(e));
+either(result, (v) => render(v), (e) => renderError(e));
+
+all([readA(), readB()]);                 // ordered, non-short-circuiting, aggregates every error
+all([ok(1), ok("two")] as const);        // heterogeneous: ResultTuple<[number, string]>
+any([primary(), replica()]);             // first success by reference; any([]) is EMPTY_INPUT
+
+JSON.stringify(ok({ id: 1 }));           // [{"id":1},null] — no wrapper needed
+fromJSON(payload);                       // validates the envelope; never throws
+```
+
+`fromJSON` validates only the tuple envelope and the error slot — `T` is a
+caller assertion. An invalid payload returns an `INVALID_JSON` failure carrying
+the payload as `originalValue` metadata.
+
+#### Input protection
+
+`flow` protects the tuple container, not the payload. A pipeline copies its
+source once on entry, `effect` hands its callback the output copy, and
+`onTuple` hands it an input copy — so callback code cannot mutate the tuple you
+passed in. Success values, `Err` instances, and metadata are never cloned. Use
+the exported `copy` when a custom operator needs an isolated tuple.
+
+#### Test helpers
+
+`expectOk` and `expectErr` ship from a separate subpath, so they never reach
+production code. They import no test framework:
+
+```typescript
+import { expectOk, expectErr } from "@pencroff-lab/kore/test";
+
+const port = expectOk(parsePort("8080"));
+const error = expectErr(parsePort("nope"));
+```
+
 ### Outcome\<T\>
+
+> **Deprecated since v0.7.0.** The class stays exported and its shape is frozen
+> from v0.7.0 onward — but v0.7.0 is itself a breaking release for it. Upgrading
+> from v0.6.x, see the changelog; writing new code, see
+> [Migrating from `Outcome`](#migrating-from-outcome).
 
 Monadic container wrapping `ResultTuple<T>` (`[T, null] | [null, Err]`). Supports `map`/`flatMap`/`mapErr`/`pipe`/`pipeAsync` chains, combinators (`all`, `any`), side effects (`effect`), and terminal operations (`toTuple`, `defaultTo`, `either`).
 
@@ -208,9 +350,49 @@ const response = processOrder(orderId).either(
 );
 ```
 
-### Utilities
+## Migrating from `Outcome`
 
-#### dtStamp
+`Outcome` and `flow` share one `ResultTuple<T>` declaration, so `toTuple()` is
+the bridge and migration is call-site local.
+
+| `Outcome` | `flow` |
+|---|---|
+| `Outcome.ok(value)` / `Outcome.ok()` | `ok(value)` / `ok()` |
+| `Outcome.err(error)` | `fail(error)` |
+| `Outcome.err<T>(...)` | `fail(...)` — `ResultTuple<never>` threads through later operations |
+| `Outcome.from(fn)` | `attempt(() => ok(fn()))`, or `attempt(() => cond ? ok(v) : fail(...))` |
+| `Outcome.fromAsync(fn)` | `attemptAsync(async () => ok(await fn()))` |
+| `Outcome.fromTuple(tuple)` | use the tuple directly |
+| `Outcome.fromTuple(callback)` | `attempt(callback)` |
+| `outcome.toTuple()` | destructure the result directly |
+| `outcome.map(fn)` | `map(tuple, fn)` |
+| `outcome.flatMap(fn)` | `flatMap(tuple, fn)`; a value-returning `fn` becomes `(v) => ok(fn(v))` |
+| `outcome.mapErr(fn)` | `mapErr(tuple, fn)`; enrichment becomes `(e) => fail(e.wrap(...))`, recovery `(e) => ok(fallback)` |
+| `outcome.effect(fn)` | `effect(tuple, fn)` |
+| `outcome.defaultTo(value)` / `defaultTo(value, true)` | `defaultTo(tuple, () => value)` |
+| `outcome.defaultTo(handler)` | `defaultTo(tuple, handler)` |
+| `outcome.either(...)` | `either(tuple, ...)` |
+| `outcome.pipe(...)` | `pipe(tuple, onOk(...), onErr(...), onTuple(...))` |
+| `Outcome.all(...)` / `Outcome.any(...)` | `all(...)` / `any(...)` |
+| `Outcome.fromJSON(payload)` | `fromJSON(payload)` |
+| `Outcome.ok(err)` in a callback or as a result | `ok(err)` in both positions |
+
+Migration is not textual. Three changes need attention:
+
+- **Every fallible callback now returns a tuple.** A callback that returned a
+  bare value or a bare `Err` gains an explicit `ok(...)` or `fail(...)`. The
+  compiler locates every site, because neither a bare value nor a missing return
+  satisfies `ResultTuple`.
+- **`defaultTo` is handler-only.** A value-form call no longer type-checks and
+  becomes a thunk: `defaultTo(tuple, () => value)`.
+- **`Err.isErr` is nominal.** Code that relied on a plain `{ kind: "Err" }`
+  marker being treated as an error now sees that object as success data. This
+  one is not caught by the compiler — construct a real instance with
+  `Err.from(marker)`.
+
+## Utilities
+
+### dtStamp
 
 Formats a `Date` into a compact timestamp string. Useful for filenames, logs, and identifiers.
 
@@ -224,7 +406,7 @@ dtStamp(new Date(), { readable: true }); // "2026-02-18_15:30:45"
 dtStamp(new Date(), { tz: "local" }); // uses local timezone
 ```
 
-#### Logger
+### Logger
 
 Structured, callable logger with transport DI, child loggers, and automatic `Err` formatting.
 

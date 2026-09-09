@@ -18,6 +18,13 @@
  *   `[value, error]` as control flow; everywhere else a tuple is an ordinary array value.
  * - **Auto-catch** — `from`, `fromTuple`, `map`, `flatMap` and `pipe` catch thrown exceptions and wrap them as `Err`.
  * - **Combinators** — `all` collects every error (non-short-circuit), `any` short-circuits on first success.
+ *
+ * **Deprecated since v0.7.0.** The class tier is frozen from v0.7.0 onward; the
+ * `flow` tier is the supported API. v0.7.0 itself changed this class — see the
+ * changelog's breaking changes before upgrading from v0.6.x. `flow` works on
+ * the same `ResultTuple` with free functions, so migration is call-site local:
+ * see the migration map in the README.
+ *
  * @see [outcome.examples.test.ts](../../src/types/outcome.examples.test.ts) for usage patterns
  * @module outcome
  */
@@ -42,6 +49,12 @@ export type { CallbackReturn, PipeFn, PipeFnAsync, ResultTuple, ValueOf };
  * wrapping is visible through the `Outcome`. (`Err.metadata` is copied and frozen
  * because errors are a cold path; `T` is not.)
  *
+ * @deprecated since v0.7.0 — superseded by the `flow` tier. The class stays
+ * exported and its shape is frozen from v0.7.0 onward, but v0.7.0 is itself a
+ * breaking release for it: removed accessors, the callback protocol split, and
+ * nominal `Err` recognition. Check the changelog when upgrading from v0.6.x.
+ * Move to the free functions over `ResultTuple` (`ok`, `fail`, `map`, `flatMap`,
+ * `mapErr`, `pipe`, `all`, `any`, `defaultTo`, `either`); `toTuple()` is the bridge.
  * @typeParam T - The type of the success value
  */
 export class Outcome<T> {

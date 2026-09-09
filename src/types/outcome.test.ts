@@ -1395,4 +1395,75 @@ describe("Outcome", () => {
 			expect(mapped.toTuple()[0]).toBe(84);
 		});
 	});
+
+	// v0.7.0: `Err.isErr` is nominal. Outcome is otherwise frozen — these rows
+	// pin the behavior it inherits from the corrected guard.
+	describe("nominal Err recognition", () => {
+		const marker = { kind: "Err", message: "marker" };
+
+		test("from() carries a marker-shaped object as success data", () => {
+			const [value, error] = Outcome.from(() => marker).toTuple();
+
+			expect(error).toBeNull();
+			expect(value).toBe(marker);
+		});
+
+		test("fromAsync() carries a marker-shaped object as success data", async () => {
+			const [value, error] = (
+				await Outcome.fromAsync(async () => marker)
+			).toTuple();
+
+			expect(error).toBeNull();
+			expect(value).toBe(marker);
+		});
+
+		test("err() normalizes a marker object through Err.from", () => {
+			const [, error] = Outcome.err(marker as unknown as Err).toTuple();
+
+			expect(error).toBeInstanceOf(Err);
+			expect(error).not.toBe(marker);
+			expect(error?.message).toBe("marker");
+		});
+
+		test("a callback tuple holding a marker object stays success data", () => {
+			// The second slot is not an Err instance, so this is an ordinary array
+			// value rather than the legacy control tuple.
+			const payload = [null, marker];
+			const [value, error] = Outcome.from(() => payload).toTuple();
+
+			expect(error).toBeNull();
+			expect(value).toBe(payload);
+		});
+
+		test("a thrown malformed marker becomes a failure instead of escaping", () => {
+			const [, error] = Outcome.from(() => {
+				throw { kind: "Err" };
+			}).toTuple();
+
+			expect(error).toBeInstanceOf(Err);
+			expect(error?.code).toBe("UNKNOWN");
+		});
+
+		test("a thrown malformed marker rejects nothing in fromAsync", async () => {
+			const [, error] = (
+				await Outcome.fromAsync(async () => {
+					throw { isErr: true };
+				})
+			).toTuple();
+
+			expect(error).toBeInstanceOf(Err);
+			expect(error?.code).toBe("UNKNOWN");
+		});
+
+		test("a thrown serialized Err is reconstructed", () => {
+			const wire = JSON.parse(JSON.stringify(Err.from("wire", "WIRE")));
+			const [, error] = Outcome.from(() => {
+				throw wire;
+			}).toTuple();
+
+			expect(error).toBeInstanceOf(Err);
+			expect(error?.message).toBe("wire");
+			expect(error?.code).toBe("WIRE");
+		});
+	});
 });

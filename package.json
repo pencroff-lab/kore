@@ -21,6 +21,11 @@
 			"types": "./dist/esm/index.d.ts",
 			"import": "./dist/esm/index.js",
 			"require": "./dist/cjs/index.js"
+		},
+		"./test": {
+			"types": "./dist/esm/test.d.ts",
+			"import": "./dist/esm/test.js",
+			"require": "./dist/cjs/test.js"
 		}
 	},
 	"sideEffects": false,
@@ -33,18 +38,20 @@
 	"scripts": {
 		"test": "bun test",
 		"test:coverage": "bun test --coverage",
-		"lint:edit": "bunx biome check --fix src/",
+		"lint:edit": "bunx biome check --fix src/ scripts/",
 		"prelint:ci": "bun run lint:type",
-		"lint:ci": "bunx biome ci src/",
+		"lint:ci": "bunx biome ci src/ scripts/",
 		"lint:type": "tsc --noEmit",
 		"check:docs": "bun scripts/check-docs.sh.ts",
-		"lint": "bun run lint:edit && bun run lint:type && bun run check:docs",
+		"check:boundaries": "bun scripts/check-boundaries.sh.ts",
+		"check:release": "bun scripts/check-release-state.sh.ts",
+		"lint": "bun run lint:edit && bun run lint:type && bun run check:boundaries && bun run check:docs",
 		"build": "bun run build:esm && bun run build:cjs",
 		"prebuild": "rm -rf dist",
 		"build:esm": "tsc --project tsconfig.esm.json",
 		"build:cjs": "tsc --project tsconfig.cjs.json && bun scripts/fix-cjs.sh.ts",
-		"postbuild": "bun scripts/verify-build.sh.ts",
-		"prepublish_pkg": "bun scripts/check-version.sh.ts && bun run build",
+		"postbuild": "bun scripts/verify-build.sh.ts && bun scripts/verify-consumers.sh.ts",
+		"prepublish_pkg": "bun run check:release && bun scripts/check-version.sh.ts && bun run build",
 		"publish_pkg": "bun publish --access public",
 		"pregen_docs": "rm -rf docs/api/_media",
 		"gen_docs": "typedoc && bun scripts/fix-docs-links.sh.ts",

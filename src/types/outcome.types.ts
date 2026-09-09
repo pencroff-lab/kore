@@ -1,14 +1,11 @@
+import type { ResultTuple } from "./common.types";
 import type { Err } from "./err";
 import type { Outcome } from "./outcome";
 
 // ─── Group: Result types ─────────────────────────────────────────────────────
 
-/**
- * Tuple-based result with positional semantics.
- * - `[T, null]`: success with value
- * - `[null, Err]`: error
- */
-export type ResultTuple<T> = [T, null] | [null, Err];
+// Re-exported from the neutral owner so both tiers share one declaration.
+export type { ResultTuple } from "./common.types";
 
 /**
  * Callback return under the value protocol.

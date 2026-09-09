@@ -303,6 +303,124 @@ describe("Err", () => {
 			});
 		});
 
+		describe("from() with malformed marker candidates", () => {
+			test.each([
+				{ label: "missing message", marker: { kind: "Err" } },
+				{ label: "non-string message", marker: { isErr: true, message: 42 } },
+				{
+					label: "non-string code",
+					marker: { kind: "Err", message: "m", code: 7 },
+				},
+				{
+					label: "throwing toJSON",
+					marker: {
+						kind: "Err",
+						message: "m",
+						toJSON() {
+							throw new Error("boom");
+						},
+					},
+				},
+			])("falls back to UNKNOWN for $label", ({ marker }) => {
+				const restored = Err.from(marker);
+
+				expect(restored.code).toBe("UNKNOWN");
+				expect(restored.message).toBe("Unknown error");
+				expect(restored.getMetadata<unknown>("originalValue")).toBe(marker);
+			});
+
+			test("never throws on a malformed marker", () => {
+				expect(() => Err.from({ kind: "Err" })).not.toThrow();
+			});
+
+			test("add() stores a reconstructed instance, not the raw marker", () => {
+				const marker = { kind: "Err", message: "child", code: "CHILD" };
+
+				const parent = Err.from("parent").add(marker as unknown as Err);
+				const [child] = parent.errors;
+
+				expect(child).toBeInstanceOf(Err);
+				expect(child).not.toBe(marker);
+				expect(child?.message).toBe("child");
+				expect(parent.hasCode("CHILD")).toBe(true);
+			});
+
+			test("addAll() reconstructs every marker child", () => {
+				const markers = [
+					{ kind: "Err", message: "a", code: "A" },
+					{ isErr: true, message: "b", code: "B" },
+				] as unknown as Err[];
+
+				const parent = Err.from("parent").addAll(markers);
+
+				expect(parent.errors).toHaveLength(2);
+				expect(parent.errors.every((e) => e instanceof Err)).toBe(true);
+				expect(parent.hasCode("A")).toBe(true);
+				expect(parent.hasCode("B")).toBe(true);
+			});
+		});
+
+		describe("from() with values that resist inspection", () => {
+			const hostileGetter = () => ({
+				get isErr(): boolean {
+					throw new Error("getter boom");
+				},
+			});
+
+			const hostileProxy = () =>
+				new Proxy(
+					{},
+					{
+						getPrototypeOf() {
+							throw new Error("proxy boom");
+						},
+					},
+				);
+
+			const hostileNative = () => {
+				const error = new Error("real message");
+				Object.defineProperty(error, "code", {
+					get() {
+						throw new Error("code boom");
+					},
+				});
+				return error;
+			};
+
+			test.each([
+				{ label: "a throwing marker accessor", make: hostileGetter },
+				{ label: "a proxy with a throwing trap", make: hostileProxy },
+				{
+					label: "a native Error with a throwing property",
+					make: hostileNative,
+				},
+			])("converts $label instead of rethrowing", ({ make }) => {
+				const value = make();
+
+				const err = Err.from(value);
+
+				expect(err).toBeInstanceOf(Err);
+				expect(err.code).toBe("UNKNOWN");
+				expect(err.getMetadata<unknown>("originalValue")).toBe(value);
+			});
+
+			test("never rethrows the inspection failure", () => {
+				expect(() => Err.from(hostileGetter())).not.toThrow();
+				expect(() => Err.from(hostileProxy())).not.toThrow();
+				expect(() => Err.from(hostileNative())).not.toThrow();
+			});
+
+			test("still honors explicit options on the fallback", () => {
+				const err = Err.from(hostileGetter(), {
+					code: "CAUGHT",
+					metadata: { where: "boundary" },
+				});
+
+				expect(err.code).toBe("CAUGHT");
+				expect(err.getMetadata<string>("where")).toBe("boundary");
+			});
+		});
+
 		describe("from() + wrap() pattern", () => {
 			test("wraps error with new context", () => {
 				const error = new Error("Database connection failed");
@@ -486,20 +604,21 @@ describe("Err", () => {
 				expect(Err.isErr(undefined)).toBe(false);
 			});
 
-			test("returns true for POJOs with kind='Err'", () => {
+			test("returns false for POJOs with kind='Err'", () => {
 				const pojo = { kind: "Err", message: "Mock error" };
-				expect(Err.isErr(pojo)).toBe(true);
+				expect(Err.isErr(pojo)).toBe(false);
 			});
 
-			test("returns true for POJOs with isErr=true", () => {
+			test("returns false for POJOs with isErr=true", () => {
 				const pojo = { isErr: true, message: "Mock error" };
-				expect(Err.isErr(pojo)).toBe(true);
+				expect(Err.isErr(pojo)).toBe(false);
 			});
 
-			test("returns true for deserialized JSON errors", () => {
+			test("returns false for deserialized JSON errors", () => {
 				const original = Err.from("Test");
 				const json = JSON.parse(JSON.stringify(original));
-				expect(Err.isErr(json)).toBe(true);
+				expect(Err.isErr(json)).toBe(false);
+				expect(Err.isErr(Err.from(json))).toBe(true);
 			});
 
 			test("returns true for deserialized fromJSON errors", () => {

@@ -9,7 +9,7 @@
     "allowImportingTsExtensions": false,
     "verbatimModuleSyntax": false
   },
-  "include": ["index.ts"],
+  "include": ["index.ts", "test.ts"],
   "exclude": [
     "node_modules", "dist", "build", "release", "tmp",
     "**/*.test.ts", "**/*.spec.ts", "**/*.bench.ts"

@@ -1,17 +1,22 @@
 # Error Handling Patterns
 
-Patterns for creating, wrapping, inspecting, and serializing `Err` within `@pencroff-lab/kore`. For operation flow patterns using `Outcome`, see [outcome-operation-flows.md](./outcome-operation-flows.md).
+Patterns for creating, wrapping, inspecting, and serializing `Err` within `@pencroff-lab/kore`. For operation flow patterns, see [flow-operation-flows.md](./flow-operation-flows.md).
 
-## When to use `Err` directly vs `Outcome`
+## When to use `Err` directly vs `flow`
 
 | Scenario | Use |
 |----------|-----|
-| Returning `[value, null] \| [null, Err]` tuples from functions | `Err` directly |
-| Chaining transformations, recovery, or combinators | `Outcome` |
-| Validation collecting multiple errors | `Err.from()` + `add()`/`addAll()` |
-| Wrapping third-party code that throws | `Outcome.from()` / `Outcome.fromAsync()` |
+| Returning `[value, null] \| [null, Err]` tuples from functions | `Err` directly, or `ok()` / `fail()` |
+| Chaining transformations, recovery, or combinators | `flow` (`pipe`, `flatMap`, `mapErr`, `all`, `any`) |
+| Validation collecting multiple errors | `Err.from()` + `add()`/`addAll()`, or `all()` |
+| Wrapping third-party code that throws | `attempt()` / `attemptAsync()` |
 
-**Rule of thumb:** Use raw tuples at module boundaries (lower ceremony, no `Outcome` wrapper). Use `Outcome` when you need to chain operations or combine results.
+**Rule of thumb:** every function returns a `ResultTuple`. Reach for a `flow` operator when you need to chain, recover, or combine — the tuple itself never changes shape.
+
+> `Outcome` is deprecated and frozen since v0.7.0. Its generated API reference
+> stays at [docs/api/outcome.md](../api/outcome.md), and the README's
+> [migration map](../../README.md#migrating-from-outcome) gives the `flow`
+> equivalent for each operation.
 
 ## Creating errors
 
@@ -92,14 +97,30 @@ const modified = Err.from(original, { code: "NEW_CODE" });
 
 ## Type guard: `Err.isErr()`
 
-Works across module boundaries via duck typing — checks for `instanceof Err`, `isErr === true`, or `kind === "Err"`:
+Nominal since v0.7.0 — `Err.isErr(value)` is `value instanceof Err`, and nothing else:
 
 ```typescript
 if (Err.isErr(value)) {
-  // value is narrowed to Err
-  console.log(value.message);
+  // value is narrowed to a real Err, so every method is safe to call
+  console.log(value.wrap("context").message);
 }
 ```
+
+A plain object carrying `kind: "Err"` or `isErr: true` is **data, not an error**. Before v0.7.0 the guard accepted it and then promised methods that did not exist:
+
+```typescript
+Err.isErr({ kind: "Err", message: "m" }); // false since v0.7.0 (was true)
+```
+
+Reconstruct a real instance from wire data with `Err.from()`, which still recognizes the marker shape and routes it through `Err.fromJSON()`:
+
+```typescript
+const wire = JSON.parse(payload);        // { kind: "Err", message, code, ... }
+const err = Err.from(wire);              // a real Err, with cause chain and children
+Err.isErr(err); // true
+```
+
+A marker candidate that fails validation no longer throws out of `Err.from()`: it falls back to the generic branch (`code: "UNKNOWN"`, the value kept as `metadata.originalValue`). That keeps every catch boundary — `attempt`, `pipe` stages, `Outcome.from` — total.
 
 ## Wrapping errors (cause chains)
 
@@ -462,6 +483,6 @@ Err.from("Validation failed", { code: "VALIDATION" })
 
 ## See also
 
-- [outcome-operation-flows.md](./outcome-operation-flows.md) — Outcome patterns for operation flows
+- [flow-operation-flows.md](./flow-operation-flows.md) — `flow` patterns for operation flows
 - [err.examples.test.ts](../../src/types/err.examples.test.ts) — Err usage examples
 - [outcome.examples.test.ts](../../src/types/outcome.examples.test.ts) — Outcome usage examples
