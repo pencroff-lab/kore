@@ -183,6 +183,6 @@ try {
 
 ## See also
 
-- [flow.examples.test.ts](../../src/flow/flow.examples.test.ts) — every pattern above, executable
-- [err.examples.test.ts](../../src/types/err.examples.test.ts) — section 3 "Catching native errors"
+- [flow examples](../examples/flow.md) — every pattern above, executable
+- [Err examples](../examples/err.md) — section 3 "Catching native errors"
 - [Migrating from `Outcome`](../../README.md#migrating-from-outcome) — the class-tier operation map

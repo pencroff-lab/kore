@@ -1,0 +1,21 @@
+{{- /*
+  Kore override of Hextra's link hook.
+
+  `bun run docs:build` resolves every local Markdown destination through the
+  content manifest and writes the final, origin-relative site path (including
+  the edition prefix) into the staged Markdown. The theme's hook re-resolves
+  root-relative destinations against the edition base URL, which corrupts
+  cross-edition links such as `/archived/`. This hook trusts the staged
+  destination and only decorates external links.
+*/ -}}
+{{- $dest := .Destination -}}
+{{- $isExternal := or (hasPrefix $dest "http") (hasPrefix $dest "//") -}}
+<a href="{{ $dest | safeURL }}"
+  {{- with .Title }} title="{{ . }}"{{ end -}}
+  {{- if $isExternal }} target="_blank" rel="noopener"{{ end -}}
+>
+  {{- .Text | safeHTML -}}
+  {{- if and site.Params.externalLinkDecoration $isExternal -}}
+    {{- partial "utils/icon.html" (dict "name" "arrow-up-right" "attributes" `class="hx:inline hx:rtl:rotate-270 hx:align-baseline" height="1em" aria-hidden="true"`) -}}
+  {{- end -}}
+</a>

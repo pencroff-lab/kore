@@ -24,6 +24,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Verify build artifacts | `bun scripts/verify-build.sh.ts` (runs automatically in build) |
 | Check version on npm | `bun scripts/check-version.sh.ts` |
 | Check docs | `bun run check:docs` |
+| Validate all documentation | `bun run docs:check` (add `-- --site build/docs-site/public` for rendered links) |
+| Regenerate API + example Markdown | `bun run docs:generate` |
+| Build the documentation site | `bun run docs:build` |
+| Serve the site locally | `bun run docs:dev` (1313) / `bun run docs:preview` (4173) |
+| Snapshot a release's docs | `bun run docs:snapshot <version>` |
+| Record a verified npm release | `bun run docs:record-publication <version>` |
 | Check import boundaries | `bun run check:boundaries` |
 | Test build tooling | `bun test ./scripts/<name>.test.ts` (also covered by `bun test`) |
 | Check release state (version vs CHANGELOG) | `bun run check:release` |
@@ -175,6 +181,29 @@ resolve statically is a violation rather than a skip.
   - `toTuple()` is the **sole** extraction. `value`, `error`, `isOk` and `isErr` were removed in v0.7.0. Library internals use the private `_ok` getter.
   - A callback returning the pre-v0.7.0 `[value, error]` shape triggers a one-time `console.warn` (`Outcome._legacyTupleWarned`). The test asserting it must stay first in `outcome.test.ts`. The warning stays in `Outcome` — do not move it into `flow`.
 
+### Documentation site (`site/`, `scripts/docs/`)
+
+`site/` holds the Hugo + pinned Hextra website; `scripts/docs.sh.ts` is the one
+CLI dispatcher behind every `docs:*` script. Nothing under `site/` ships in the
+package. The full contributor and release runbook is
+[`site/README.md`](site/README.md) — read it before changing the site build.
+
+- Canonical Markdown lives in `docs/` and links **relatively**, so it reads on
+  GitHub and inside the installed package. The build resolves every destination
+  through a content manifest and writes edition-prefixed site paths into staged
+  Markdown; `site/layouts/` overrides the theme's link hooks so those staged
+  destinations are trusted verbatim.
+- Editions are `/next/` (working tree, `noindex`), `/v/<version>/` (immutable
+  snapshots), `/archived/` (pre-0.7.0 summaries), and `/` (latest stable, or an
+  overview before the first release). Each is a separate Hugo build; they are
+  merged into one artifact.
+- `site/versions.yaml` records that a snapshot **exists**; `site/published.json`
+  is the only evidence that a version is **published**. A snapshot missing from
+  the receipt stays out of navigation and never becomes the default edition.
+- The build strips each page's first H1: the theme renders the front-matter
+  title, and leaving the H1 in shifts Goldmark's heading ids (`#err` → `#err-1`),
+  breaking TypeDoc's cross-references.
+
 ### Utilities (`src/utils/`)
 
 - **`formatDateTime`** -- Date formatting utility (stub, in progress)
@@ -231,8 +260,10 @@ Tiered by file size (threshold: 100 non-blank lines). The first `@module` JSDoc 
 ### TypeDoc / generated docs rules
 
 - No hardcoded GitHub commit URLs — `typedoc.json` uses `sourceLinkTemplate` with relative paths and `disableGit: true`
-- `gen_docs` pipeline: `pregen_docs` cleans `_media/` → `typedoc` generates → `fix-docs-links.sh.ts` replaces `_media/` links with relative `src/` paths
-- All "Defined in" links must be relative from `docs/api/` (e.g., `../../src/types/err.ts#L23`)
+- `gen_docs` / `docs:generate` pipeline (`scripts/docs/generate.ts`): `typedoc` renders into a staging directory → `normalizeApiMarkdown` rewrites destinations → `docs/examples/*.md` is generated from every `src/**/*.examples.test.ts` → both directories are swapped in. `docs/api/` and `docs/examples/` are fully generator-owned: they are rebuilt wholesale, so a removed source entry cannot leave an obsolete file behind. Never hand-edit either directory.
+- Destination rewriting is done with the Markdown AST (`scripts/docs/markdown.ts`), never with a global regex, so fenced code and code spans are untouched.
+- `@see` example references become links to `docs/examples/<stem>.md`. "Defined in" citations become GitHub URLs pinned to the release tag derived from `package.json#version` (e.g. `https://github.com/pencroff-lab/kore/blob/v0.7.0/src/types/err.ts#L23`). `src/` does not ship in the package, so relative `../../src/...` links were broken for every consumer. `typedoc.json` still uses a relative `sourceLinkTemplate` with `disableGit: true`; the tag is applied by the generator, and no commit SHA is ever embedded.
+- Because citations are tag-pinned, **finalize `package.json#version` before generating**; the links are otherwise pinned to the wrong tag.
 
 ### TypeScript patterns
 

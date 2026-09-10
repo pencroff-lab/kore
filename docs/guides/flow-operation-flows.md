@@ -389,7 +389,7 @@ const profile = await pipeAsync(
 
 ## See also
 
-- [flow.examples.test.ts](../../src/flow/flow.examples.test.ts) — every pattern above, executable
+- [flow examples](../examples/flow.md) — every pattern above, executable
 - [Migration from throwing](./migration-from-throwing.md) — converting `try/catch` code
 - [Migrating from `Outcome`](../../README.md#migrating-from-outcome) — the class-tier operation map
 - [API reference](../api/flow.md)

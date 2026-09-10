@@ -1,0 +1,52 @@
+# Base Hugo configuration shared by every documentation edition.
+#
+# `bun run docs:build` merges this file with edition-specific keys (baseURL,
+# menus, params.edition) and writes the result as the generated edition's
+# `hugo.json`. Do not add `baseURL`, `menu` or `params.edition` here.
+title: "@pencroff-lab/kore"
+languageCode: en-us
+enableInlineShortcodes: true
+enableRobotsTXT: true
+enableGitInfo: false
+disableKinds:
+  - taxonomy
+  - term
+  - rss
+
+module:
+  imports:
+    - path: github.com/imfing/hextra
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+  highlight:
+    noClasses: false
+
+params:
+  description: >-
+    Value-based error handling for TypeScript: the immutable Err type and the
+    flow tier of free functions over ResultTuple.
+  navbar:
+    displayTitle: true
+    displayLogo: false
+  theme:
+    default: system
+    displayToggle: true
+  footer:
+    enable: true
+    displayCopyright: false
+    displayPoweredBy: false
+  search:
+    enable: true
+    type: flexsearch
+    flexsearch:
+      index: content
+  editURL:
+    enable: false
+  page:
+    width: normal
+  toc:
+    displayTags: false
+  displayUpdatedDate: false

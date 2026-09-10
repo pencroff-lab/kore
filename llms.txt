@@ -5,43 +5,48 @@
 > `ResultTuple<T>`. Published to npm as a dual ESM/CJS package.
 > The `Outcome<T>` class is deprecated and frozen since v0.7.0.
 
+Every link below resolves inside the installed package, relative to the
+package root (`node_modules/@pencroff-lab/kore/` in a conventional install;
+resolve the package directory rather than assuming a flat layout).
+
+## Start here
+
+- [Documentation index](docs/README.md): entry point for all shipped documentation
+
 ## Core Modules
 
-- [Err](src/types/err.ts): Immutable, value-based error type with wrapping (cause chains), aggregation, hierarchical error codes, JSON serialization, and conversion to native Error. `Err.isErr` is nominal (`instanceof`) since v0.7.0; reconstruct wire data with `Err.from`
-- [flow](src/flow/flow.ts): The primary API — free functions over `ResultTuple<T>` (`readonly [T, null] | readonly [null, Err]`): `ok`, `fail`, `attempt`/`attemptAsync`, `copy`, `map`/`flatMap`/`mapErr`/`effect` plus async forms, `ensure`, the `onOk`/`onErr`/`onTuple` stage factories, `pipe`/`pipeAsync` (typed through ten stages), `defaultTo` (handler-only), `either`, `all`, `any`, `fromJSON`. Every fallible callback returns a `ResultTuple`; the error slot is the only failure signal, and `map` is the one callback whose return is never inspected
-- [flow test helpers](src/flow/test.ts): `expectOk` / `expectErr`, published from the `@pencroff-lab/kore/test` subpath only
-- [Outcome](src/types/outcome.ts): **Deprecated, frozen.** Monadic result container wrapping `[T, null] | [null, Err]` with map/pipe chains, combinators (all, any), side effects, and terminal operations. Callbacks follow the value protocol (`Err` = failure, `Outcome` = passthrough, anything else = the success value); `fromTuple`/`fromTupleAsync` are the only tuple entry points, and `toTuple()` is the only extraction
-- [Logger](src/utils/logger.ts): Structured, level-filtered logging with pluggable transports and Err integration
-- [dtStamp](src/utils/format_dt.ts): Compact, sortable date/time stamps for file names, log prefixes, and IDs
-
-## Type Definitions
-
-- [Err types](src/types/err.types.ts): ErrCode, ErrOptions, ErrJSON, ToStringOptions
-- [Shared types](src/types/common.types.ts): ResultTuple — the single readonly declaration shared by both tiers
-- [flow types](src/flow/flow.types.ts): Op, OpAsync, AnyOp, AsyncSource, OkValue, OkValues
-- [Outcome types](src/types/outcome.types.ts): CallbackReturn, ValueOf, PipeFn, PipeFnAsync (re-exports ResultTuple)
+- [Err](docs/api/err.md): Immutable, value-based error type with wrapping (cause chains), aggregation, hierarchical error codes, JSON serialization, and conversion to native Error. `Err.isErr` is nominal (`instanceof`) since v0.7.0; reconstruct wire data with `Err.from`
+- [flow](docs/api/flow.md): The primary API — free functions over `ResultTuple<T>` (`readonly [T, null] | readonly [null, Err]`): `ok`, `fail`, `attempt`/`attemptAsync`, `copy`, `map`/`flatMap`/`mapErr`/`effect` plus async forms, `ensure`, the `onOk`/`onErr`/`onTuple` stage factories, `pipe`/`pipeAsync` (typed through ten stages), `defaultTo` (handler-only), `either`, `all`, `any`, `fromJSON`. Every fallible callback returns a `ResultTuple`; the error slot is the only failure signal, and `map` is the one callback whose return is never inspected
+- [flow test helpers](docs/api/test.md): `expectOk` / `expectErr`, published from the `@pencroff-lab/kore/test` subpath only
+- [Outcome](docs/api/outcome.md): **Deprecated, frozen.** Monadic result container wrapping `[T, null] | [null, Err]` with map/pipe chains, combinators (all, any), side effects, and terminal operations. Callbacks follow the value protocol (`Err` = failure, `Outcome` = passthrough, anything else = the success value); `fromTuple`/`fromTupleAsync` are the only tuple entry points, and `toTuple()` is the only extraction
+- [Logger](docs/api/logger.md): Structured, level-filtered logging with pluggable transports and Err integration
+- [dtStamp](docs/api/format_dt.md): Compact, sortable date/time stamps for file names, log prefixes, and IDs
+- [API overview](docs/api/README.md): Every exported symbol, grouped by module
 
 ## Usage Examples
 
-- [Err examples](src/types/err.examples.test.ts): Error creation, wrapping, codes, serialization
-- [flow examples](src/flow/flow.examples.test.ts): Boundaries, the callback protocol, transformations, pipelines, collections, serialization, input protection
-- [flow test helper examples](src/flow/test.examples.test.ts): Asserting on result tuples
-- [Outcome examples](src/types/outcome.examples.test.ts): Mapping, piping, combinators, error handling
-- [Logger examples](src/utils/logger.examples.test.ts): Log levels, transports, child loggers
-- [dtStamp examples](src/utils/format_dt.examples.test.ts): Date formatting options
+Generated from executable example tests, so every snippet is verified.
+
+- [Err examples](docs/examples/err.md): Error creation, wrapping, codes, serialization
+- [flow examples](docs/examples/flow.md): Boundaries, the callback protocol, transformations, pipelines, collections, serialization, input protection
+- [flow test helper examples](docs/examples/test.md): Asserting on result tuples
+- [Outcome examples](docs/examples/outcome.md): Mapping, piping, combinators, error handling
+- [Logger examples](docs/examples/logger.md): Log levels, transports, child loggers
+- [dtStamp examples](docs/examples/format_dt.md): Date formatting options
+- [Examples index](docs/examples/README.md)
 
 ## Guides
 
 - [Flow operation flows](docs/guides/flow-operation-flows.md): Creating results, exception boundaries, transformations, pipelines, combinators, terminal operations, serialization, input protection
 - [Error handling patterns](docs/guides/error-handling-patterns.md): Err composition, propagation, the nominal type guard, real-world scenarios
-- [Migration map](README.md#migrating-from-outcome): Outcome operation to flow equivalent
 - [Migration from throwing](docs/guides/migration-from-throwing.md): Step-by-step try/catch to result tuple conversion
 
 ## Optional
 
-- [CLAUDE.md](CLAUDE.md): Full development rules, architecture, and conventions
-- [API reference](docs/api/): Generated TypeDoc documentation
-- [Documentation guide](docs/docs_guide.md): Documentation layers model and budget rules
+- [Documentation guide](docs/guides/docs_guide.md): Documentation layers model and budget rules
+- [TSDoc guide](docs/guides/tsdoc_guide.md): Formatting rules for source comments
+- [Commit convention](docs/commit_convention.md)
+- [Changelog](CHANGELOG.md)
 
 ## Quick Start
 

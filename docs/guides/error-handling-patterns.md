@@ -484,5 +484,5 @@ Err.from("Validation failed", { code: "VALIDATION" })
 ## See also
 
 - [flow-operation-flows.md](./flow-operation-flows.md) — `flow` patterns for operation flows
-- [err.examples.test.ts](../../src/types/err.examples.test.ts) — Err usage examples
-- [outcome.examples.test.ts](../../src/types/outcome.examples.test.ts) — Outcome usage examples
+- [Err examples](../examples/err.md) — Err usage examples
+- [Outcome examples](../examples/outcome.md) — Outcome usage examples

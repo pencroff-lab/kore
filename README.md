@@ -20,6 +20,12 @@ Requires TypeScript 5.9+ as a peer dependency.
 
 ## Documentation
 
+The package ships its own documentation. After installing, start at
+[`docs/README.md`](docs/README.md); agents should read
+[`llms.txt`](llms.txt), the machine-readable index of the same set. Both
+resolve inside the installed package, so they always describe the version you
+have.
+
 Detailed API documentation for each module:
 
 - [Err](docs/api/err.md) -- Immutable, value-based error type with wrapping, aggregation, and serialization
@@ -38,6 +44,10 @@ Detailed API documentation for each module:
 - [TS docstrings general guide](docs/guides/docs_guide.md)
   - [TS Docs formating rules](docs/guides/tsdoc_guide.md)
 - [Worktree guide](docs/guides/worktree_guide.md)
+
+### Examples
+
+Generated from executable tests: [all examples](docs/examples/README.md).
 
 ## API
 

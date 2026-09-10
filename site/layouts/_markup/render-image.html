@@ -1,0 +1,20 @@
+{{- /*
+  Kore override of Hextra's image hook; see render-link.html for the reason.
+  Image destinations are already resolved to final site paths in staging.
+*/ -}}
+{{- $alt := .PlainText | safeHTML -}}
+{{- $lazyLoading := site.Params.enableImageLazyLoading | default true -}}
+{{- $attributes := "" -}}
+{{- range $key, $value := .Attributes -}}
+  {{- if $value -}}
+    {{- $attributes = printf "%s %s" $attributes (printf "%s=%q" $key ($value | transform.HTMLEscape)) -}}
+  {{- end -}}
+{{- end -}}
+{{- with .Title -}}
+  <figure>
+    <img src="{{ $.Destination | safeURL }}" title="{{ . }}" alt="{{ $alt }}"{{ $attributes | safeHTMLAttr }}{{ if $lazyLoading }} loading="lazy"{{ end }} />
+    <figcaption>{{ . }}</figcaption>
+  </figure>
+{{- else -}}
+  <img src="{{ .Destination | safeURL }}" alt="{{ $alt }}"{{ $attributes | safeHTMLAttr }}{{ if $lazyLoading }} loading="lazy"{{ end }} />
+{{- end -}}

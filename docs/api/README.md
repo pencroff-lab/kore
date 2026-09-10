@@ -1,7 +1,3 @@
-**@pencroff-lab/kore**
-
-***
-
 # @pencroff-lab/kore
 
 ## Modules

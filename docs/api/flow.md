@@ -1,7 +1,3 @@
-[**@pencroff-lab/kore**](README.md)
-
-***
-
 [@pencroff-lab/kore](README.md) / flow
 
 # flow
@@ -27,7 +23,7 @@ result destructures at any point and every operation is a plain function.
 
 ## See
 
-[flow.examples.test.ts](../../src/flow/flow.examples.test.ts) for usage patterns
+[flow.examples.test.ts](../examples/flow.md) for usage patterns
 
 ## Type Aliases
 
@@ -35,7 +31,7 @@ result destructures at any point and every operation is a plain function.
 
 > **AnyOp**\<`In`, `Out`\> = (`tuple`) => [`ResultTuple`](#resulttuple)\<`Out`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
 
-Defined in: [flow/flow.types.ts:32](../../src/flow/flow.types.ts#L32)
+Defined in: [flow/flow.types.ts:32](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.types.ts#L32)
 
 Stage accepted by `pipeAsync`: it may settle synchronously or not.
 
@@ -71,7 +67,7 @@ make an async stage valid in the synchronous `pipe`.
 
 > **AsyncSource**\<`T`\> = [`ResultTuple`](#resulttuple)\<`T`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`T`\>\>
 
-Defined in: [flow/flow.types.ts:37](../../src/flow/flow.types.ts#L37)
+Defined in: [flow/flow.types.ts:37](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.types.ts#L37)
 
 Source accepted by `pipeAsync`: a tuple, or a promise of one.
 
@@ -87,7 +83,7 @@ Source accepted by `pipeAsync`: a tuple, or a promise of one.
 
 > **OkValue**\<`R`\> = `R` *extends* readonly \[infer V, `null`\] ? `V` : `never`
 
-Defined in: [flow/flow.types.ts:42](../../src/flow/flow.types.ts#L42)
+Defined in: [flow/flow.types.ts:42](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.types.ts#L42)
 
 Success type carried by a result tuple.
 
@@ -103,7 +99,7 @@ Success type carried by a result tuple.
 
 > **OkValues**\<`T`\> = `{ -readonly [K in keyof T]: OkValue<T[K]> }`
 
-Defined in: [flow/flow.types.ts:48](../../src/flow/flow.types.ts#L48)
+Defined in: [flow/flow.types.ts:48](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.types.ts#L48)
 
 Success types of a collection of result tuples, positionally.
 A tuple of results maps to a tuple of values; an array maps to an array.
@@ -120,7 +116,7 @@ A tuple of results maps to a tuple of values; an array maps to an array.
 
 > **Op**\<`In`, `Out`\> = (`tuple`) => [`ResultTuple`](#resulttuple)\<`Out`\>
 
-Defined in: [flow/flow.types.ts:11](../../src/flow/flow.types.ts#L11)
+Defined in: [flow/flow.types.ts:11](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.types.ts#L11)
 
 Synchronous pipeline stage: tuple in, tuple out.
 
@@ -154,7 +150,7 @@ Output success type
 
 > **OpAsync**\<`In`, `Out`\> = (`tuple`) => `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
 
-Defined in: [flow/flow.types.ts:19](../../src/flow/flow.types.ts#L19)
+Defined in: [flow/flow.types.ts:19](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.types.ts#L19)
 
 Asynchronous pipeline stage.
 
@@ -188,7 +184,7 @@ Output success type
 
 > **ResultTuple**\<`T`\> = readonly \[`T`, `null`\] \| readonly \[`null`, [`Err`](err.md#err)\]
 
-Defined in: [types/common.types.ts:15](../../src/types/common.types.ts#L15)
+Defined in: [types/common.types.ts:15](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/types/common.types.ts#L15)
 
 Tuple-based result with positional semantics, shared by the `flow` and
 `Outcome` tiers.
@@ -211,7 +207,7 @@ The error slot is the discriminant — `ok(null)` is the valid success tuple
 
 > **all**\<`T`\>(`results`): [`ResultTuple`](#resulttuple)\<[`OkValues`](#okvalues)\<`T`\>\>
 
-Defined in: [flow/flow.ts:709](../../src/flow/flow.ts#L709)
+Defined in: [flow/flow.ts:709](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L709)
 
 Combine already-evaluated results, succeeding only if every one succeeded.
 
@@ -245,7 +241,7 @@ Success with all values, or one aggregate failure
 
 > **any**\<`T`\>(`results`): [`ResultTuple`](#resulttuple)\<`T`\>
 
-Defined in: [flow/flow.ts:738](../../src/flow/flow.ts#L738)
+Defined in: [flow/flow.ts:738](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L738)
 
 Return the first successful result, by reference.
 
@@ -278,7 +274,7 @@ The first success, or an aggregate failure
 
 > **attempt**\<`T`\>(`fn`): [`ResultTuple`](#resulttuple)\<`T`\>
 
-Defined in: [flow/flow.ts:103](../../src/flow/flow.ts#L103)
+Defined in: [flow/flow.ts:103](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L103)
 
 Run a fallible callback, converting a throw into a failure tuple.
 
@@ -308,7 +304,7 @@ The callback's tuple, or `Err.from(caught)` as a failure
 
 > **attemptAsync**\<`T`\>(`fn`): `Promise`\<[`ResultTuple`](#resulttuple)\<`T`\>\>
 
-Defined in: [flow/flow.ts:117](../../src/flow/flow.ts#L117)
+Defined in: [flow/flow.ts:117](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L117)
 
 Async counterpart of `attempt()`. Converts throws and rejections.
 
@@ -338,7 +334,7 @@ Promise of the callback's tuple, or of a failure
 
 > **copy**\<`T`\>(`tuple`): `T`
 
-Defined in: [flow/flow.ts:51](../../src/flow/flow.ts#L51)
+Defined in: [flow/flow.ts:51](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L51)
 
 Copy a result tuple, keeping its narrowed type.
 
@@ -370,7 +366,7 @@ A new tuple with the same slots
 
 > **defaultTo**\<`T`\>(`tuple`, `onErr`): `T`
 
-Defined in: [flow/flow.ts:670](../../src/flow/flow.ts#L670)
+Defined in: [flow/flow.ts:670](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L670)
 
 Extract the success value, or compute a fallback from the error.
 
@@ -409,7 +405,7 @@ The success value, or the handler's result
 
 > **effect**\<`T`\>(`tuple`, `fn`): [`ResultTuple`](#resulttuple)\<`T`\>
 
-Defined in: [flow/flow.ts:266](../../src/flow/flow.ts#L266)
+Defined in: [flow/flow.ts:266](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L266)
 
 Run a side effect on either channel.
 
@@ -448,7 +444,7 @@ The output copy, or a caught throw as a failure
 
 > **effectAsync**\<`T`\>(`tuple`, `fn`): `Promise`\<[`ResultTuple`](#resulttuple)\<`T`\>\>
 
-Defined in: [flow/flow.ts:286](../../src/flow/flow.ts#L286)
+Defined in: [flow/flow.ts:286](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L286)
 
 Async counterpart of `effect()`.
 
@@ -484,7 +480,7 @@ Promise of the output copy, or of a failure
 
 > **either**\<`T`, `U`\>(`tuple`, `onOk`, `onErr`): `U`
 
-Defined in: [flow/flow.ts:686](../../src/flow/flow.ts#L686)
+Defined in: [flow/flow.ts:686](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L686)
 
 Fold both channels to a common output type. Handler exceptions propagate.
 
@@ -530,7 +526,7 @@ The selected handler's result
 
 > **ensure**\<`T`, `S`\>(`tuple`, `predicate`, `toErr`): [`ResultTuple`](#resulttuple)\<`S`\>
 
-Defined in: [flow/flow.ts:311](../../src/flow/flow.ts#L311)
+Defined in: [flow/flow.ts:311](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L311)
 
 Validate a success value, optionally refining its type.
 
@@ -580,7 +576,7 @@ The original success, a constructed failure, or a caught throw
 
 > **fail**(`error`, `code?`): [`ResultTuple`](#resulttuple)\<`never`\>
 
-Defined in: [flow/flow.ts:90](../../src/flow/flow.ts#L90)
+Defined in: [flow/flow.ts:90](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L90)
 
 Create a failure tuple.
 
@@ -615,7 +611,7 @@ Optional error code
 
 > **flatMap**\<`In`, `Out`\>(`tuple`, `fn`): [`ResultTuple`](#resulttuple)\<`Out`\>
 
-Defined in: [flow/flow.ts:183](../../src/flow/flow.ts#L183)
+Defined in: [flow/flow.ts:183](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L183)
 
 Chain a fallible callback on the success channel.
 
@@ -659,7 +655,7 @@ The callback's tuple, the original failure, or a caught throw
 
 > **flatMapAsync**\<`In`, `Out`\>(`tuple`, `fn`): `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
 
-Defined in: [flow/flow.ts:202](../../src/flow/flow.ts#L202)
+Defined in: [flow/flow.ts:202](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L202)
 
 Async counterpart of `flatMap()`.
 
@@ -699,7 +695,7 @@ Promise of the resulting tuple
 
 > **fromJSON**\<`T`\>(`payload`): [`ResultTuple`](#resulttuple)\<`T`\>
 
-Defined in: [flow/flow.ts:778](../../src/flow/flow.ts#L778)
+Defined in: [flow/flow.ts:778](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L778)
 
 Reconstruct a result tuple from `JSON.parse` output.
 
@@ -735,7 +731,7 @@ The reconstructed tuple, or an `INVALID_JSON` failure
 
 > **map**\<`In`, `Out`\>(`tuple`, `fn`): [`ResultTuple`](#resulttuple)\<`Out`\>
 
-Defined in: [flow/flow.ts:141](../../src/flow/flow.ts#L141)
+Defined in: [flow/flow.ts:141](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L141)
 
 Transform a success value with a total function.
 
@@ -778,7 +774,7 @@ Transformed success, the original failure, or a caught throw
 
 > **mapAsync**\<`In`, `Out`\>(`tuple`, `fn`): `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
 
-Defined in: [flow/flow.ts:160](../../src/flow/flow.ts#L160)
+Defined in: [flow/flow.ts:160](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L160)
 
 Async counterpart of `map()`.
 
@@ -818,7 +814,7 @@ Promise of the transformed result
 
 > **mapErr**\<`In`, `Out`\>(`tuple`, `fn`): [`ResultTuple`](#resulttuple)\<`In` \| `Out`\>
 
-Defined in: [flow/flow.ts:225](../../src/flow/flow.ts#L225)
+Defined in: [flow/flow.ts:225](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L225)
 
 Transform or recover from a failure.
 
@@ -862,7 +858,7 @@ The callback's tuple, the original success, or a caught throw
 
 > **mapErrAsync**\<`In`, `Out`\>(`tuple`, `fn`): `Promise`\<[`ResultTuple`](#resulttuple)\<`In` \| `Out`\>\>
 
-Defined in: [flow/flow.ts:244](../../src/flow/flow.ts#L244)
+Defined in: [flow/flow.ts:244](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L244)
 
 Async counterpart of `mapErr()`.
 
@@ -904,7 +900,7 @@ Promise of the resulting tuple
 
 > **ok**(): [`ResultTuple`](#resulttuple)\<`void`\>
 
-Defined in: [flow/flow.ts:60](../../src/flow/flow.ts#L60)
+Defined in: [flow/flow.ts:60](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L60)
 
 Create a success tuple with no value.
 
@@ -918,7 +914,7 @@ Create a success tuple with no value.
 
 > **ok**\<`T`\>(`value`): [`ResultTuple`](#resulttuple)\<`T`\>
 
-Defined in: [flow/flow.ts:71](../../src/flow/flow.ts#L71)
+Defined in: [flow/flow.ts:71](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L71)
 
 Create a success tuple carrying a value.
 
@@ -951,7 +947,7 @@ The success value
 
 > **onErr**\<`Out`\>(`fn`): \<`In`\>(`tuple`) => [`ResultTuple`](#resulttuple)\<`Out` \| `In`\>
 
-Defined in: [flow/flow.ts:365](../../src/flow/flow.ts#L365)
+Defined in: [flow/flow.ts:365](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L365)
 
 Stage running a callback on the error channel.
 
@@ -1002,7 +998,7 @@ A synchronous pipeline stage that preserves the success type
 
 > **onErrAsync**\<`Out`\>(`fn`): \<`In`\>(`tuple`) => `Promise`\<[`ResultTuple`](#resulttuple)\<`Out` \| `In`\>\>
 
-Defined in: [flow/flow.ts:377](../../src/flow/flow.ts#L377)
+Defined in: [flow/flow.ts:377](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L377)
 
 Async counterpart of `onErr()`.
 
@@ -1048,7 +1044,7 @@ An asynchronous pipeline stage that preserves the success type
 
 > **onOk**\<`In`, `Out`\>(`fn`): [`Op`](#op)\<`In`, `Out`\>
 
-Defined in: [flow/flow.ts:336](../../src/flow/flow.ts#L336)
+Defined in: [flow/flow.ts:336](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L336)
 
 Stage running a fallible callback on the success value.
 
@@ -1082,7 +1078,7 @@ A synchronous pipeline stage
 
 > **onOkAsync**\<`In`, `Out`\>(`fn`): [`OpAsync`](#opasync)\<`In`, `Out`\>
 
-Defined in: [flow/flow.ts:348](../../src/flow/flow.ts#L348)
+Defined in: [flow/flow.ts:348](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L348)
 
 Async counterpart of `onOk()`.
 
@@ -1116,7 +1112,7 @@ An asynchronous pipeline stage
 
 > **onTuple**\<`In`, `Out`\>(`fn`): [`Op`](#op)\<`In`, `Out`\>
 
-Defined in: [flow/flow.ts:389](../../src/flow/flow.ts#L389)
+Defined in: [flow/flow.ts:389](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L389)
 
 Stage running a callback on a copy of the whole tuple, on either channel.
 
@@ -1150,7 +1146,7 @@ A synchronous pipeline stage
 
 > **onTupleAsync**\<`In`, `Out`\>(`fn`): [`OpAsync`](#opasync)\<`In`, `Out`\>
 
-Defined in: [flow/flow.ts:401](../../src/flow/flow.ts#L401)
+Defined in: [flow/flow.ts:401](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L401)
 
 Async counterpart of `onTuple()`.
 
@@ -1186,7 +1182,7 @@ An asynchronous pipeline stage
 
 > **pipe**\<`A`\>(`source`): [`ResultTuple`](#resulttuple)\<`A`\>
 
-Defined in: [flow/flow.ts:420](../../src/flow/flow.ts#L420)
+Defined in: [flow/flow.ts:420](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L420)
 
 Run synchronous stages over a result tuple.
 
@@ -1218,7 +1214,7 @@ result widens to `ResultTuple<unknown>`.
 
 > **pipe**\<`A`, `B`\>(`source`, `op1`): [`ResultTuple`](#resulttuple)\<`B`\>
 
-Defined in: [flow/flow.ts:421](../../src/flow/flow.ts#L421)
+Defined in: [flow/flow.ts:421](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L421)
 
 Run synchronous stages over a result tuple.
 
@@ -1258,7 +1254,7 @@ result widens to `ResultTuple<unknown>`.
 
 > **pipe**\<`A`, `B`, `C`\>(`source`, `op1`, `op2`): [`ResultTuple`](#resulttuple)\<`C`\>
 
-Defined in: [flow/flow.ts:425](../../src/flow/flow.ts#L425)
+Defined in: [flow/flow.ts:425](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L425)
 
 Run synchronous stages over a result tuple.
 
@@ -1306,7 +1302,7 @@ result widens to `ResultTuple<unknown>`.
 
 > **pipe**\<`A`, `B`, `C`, `D`\>(`source`, `op1`, `op2`, `op3`): [`ResultTuple`](#resulttuple)\<`D`\>
 
-Defined in: [flow/flow.ts:430](../../src/flow/flow.ts#L430)
+Defined in: [flow/flow.ts:430](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L430)
 
 Run synchronous stages over a result tuple.
 
@@ -1362,7 +1358,7 @@ result widens to `ResultTuple<unknown>`.
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`\>(`source`, `op1`, `op2`, `op3`, `op4`): [`ResultTuple`](#resulttuple)\<`E`\>
 
-Defined in: [flow/flow.ts:436](../../src/flow/flow.ts#L436)
+Defined in: [flow/flow.ts:436](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L436)
 
 Run synchronous stages over a result tuple.
 
@@ -1426,7 +1422,7 @@ result widens to `ResultTuple<unknown>`.
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`): [`ResultTuple`](#resulttuple)\<`F`\>
 
-Defined in: [flow/flow.ts:443](../../src/flow/flow.ts#L443)
+Defined in: [flow/flow.ts:443](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L443)
 
 Run synchronous stages over a result tuple.
 
@@ -1498,7 +1494,7 @@ result widens to `ResultTuple<unknown>`.
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`): [`ResultTuple`](#resulttuple)\<`G`\>
 
-Defined in: [flow/flow.ts:451](../../src/flow/flow.ts#L451)
+Defined in: [flow/flow.ts:451](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L451)
 
 Run synchronous stages over a result tuple.
 
@@ -1578,7 +1574,7 @@ result widens to `ResultTuple<unknown>`.
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`): [`ResultTuple`](#resulttuple)\<`H`\>
 
-Defined in: [flow/flow.ts:460](../../src/flow/flow.ts#L460)
+Defined in: [flow/flow.ts:460](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L460)
 
 Run synchronous stages over a result tuple.
 
@@ -1666,7 +1662,7 @@ result widens to `ResultTuple<unknown>`.
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`): [`ResultTuple`](#resulttuple)\<`I`\>
 
-Defined in: [flow/flow.ts:470](../../src/flow/flow.ts#L470)
+Defined in: [flow/flow.ts:470](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L470)
 
 Run synchronous stages over a result tuple.
 
@@ -1762,7 +1758,7 @@ result widens to `ResultTuple<unknown>`.
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`, `op9`): [`ResultTuple`](#resulttuple)\<`J`\>
 
-Defined in: [flow/flow.ts:481](../../src/flow/flow.ts#L481)
+Defined in: [flow/flow.ts:481](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L481)
 
 Run synchronous stages over a result tuple.
 
@@ -1866,7 +1862,7 @@ result widens to `ResultTuple<unknown>`.
 
 > **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`, `op9`, `op10`): [`ResultTuple`](#resulttuple)\<`K`\>
 
-Defined in: [flow/flow.ts:493](../../src/flow/flow.ts#L493)
+Defined in: [flow/flow.ts:493](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L493)
 
 Run synchronous stages over a result tuple.
 
@@ -1978,7 +1974,7 @@ result widens to `ResultTuple<unknown>`.
 
 > **pipe**(`source`, ...`ops`): [`ResultTuple`](#resulttuple)\<`unknown`\>
 
-Defined in: [flow/flow.ts:508](../../src/flow/flow.ts#L508)
+Defined in: [flow/flow.ts:508](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L508)
 
 Run synchronous stages over a result tuple.
 
@@ -2012,7 +2008,7 @@ result widens to `ResultTuple<unknown>`.
 
 > **pipeAsync**\<`A`\>(`source`): `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\>
 
-Defined in: [flow/flow.ts:540](../../src/flow/flow.ts#L540)
+Defined in: [flow/flow.ts:540](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L540)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2044,7 +2040,7 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 > **pipeAsync**\<`A`, `B`\>(`source`, `op1`): `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\>
 
-Defined in: [flow/flow.ts:541](../../src/flow/flow.ts#L541)
+Defined in: [flow/flow.ts:541](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L541)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2084,7 +2080,7 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 > **pipeAsync**\<`A`, `B`, `C`\>(`source`, `op1`, `op2`): `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\>
 
-Defined in: [flow/flow.ts:545](../../src/flow/flow.ts#L545)
+Defined in: [flow/flow.ts:545](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L545)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2132,7 +2128,7 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`\>(`source`, `op1`, `op2`, `op3`): `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\>
 
-Defined in: [flow/flow.ts:550](../../src/flow/flow.ts#L550)
+Defined in: [flow/flow.ts:550](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L550)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2188,7 +2184,7 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`\>(`source`, `op1`, `op2`, `op3`, `op4`): `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\>
 
-Defined in: [flow/flow.ts:556](../../src/flow/flow.ts#L556)
+Defined in: [flow/flow.ts:556](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L556)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2252,7 +2248,7 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`): `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\>
 
-Defined in: [flow/flow.ts:563](../../src/flow/flow.ts#L563)
+Defined in: [flow/flow.ts:563](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L563)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2324,7 +2320,7 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`): `Promise`\<[`ResultTuple`](#resulttuple)\<`G`\>\>
 
-Defined in: [flow/flow.ts:571](../../src/flow/flow.ts#L571)
+Defined in: [flow/flow.ts:571](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L571)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2404,7 +2400,7 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`): `Promise`\<[`ResultTuple`](#resulttuple)\<`H`\>\>
 
-Defined in: [flow/flow.ts:580](../../src/flow/flow.ts#L580)
+Defined in: [flow/flow.ts:580](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L580)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2492,7 +2488,7 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`): `Promise`\<[`ResultTuple`](#resulttuple)\<`I`\>\>
 
-Defined in: [flow/flow.ts:590](../../src/flow/flow.ts#L590)
+Defined in: [flow/flow.ts:590](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L590)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2588,7 +2584,7 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`, `op9`): `Promise`\<[`ResultTuple`](#resulttuple)\<`J`\>\>
 
-Defined in: [flow/flow.ts:601](../../src/flow/flow.ts#L601)
+Defined in: [flow/flow.ts:601](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L601)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2692,7 +2688,7 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 > **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`, `op9`, `op10`): `Promise`\<[`ResultTuple`](#resulttuple)\<`K`\>\>
 
-Defined in: [flow/flow.ts:613](../../src/flow/flow.ts#L613)
+Defined in: [flow/flow.ts:613](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L613)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2804,7 +2800,7 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 > **pipeAsync**(`source`, ...`ops`): `Promise`\<[`ResultTuple`](#resulttuple)\<`unknown`\>\>
 
-Defined in: [flow/flow.ts:628](../../src/flow/flow.ts#L628)
+Defined in: [flow/flow.ts:628](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L628)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.

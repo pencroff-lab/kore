@@ -5,13 +5,29 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_docs_only:
+        description: >-
+          Rebuild and deploy the site from the committed catalog and receipt.
+          Publishes nothing and creates no tag. Use this to recover a failed
+          deployment, or to refresh /next/ between releases.
+        type: boolean
+        default: false
 
-#permissions:
-#  id-token: write  # Required for OIDC
-#  contents: read
+# Least privilege by default; the deploy job widens this for itself only.
+permissions:
+  contents: read
+
+env:
+  BUN_VERSION: "1.4.2"
+  GO_VERSION: "1.27.1"
+  HUGO_VERSION: "0.166.0"
 
 jobs:
-  test_publish:
+  # ── Library: the pre-existing checks, unchanged in substance ───────────────
+  library:
+    name: Library checks
     runs-on: ubuntu-latest
     container:
       image: oven/bun:1.3-slim
@@ -40,29 +56,170 @@ jobs:
       - name: Build and verify package
         run: bun run build
 
-      - name: Publish to npm
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  # ── Release state: what is this commit asking for? ─────────────────────────
+  release_state:
+    name: Classify release state
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.state.outputs.version }}
+      mode: ${{ steps.state.outputs.mode }}
+      latest_stable: ${{ steps.state.outputs.latest_stable }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Classify
+        id: state
+        run: bun run docs:release-state
+
+      - name: Summarize
+        run: |
+          echo "### Release state" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- version: \`${{ steps.state.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- mode: \`${{ steps.state.outputs.mode }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- latest stable: \`${{ steps.state.outputs.latest_stable || 'none' }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Documentation: validate and build the complete site artifact ───────────
+  docs:
+    name: Documentation site
+    runs-on: ubuntu-latest
+    needs: release_state
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install Hugo Extended ${{ env.HUGO_VERSION }}
+        run: |
+          set -euo pipefail
+          url="https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb"
+          curl -sSL --fail -o /tmp/hugo.deb "$url"
+          sudo dpkg -i /tmp/hugo.deb
+          hugo version
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # docs:check needs dist/ for the packed-archive check.
+      - name: Build the library
+        run: bun run build
+
+      - name: Validate documentation
+        run: bun run docs:check
+
+      - name: Build the combined site
+        run: bun run docs:build
+
+      - name: Validate the rendered site
+        run: bun run docs:check -- --site build/docs-site/public
+
+      - name: Configure Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+
+      - name: Upload the Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/docs-site/public
+
+      # Pull requests get an inspectable artifact but never a deployment.
+      - name: Upload a preview artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-site-preview
+          path: build/docs-site/public
+          retention-days: 7
+
+  # ── Guard: an ordinary push must not publish an unprepared version ─────────
+  release_guard:
+    name: Release preparation guard
+    runs-on: ubuntu-latest
+    needs: release_state
+    if: github.event_name == 'push' && needs.release_state.outputs.mode == 'unprepared'
+    steps:
+      - name: Fail with the missing preparation
+        run: |
+          echo "::error::Version ${{ needs.release_state.outputs.version }} is neither published nor prepared as a snapshot."
+          echo "Run 'bun run docs:snapshot ${{ needs.release_state.outputs.version }}' on the release commit to prepare a release," >&2
+          echo "or use the 'deploy_docs_only' workflow_dispatch input to deploy documentation without publishing." >&2
+          exit 1
+
+  # ── Publish: only for a prepared, unpublished version ─────────────────────
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    needs: [library, docs, release_state]
+    if: github.event_name == 'push' && needs.release_state.outputs.mode == 'release'
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build the validated artifact
+        run: bun run build
+
+      - name: Publish
         run: bun run publish_pkg
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Create git tag from version
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Verify the exact published version
+        run: |
+          set -euo pipefail
+          version="${{ needs.release_state.outputs.version }}"
+          npm view "@pencroff-lab/kore@${version}" version
+        env:
+          NPM_TOKEN: "---"
+
+      - name: Create or verify the release tag at this commit
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.REPO_TAG_TOKEN }}
           script: |
-            const fs = require('node:fs');
-            const { version } = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-            const tag = `v${version}`;
-            core.info(`Ensuring tag ${tag} points at ${context.sha}`);
+            const tag = `v${{ needs.release_state.outputs.version }}`;
             try {
-              await github.rest.git.getRef({
+              const { data } = await github.rest.git.getRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: `tags/${tag}`,
               });
-              core.info(`Tag ${tag} already exists; skipping.`);
+              if (data.object.sha !== context.sha) {
+                core.setFailed(
+                  `Tag ${tag} already points at ${data.object.sha}, not the release commit ${context.sha}. ` +
+                  `A mismatched tag is an error, not a skip.`
+                );
+                return;
+              }
+              core.info(`Tag ${tag} already points at ${context.sha}.`);
             } catch (error) {
               if (error.status !== 404) throw error;
               await github.rest.git.createRef({
@@ -71,11 +228,70 @@ jobs:
                 ref: `refs/tags/${tag}`,
                 sha: context.sha,
               });
-              core.info(`Created tag ${tag}`);
+              core.info(`Created tag ${tag} at ${context.sha}.`);
             }
 
-      - name: Verify published version
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: bun info @pencroff-lab/kore
+      - name: Verify publication and produce the receipt patch
+        run: |
+          set -euo pipefail
+          bun run docs:record-publication -- "${{ needs.release_state.outputs.version }}"
+          mkdir -p build/receipt
+          cp site/published.json build/receipt/published.json
+          git diff -- site/published.json > build/receipt/published.patch || true
         env:
           NPM_TOKEN: "---"
+
+      - name: Upload the receipt for the finalization commit
+        uses: actions/upload-artifact@v4
+        with:
+          name: publication-receipt-${{ needs.release_state.outputs.version }}
+          path: build/receipt
+          retention-days: 30
+
+      - name: Explain the finalization step
+        run: |
+          {
+            echo "### Publication recorded"
+            echo ""
+            echo "\`@pencroff-lab/kore@${{ needs.release_state.outputs.version }}\` is published and tagged."
+            echo ""
+            echo "The site still serves the previous default edition. To promote it, commit the"
+            echo "verified receipt from the \`publication-receipt-${{ needs.release_state.outputs.version }}\` artifact:"
+            echo ""
+            echo '```sh'
+            echo "git checkout -b docs/record-${{ needs.release_state.outputs.version }}"
+            echo "cp published.json site/published.json"
+            echo "git commit -am 'docs: record ${{ needs.release_state.outputs.version }} publication'"
+            echo '```'
+            echo ""
+            echo "Merging that commit runs the documentation-only path, which deploys the site"
+            echo "with ${{ needs.release_state.outputs.version }} promoted. It cannot republish npm."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Deploy: one artifact, one concurrency group ───────────────────────────
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: [library, docs, release_state]
+    if: >-
+      (github.event_name == 'push' && needs.release_state.outputs.mode == 'docs-only') ||
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_docs_only)
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    # Serialize deployments so an older retry cannot overwrite a newer release.
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    steps:
+      - name: Recheck the promotion state before deploying
+        run: |
+          echo "Deploying with latest stable: ${{ needs.release_state.outputs.latest_stable || 'none (overview)' }}"
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
