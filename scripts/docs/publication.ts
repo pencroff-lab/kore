@@ -194,41 +194,49 @@ async function capture(
 	return { code, out, err };
 }
 
-export const liveAdapters: PublicationAdapters = {
-	registry: async (version) => {
-		const exact = await capture([
-			"npm",
-			"view",
-			`@pencroff-lab/kore@${version}`,
-			"--json",
-		]);
-		if (exact.code !== 0) return null;
-		const data = JSON.parse(exact.out) as {
-			version?: string;
-			dist?: { integrity?: string };
-		};
-		if (!data.version) return null;
+type CommandCapture = typeof capture;
 
-		const tags = await capture([
-			"npm",
-			"view",
-			"@pencroff-lab/kore",
-			"dist-tags",
-			"--json",
-		]);
-		const distTags: string[] = [];
-		if (tags.code === 0) {
-			const map = JSON.parse(tags.out) as Record<string, string>;
-			for (const [name, value] of Object.entries(map)) {
-				if (value === version) distTags.push(name);
-			}
+/** Reads one exact package version and its dist-tags through Bun's registry CLI. */
+export async function queryRegistry(
+	version: string,
+	run: CommandCapture = capture,
+): Promise<RegistryFacts | null> {
+	const exact = await run([
+		"bun",
+		"info",
+		`@pencroff-lab/kore@${version}`,
+		"--json",
+	]);
+	if (exact.code !== 0) return null;
+	const data = JSON.parse(exact.out) as {
+		version?: string;
+		dist?: { integrity?: string };
+	};
+	if (!data.version) return null;
+
+	const tags = await run([
+		"bun",
+		"info",
+		"@pencroff-lab/kore",
+		"dist-tags",
+		"--json",
+	]);
+	const distTags: string[] = [];
+	if (tags.code === 0) {
+		const map = JSON.parse(tags.out) as Record<string, string>;
+		for (const [name, value] of Object.entries(map)) {
+			if (value === version) distTags.push(name);
 		}
-		return {
-			version: data.version,
-			integrity: data.dist?.integrity ?? "",
-			distTags,
-		};
-	},
+	}
+	return {
+		version: data.version,
+		integrity: data.dist?.integrity ?? "",
+		distTags,
+	};
+}
+
+export const liveAdapters: PublicationAdapters = {
+	registry: queryRegistry,
 	tag: async (tagName) => {
 		const result = await capture(["git", "rev-list", "-n", "1", tagName]);
 		if (result.code !== 0) return { exists: false, commit: null };

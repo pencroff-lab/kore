@@ -457,3 +457,224 @@ bun run build              # build ESM + CJS to dist/
 ## License
 
 [Apache-2.0](LICENSE)
+
+## Release process
+
+This section is the maintainer checklist for publishing the library and its
+versioned documentation. The documentation implementation and recovery model
+are described in more detail in [`site/README.md`](site/README.md).
+
+### 1. Finish the code and documentation
+
+Keep `package.json#version` at the currently published version while ordinary
+feature work is in progress. Before merging a feature, make its commit messages
+final: `git-cliff` derives the next version from Conventional Commits. Use `!`
+and a `BREAKING CHANGE:` footer for a real breaking change, for example:
+
+```text
+feat(flow)!: add tuple-based error boundaries
+
+BREAKING CHANGE: flow replaces Outcome as the primary result API.
+```
+
+Regenerate documentation whenever exported APIs, JSDoc, examples or navigation
+change, and commit generated files with their source change:
+
+```bash
+bun install --frozen-lockfile
+bun run docs:generate
+bun run docs:check
+```
+
+Validate code and documentation before preparing the release:
+
+```bash
+bun run lint:ci
+bun run check:boundaries
+bun test --coverage --path-ignore-patterns='scripts/docs/build.integration.test.ts'
+bun test scripts/docs/build.integration.test.ts
+bun run build
+bun run docs:build
+bun run docs:check -- --site build/docs-site/public
+```
+
+The documentation integration tests and site build require the exact Bun, Go,
+Hugo Extended and Hextra versions listed in
+[`site/toolchain.json`](site/toolchain.json).
+
+### 2. Prepare the release
+
+Create a release-preparation branch from the latest `main`:
+
+```bash
+VERSION=0.8.0
+git switch main
+git pull --ff-only origin main
+git switch -c "release/prepare-${VERSION}"
+```
+
+Check the version inferred from the commit history, generate the changelog, and
+set `package.json#version` to the same version without the leading `v`:
+
+```bash
+bunx git-cliff --bumped-version
+bun run bump_version
+```
+
+Review `CHANGELOG.md`; do not accept the inferred version blindly. If it is
+wrong, fix the Conventional Commit messages before they reach `main`, then
+regenerate the changelog. Once the version is final, regenerate documentation
+so its source links use `v<version>` and create the immutable snapshot:
+
+```bash
+bun run docs:generate
+bun run check:release
+bun run docs:check
+bun run docs:snapshot "$VERSION"
+bun run docs:release-state
+```
+
+The final command must report `mode=release`, `snapshot_present=true` and
+`publication_recorded=false`. Review and commit every generated release file:
+
+```bash
+git status
+git diff --stat
+git add -A
+git commit -m "chore(release): prepare ${VERSION}"
+git push -u origin "release/prepare-${VERSION}"
+```
+
+Open a pull request. Pull-request CI validates the package and complete site but
+does not publish. Merging the prepared commit to `main` publishes npm, verifies
+the exact registry version, creates `v<version>`, and uploads the verified
+`publication-receipt-<version>` artifact.
+
+### 3. Commit the publication receipt
+
+Download the receipt artifact from the successful workflow run, copy its
+`published.json` over `site/published.json`, and commit it in a second pull
+request. With the GitHub CLI:
+
+```bash
+VERSION=0.8.0
+RUN_ID=123456789
+gh run download "$RUN_ID" \
+  --name "publication-receipt-${VERSION}" \
+  --dir build/receipt
+cp build/receipt/published.json site/published.json
+bun run docs:release-state
+git add site/published.json
+git commit -m "docs: record ${VERSION} publication"
+```
+
+The classifier must now report `mode=docs-only`. Merging this receipt commit
+promotes the new documentation edition and deploys GitHub Pages without
+publishing or moving the tag again.
+
+## Troubleshooting releases
+
+### `git-cliff` suggests the wrong version
+
+Inspect the commits since the latest tag. A breaking release needs `!` after
+the type or scope, or a `BREAKING CHANGE:` footer. Rewrite incorrect messages
+before merging the feature branch. If the commits are already on `main`, avoid
+rewriting shared history merely to change the changelog: select the intended
+version explicitly, review `CHANGELOG.md`, and continue with a release-prep
+branch.
+
+### Release state is `unprepared`
+
+`package.json` names a version that is neither recorded as published nor
+present under `site/versions/`. Confirm that `CHANGELOG.md` contains the exact
+version, then run:
+
+```bash
+VERSION=0.8.0
+bun run check:release
+bun run docs:generate
+bun run docs:snapshot "$VERSION"
+bun run docs:release-state
+```
+
+Never add a `site/versions.yaml` entry manually; `docs:snapshot` creates the
+directory, manifest, hashes and catalog entry as one validated operation.
+
+### npm publish failed before the version appeared on npm
+
+Fix the reported authentication, permission, network or package-validation
+error and rerun the release. The prepared snapshot is still only a candidate,
+and no receipt should be committed until the exact version exists on npm.
+
+### npm published, but receipt generation failed
+
+Do **not** publish again and do not bump to another version. This includes the
+`Executable not found in $PATH: "npm"` failure from the slim Bun CI image. The
+receipt verifier uses `bun info`; update to the fix if the failed release commit
+predates it.
+
+The recorder requires `HEAD` to equal the commit referenced by `v<version>`.
+Create a recovery branch at that tag, apply any verifier fix without committing
+it yet, verify the operation, and then write the receipt:
+
+```bash
+VERSION=0.8.0
+git fetch origin --tags
+git switch -c "recovery/record-${VERSION}" "v${VERSION}"
+
+# Apply the required tooling fix here, but keep HEAD at "v${VERSION}".
+bun run docs:record-publication -- "$VERSION" --dry-run
+bun run docs:record-publication -- "$VERSION"
+bun run docs:release-state
+```
+
+Commit `site/published.json` together with the tooling fix. The resulting
+branch reports `mode=docs-only`; merging it skips npm publication and resumes
+the documentation deployment.
+
+### The version already exists on npm
+
+First determine whether it is the package produced by the current release. If
+it is the expected release and `v<version>` points at its release commit, use
+the receipt-recovery procedure above. If it belongs to another build, stop and
+investigate; npm versions are immutable, so the intended release needs a new
+version rather than an overwritten artifact.
+
+### The release tag is missing or points at another commit
+
+Compare the tag and release commit:
+
+```bash
+VERSION=0.8.0
+git rev-parse "v${VERSION}"
+git rev-parse HEAD
+```
+
+Do not move an existing published tag automatically. Confirm which commit
+produced the npm artifact first. A missing tag may be created at that verified
+commit; a mismatched tag requires manual investigation.
+
+### The receipt exists but was not committed
+
+Download `publication-receipt-<version>` from the original workflow run and
+commit its `published.json` as described above. If the artifact expired, check
+out `v<version>` and recreate it with `docs:record-publication`.
+
+### Documentation validation cannot find Hugo
+
+Install the Extended edition and match [`site/toolchain.json`](site/toolchain.json).
+Library tests intentionally exclude `scripts/docs/build.integration.test.ts`;
+run that suite only in an environment where Hugo is available.
+
+### GitHub Actions warns that Node.js 20 is deprecated
+
+The warning refers to the JavaScript runtime used internally by an action, not
+to Bun or this package. Upgrade the named action to a Node.js 24-based major;
+for example, replace `actions/checkout@v4` with `actions/checkout@v5`.
+
+### npm succeeded but GitHub Pages deployment failed
+
+Commit the verified receipt first if it is still pending. Then rerun the failed
+deployment or manually dispatch the CI workflow with `deploy_docs_only=true`.
+That path rebuilds and deploys the committed documentation state and cannot
+republish npm or move the release tag.

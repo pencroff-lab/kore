@@ -1,5 +1,13 @@
 {
 	"schemaVersion": 1,
-	"latestStable": null,
-	"releases": []
+	"latestStable": "0.7.0",
+	"releases": [
+		{
+			"version": "0.7.0",
+			"sourceCommit": "79c16ef6f5e1bc81070b3f4161129aa242f1ca26",
+			"snapshotDigest": "757e526fdd5a787fc1f0c9fcaa71fb489093edd59e25b0ac97afd9276249d8e7",
+			"registryIntegrity": "sha512-pTZJ8C3hgvpGN4EQdIRBYRRjj9ceYeQtKC9JrUJ5R2eRynS3nsZ5vuSiKh9jfRpQ3LKp6nTW9rnnqpXAbwfJ8Q==",
+			"distTag": "latest"
+		}
+	]
 }
