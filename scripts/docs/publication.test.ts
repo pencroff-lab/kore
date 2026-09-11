@@ -7,6 +7,7 @@ import type { PublicationAdapters, RegistryFacts } from "./publication";
 import {
 	applyRelease,
 	PublicationError,
+	queryRegistry,
 	recordPublication,
 	unifiedDiff,
 } from "./publication";
@@ -122,6 +123,40 @@ describe("applyRelease", () => {
 		expect(() =>
 			applyRelease(first, release({ sourceCommit: "f".repeat(40) })),
 		).toThrow(/already recorded with a different commit/);
+	});
+});
+
+describe("queryRegistry", () => {
+	test("uses Bun to read the exact version, integrity and dist-tags", async () => {
+		const calls: string[][] = [];
+		const result = await queryRegistry("0.7.0", async (cmd: string[]) => {
+			calls.push(cmd);
+			if (cmd.includes("dist-tags")) {
+				return {
+					code: 0,
+					out: JSON.stringify({ latest: "0.7.0", next: "0.8.0-rc.1" }),
+					err: "",
+				};
+			}
+			return {
+				code: 0,
+				out: JSON.stringify({
+					version: "0.7.0",
+					dist: { integrity: "sha512-real" },
+				}),
+				err: "",
+			};
+		});
+
+		expect(calls).toEqual([
+			["bun", "info", "@pencroff-lab/kore@0.7.0", "--json"],
+			["bun", "info", "@pencroff-lab/kore", "dist-tags", "--json"],
+		]);
+		expect(result).toEqual({
+			version: "0.7.0",
+			integrity: "sha512-real",
+			distTags: ["latest"],
+		});
 	});
 });
 

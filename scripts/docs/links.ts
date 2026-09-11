@@ -33,6 +33,15 @@ export interface RewriteResult {
 
 const SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 
+// Root documents may cite repository files that are intentionally not copied
+// into a release snapshot. Keep this list narrow so an ordinary broken link is
+// still diagnosed instead of becoming a GitHub URL that returns 404.
+const SOURCE_ONLY_FILES = new Set([
+	"LICENSE",
+	"site/README.md",
+	"site/toolchain.json",
+]);
+
 interface SplitDestination {
 	path: string;
 	query: string;
@@ -101,13 +110,18 @@ export function resolveDestination(
 	const dirIndex = manifest.indexByDir.get(target);
 	if (dirIndex) return { route: dirIndex.route + parts.query + parts.fragment };
 
+	const rel = relative(repoRoot, target).split("\\").join("/");
+	const insideRepo = !rel.startsWith("..");
 	if (!existsSync(target)) {
+		if (insideRepo && sourceLinkBase && SOURCE_ONLY_FILES.has(rel)) {
+			return {
+				route: `${sourceLinkBase}${rel}${parts.query}${parts.fragment}`,
+			};
+		}
 		return { reason: "target does not exist" };
 	}
 
-	const insideRepo = !relative(repoRoot, target).startsWith("..");
 	if (insideRepo && sourceLinkBase) {
-		const rel = relative(repoRoot, target).split("\\").join("/");
 		const suffix = statSync(target).isDirectory() ? "/" : "";
 		return {
 			route: `${sourceLinkBase}${rel}${suffix}${parts.query}${parts.fragment}`,

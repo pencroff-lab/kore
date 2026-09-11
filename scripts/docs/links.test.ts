@@ -148,6 +148,17 @@ describe("rewriteMarkdown", () => {
 		expect(result.diagnostics).toEqual([]);
 	});
 
+	test.each([
+		"LICENSE",
+		"site/README.md",
+		"site/toolchain.json",
+	])("links an uncopied snapshot file to its tagged source: %s", (target) => {
+		const result = rewrite(`[source](${target})`, "README.md");
+
+		expect(result.text).toBe(`[source](${SOURCE_BASE}${target})`);
+		expect(result.diagnostics).toEqual([]);
+	});
+
 	test("reports a missing local target with file and line", () => {
 		const result = rewrite("intro\n\n[gone](./missing.md)\n");
 
