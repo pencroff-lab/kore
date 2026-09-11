@@ -20,6 +20,8 @@ export interface RewriteOptions {
 	repoRoot: string;
 	/** GitHub blob base for files outside the documented set. */
 	sourceLinkBase: string | null;
+	/** Exact generated release-source prefix to replace for development pages. */
+	sourceCitationBase?: string;
 	/** Origin to prepend, for absolute web links such as llms.txt. */
 	origin?: string | null;
 	/** Path reported in diagnostics; defaults to `pageAbsPath`. */
@@ -87,6 +89,17 @@ export function resolveDestination(
 	options: RewriteOptions,
 ): { route: string } | { reason: string } | null {
 	if (destination === "" || destination.startsWith("#")) return null;
+	if (
+		options.sourceCitationBase &&
+		options.sourceLinkBase &&
+		destination.startsWith(`${options.sourceCitationBase}src/`)
+	) {
+		return {
+			route:
+				options.sourceLinkBase +
+				destination.slice(options.sourceCitationBase.length),
+		};
+	}
 	if (isExternal(destination)) return null;
 
 	const parts = splitDestination(destination);

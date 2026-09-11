@@ -126,10 +126,6 @@ function renderCatalog(catalog: VersionsCatalog): string {
 		"# Add entries with `bun run docs:snapshot <version>`; never by hand.",
 		"schemaVersion: 1",
 		"",
-		"development:",
-		`  label: ${JSON.stringify(catalog.development.label)}`,
-		`  sourceRef: ${JSON.stringify(catalog.development.sourceRef)}`,
-		"",
 		"releases:",
 	];
 	if (catalog.releases.length === 0) {

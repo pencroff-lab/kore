@@ -75,6 +75,8 @@ interface EditionSource {
 	/** Root that this edition's canonical files live under. */
 	contentRoot: string;
 	sourceLinkBase: string | null;
+	/** Release citations to replace in the rendered working-tree edition only. */
+	sourceCitationBase?: string;
 	banner?: string;
 	noindex: boolean;
 }
@@ -158,6 +160,7 @@ export async function prepareEdition(
 						manifest,
 						repoRoot: source.contentRoot,
 						sourceLinkBase: source.sourceLinkBase,
+						sourceCitationBase: source.sourceCitationBase,
 					});
 		diagnostics.push(...rewritten.diagnostics);
 
@@ -206,6 +209,7 @@ export async function prepareEdition(
 				manifest,
 				repoRoot: source.contentRoot,
 				sourceLinkBase: source.sourceLinkBase,
+				sourceCitationBase: source.sourceCitationBase,
 				origin: options.origin,
 			});
 			diagnostics.push(...rewritten.diagnostics);
@@ -287,9 +291,12 @@ function editionLlms(
 	source: EditionSource,
 	origin: string,
 ): string {
-	const status = source.spec.released
-		? `Documentation for released version ${source.spec.version}.`
-		: `Documentation for unreleased version ${source.spec.version}. Not published to npm.`;
+	const status =
+		source.spec.id === "next" && source.spec.version === "next"
+			? "Development documentation for the next release. Not a published package edition."
+			: source.spec.released
+				? `Documentation for released version ${source.spec.version}.`
+				: `Documentation for unreleased version ${source.spec.version}. Not published to npm.`;
 	const header = [
 		`> Edition: ${source.spec.label}`,
 		`> ${status}`,
@@ -465,13 +472,13 @@ async function snapshotSource(
 function buildMenu(
 	published: string[],
 	latestStable: string | null,
-	catalog: VersionsCatalog,
+	developmentLabel: string,
 	candidate?: string,
 ): MenuEntry[] {
 	const menu: MenuEntry[] = [
 		{ name: "Documentation", href: "/", weight: 1 },
 		{
-			name: latestStable ? `v${latestStable}` : catalog.development.label,
+			name: latestStable ? `v${latestStable}` : developmentLabel,
 			href: "/",
 			weight: 6,
 			identifier: "version",
@@ -504,7 +511,7 @@ function buildMenu(
 		});
 	}
 	menu.push({
-		name: catalog.development.label,
+		name: developmentLabel,
 		href: "/next/",
 		weight: weight++,
 		parent: "version",
@@ -555,6 +562,23 @@ export async function buildSite(
 			Bun.file(sitePaths.hugoConfig).text(),
 		]);
 	const baseConfig = Bun.YAML.parse(baseConfigText) as Record<string, unknown>;
+	// The working tree comes from the checkout, not the branch that originally
+	// prepared a snapshot. Pin citations to this build's commit, including CI's
+	// detached checkouts. Source archives without Git use the default branch.
+	const git = Bun.spawnSync(["git", "rev-parse", "HEAD"], {
+		cwd: sitePaths.repoRoot,
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+	const developmentRef =
+		git.exitCode === 0 ? git.stdout.toString().trim() : "main";
+	const versionPublished = receipt.releases.some(
+		(release) => release.version === version,
+	);
+	const developmentVersion = versionPublished ? "next" : version;
+	const developmentLabel = versionPublished
+		? "Next (unreleased)"
+		: `${version} (unreleased)`;
 
 	const published = publishedVersions(catalog, receipt);
 	const latestStable =
@@ -568,10 +592,10 @@ export async function buildSite(
 		spec: {
 			id: "next",
 			prefix: "/next/",
-			label: catalog.development.label,
-			version,
+			label: developmentLabel,
+			version: developmentVersion,
 			released: false,
-			sourceRef: catalog.development.sourceRef,
+			sourceRef: developmentRef,
 		},
 		input: {
 			docsDir: sitePaths.docsDir,
@@ -580,8 +604,11 @@ export async function buildSite(
 			navigation,
 		},
 		contentRoot: sitePaths.repoRoot,
-		sourceLinkBase: sourceLinkBase(catalog.development.sourceRef),
-		banner: `This is unreleased development documentation for ${catalog.development.label}. It is not published to npm.`,
+		sourceLinkBase: sourceLinkBase(developmentRef),
+		sourceCitationBase: sourceLinkBase(`v${version}`),
+		banner: versionPublished
+			? "Development documentation for the next release. Not a published package edition."
+			: `This is unreleased development documentation for ${version}. It is not published to npm.`,
 		noindex: true,
 	});
 
@@ -656,7 +683,7 @@ export async function buildSite(
 		const overviewDir = join(sitePaths.workRoot, "overview");
 		const overviewLlms = join(sitePaths.workRoot, "overview-llms.txt");
 		await writeOverview(overviewDir, overviewLlms, {
-			developmentLabel: catalog.development.label,
+			developmentLabel,
 			lastArchived: lastArchivedVersion(sitePaths.archivedDir),
 			origin,
 		});
@@ -667,7 +694,7 @@ export async function buildSite(
 				label: "Overview",
 				version: "overview",
 				released: false,
-				sourceRef: catalog.development.sourceRef,
+				sourceRef: developmentRef,
 			},
 			input: {
 				docsDir: overviewDir,
@@ -681,7 +708,12 @@ export async function buildSite(
 		});
 	}
 
-	const menu = buildMenu(published, latestStable, catalog, options.candidate);
+	const menu = buildMenu(
+		published,
+		latestStable,
+		developmentLabel,
+		options.candidate,
+	);
 	const editions: BuildResult["editions"] = [];
 	const diagnostics: LinkDiagnostic[] = [];
 	rmSync(workDir, { recursive: true, force: true });

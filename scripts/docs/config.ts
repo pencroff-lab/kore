@@ -57,7 +57,8 @@ export interface ReleaseCatalogEntry {
 
 export interface VersionsCatalog {
 	schemaVersion: number;
-	development: { label: string; sourceRef: string };
+	/** Legacy catalogs may contain this; build metadata is derived automatically. */
+	development?: { label: string; sourceRef: string };
 	releases: ReleaseCatalogEntry[];
 }
 
@@ -111,7 +112,6 @@ export async function loadVersionsCatalog(
 	}
 	return {
 		schemaVersion: 1,
-		development: raw.development ?? { label: "development", sourceRef: "main" },
 		releases: raw.releases ?? [],
 	};
 }
