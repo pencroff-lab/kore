@@ -18,6 +18,8 @@
 
 - Re-works started (da571f6)
 - Add docs by hextra (82b32fb)
+- Update CHANGELOG.md (d9f1aa1)
+- Update ci.yml (ed2b033)
 
 ### Refactor
 
