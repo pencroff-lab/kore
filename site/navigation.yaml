@@ -6,88 +6,88 @@
 schemaVersion: 1
 
 sections:
-  - path: api
-    title: API reference
-    weight: 20
-    description: Generated from the source comments on every exported symbol.
   - path: guides
     title: Guides
-    weight: 30
+    weight: 20
     description: Task-oriented explanations of how the library is meant to be used.
   - path: examples
     title: Examples
-    weight: 40
+    weight: 30
     description: Executable examples, generated from the library's own test suite.
+  - path: api
+    title: API reference
+    weight: 40
+    description: Generated from the source comments on every exported symbol.
 
 pages:
   - path: README.md
     title: Overview
     weight: 1
 
-  - path: api/README.md
-    title: API reference
-    weight: 20
-  - path: api/flow.md
-    title: flow
-    weight: 21
-  - path: api/err.md
-    title: Err
-    weight: 22
-  - path: api/test.md
-    title: Test helpers
-    weight: 23
-  - path: api/outcome.md
-    title: Outcome (deprecated)
-    weight: 24
-  - path: api/logger.md
-    title: Logger
-    weight: 25
-  - path: api/format_dt.md
-    title: dtStamp
-    weight: 26
-
   - path: guides/flow-operation-flows.md
     title: Flow operation flows
-    weight: 31
+    weight: 21
   - path: guides/error-handling-patterns.md
     title: Error handling patterns
-    weight: 32
+    weight: 22
   - path: guides/migration-from-throwing.md
     title: Migration from throwing
-    weight: 33
+    weight: 23
   - path: guides/logging_guide.md
     title: Logging guide
-    weight: 34
+    weight: 24
   - path: guides/docs_guide.md
     title: Documentation guide
-    weight: 35
+    weight: 25
   - path: guides/tsdoc_guide.md
     title: TSDoc formatting rules
-    weight: 36
+    weight: 26
   - path: guides/worktree_guide.md
     title: Worktree guide
-    weight: 37
+    weight: 27
 
   - path: examples/README.md
     title: Examples
-    weight: 40
+    weight: 30
   - path: examples/flow.md
     title: flow examples
-    weight: 41
+    weight: 31
   - path: examples/err.md
     title: Err examples
-    weight: 42
+    weight: 32
   - path: examples/test.md
     title: Test helper examples
-    weight: 43
+    weight: 33
   - path: examples/outcome.md
     title: Outcome examples
-    weight: 44
+    weight: 34
   - path: examples/logger.md
     title: Logger examples
-    weight: 45
+    weight: 35
   - path: examples/format_dt.md
     title: dtStamp examples
+    weight: 36
+
+  - path: api/README.md
+    title: API reference
+    weight: 40
+  - path: api/flow.md
+    title: flow
+    weight: 41
+  - path: api/err.md
+    title: Err
+    weight: 42
+  - path: api/test.md
+    title: Test helpers
+    weight: 43
+  - path: api/outcome.md
+    title: Outcome (deprecated)
+    weight: 44
+  - path: api/logger.md
+    title: Logger
+    weight: 45
+  - path: api/format_dt.md
+    title: dtStamp
     weight: 46
 
   - path: commit_convention.md

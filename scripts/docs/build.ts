@@ -255,6 +255,12 @@ export async function prepareEdition(
 			join(projectDir, "layouts"),
 		);
 	}
+	if (existsSync(join(sitePaths.siteDir, "assets"))) {
+		await copyTree(
+			join(sitePaths.siteDir, "assets"),
+			join(projectDir, "assets"),
+		);
+	}
 	if (existsSync(join(sitePaths.siteDir, "static"))) {
 		await copyTree(
 			join(sitePaths.siteDir, "static"),

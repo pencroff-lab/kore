@@ -182,6 +182,7 @@ export function watchTargets(): { path: string; regenerate: boolean }[] {
 		{ path: paths.navigation, regenerate: false },
 		{ path: paths.versionsCatalog, regenerate: false },
 		{ path: paths.publishedReceipt, regenerate: false },
+		{ path: join(paths.siteDir, "assets"), regenerate: false },
 		{ path: join(paths.siteDir, "layouts"), regenerate: false },
 		{ path: paths.readme, regenerate: false },
 		{ path: paths.changelog, regenerate: false },

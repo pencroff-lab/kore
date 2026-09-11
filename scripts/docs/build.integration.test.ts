@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { SitePaths } from "./build";
 import { buildSite, publishedVersions } from "./build";
@@ -52,6 +52,7 @@ function fixtureTree(marker: string): Record<string, string> {
 			'{"schemaVersion":1,"latestStable":null,"releases":[]}',
 		"site/archived/README.md":
 			"# Archived releases\n\n## v0.6.0 — 2026-09-01\n\nOld release.\n",
+		"site/assets/css/custom.css": ":root { --fixture-accent: #126c8a; }\n",
 	};
 }
 
@@ -133,6 +134,11 @@ describe("combined site build", () => {
 			expect(home).toContain(
 				"No stable documentation edition is published yet",
 			);
+			const cssDir = join(out, "next/css/compiled");
+			const stylesheet = await Bun.file(
+				join(cssDir, readdirSync(cssDir)[0] ?? "missing.css"),
+			).text();
+			expect(stylesheet).toContain("--fixture-accent:#126c8a");
 		},
 		BUILD_TIMEOUT,
 	);

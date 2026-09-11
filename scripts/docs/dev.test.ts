@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { paths } from "./config";
 import {
 	DEFAULT_PORTS,
 	fingerprintInputs,
 	injectLiveReload,
 	liveReloadSnippet,
 	syncTree,
+	watchTargets,
 	writeHostProject,
 } from "./dev";
 import { makeTempRepo, removeTempRepo } from "./fixtures";
@@ -156,6 +158,15 @@ describe("fingerprintInputs", () => {
 
 	test("ignores a target that does not exist", () => {
 		expect(fingerprintInputs([{ path: join(root, "absent") }])).toBe("");
+	});
+});
+
+describe("watchTargets", () => {
+	test("watches site theme assets without regenerating API docs", () => {
+		expect(watchTargets()).toContainEqual({
+			path: join(paths.siteDir, "assets"),
+			regenerate: false,
+		});
 	});
 });
 

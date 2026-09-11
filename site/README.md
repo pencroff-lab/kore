@@ -115,7 +115,7 @@ on GitHub and inside the installed package. The build resolves every
 destination through the content manifest and writes the final site path,
 including the edition prefix, into the staged Markdown.
 
-Two theme overrides in `layouts/` exist for this and are the only ones:
+Four layout overrides in `layouts/` exist for this:
 
 - `_markup/render-link.html` and `_markup/render-image.html` trust the staged
   destination. Hextra's own hooks re-resolve root-relative destinations against
@@ -124,6 +124,12 @@ Two theme overrides in `layouts/` exist for this and are the only ones:
 - `_partials/navbar.html` and `_partials/navbar-link.html` are the pinned
   theme's files with one change, `or .Params.href .URL`, so cross-edition menu
   links survive Hugo's per-site menu URL canonicalization.
+
+The site-wide Colorful Classic palette lives in `assets/css/custom.css`,
+Hextra's supported custom-style entry point. The build copies `site/assets/`
+into every staged edition, and local development watches it. Shared light and
+dark surface/text tokens are kept separate from the small `--kore-accent-*`
+group so sibling sites can reuse the palette with their own accent.
 
 Re-copy the navbar partials from the theme when the Hextra pin moves.
 
@@ -219,6 +225,7 @@ deliberately rather than as a side effect.
 | `versions.yaml` | Snapshot catalog and the development source — not publication evidence |
 | `published.json` | The only record of what is actually published |
 | `archived/README.md` | Brief overviews of every release through v0.6.0 |
+| `assets/css/custom.css` | Shared Colorful Classic palette and Kore accent |
 | `layouts/` | The four theme overrides described above |
 | `versions/<version>/` | Immutable release snapshots |
 
