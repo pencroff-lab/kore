@@ -45,7 +45,6 @@ Generated from executable example tests, so every snippet is verified.
 
 - [Documentation guide](docs/guides/docs_guide.md): Documentation layers model and budget rules
 - [TSDoc guide](docs/guides/tsdoc_guide.md): Formatting rules for source comments
-- [Commit convention](docs/commit_convention.md)
 - [Changelog](CHANGELOG.md)
 
 ## Quick Start

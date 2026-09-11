@@ -42,9 +42,6 @@ pages:
   - path: guides/tsdoc_guide.md
     title: TSDoc formatting rules
     weight: 26
-  - path: guides/worktree_guide.md
-    title: Worktree guide
-    weight: 27
 
   - path: examples/README.md
     title: Examples
@@ -89,7 +86,3 @@ pages:
   - path: api/format_dt.md
     title: dtStamp
     weight: 46
-
-  - path: commit_convention.md
-    title: Commit convention
-    weight: 50

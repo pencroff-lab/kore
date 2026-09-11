@@ -43,7 +43,6 @@ Detailed API documentation for each module:
 - [Logging guide](docs/guides/logging_guide.md) -- Patterns, conventions, and integration strategies
 - [TS docstrings general guide](docs/guides/docs_guide.md)
   - [TS Docs formating rules](docs/guides/tsdoc_guide.md)
-- [Worktree guide](docs/guides/worktree_guide.md)
 
 ### Examples
 

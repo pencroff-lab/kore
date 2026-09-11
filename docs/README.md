@@ -71,8 +71,6 @@ the package.
 - [Documentation guide](guides/docs_guide.md) — the documentation layer model
   and budget rules
 - [TSDoc formatting rules](guides/tsdoc_guide.md)
-- [Commit convention](commit_convention.md)
-- [Worktree guide](guides/worktree_guide.md)
 
 ## For agents
 
