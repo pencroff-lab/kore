@@ -2,6 +2,10 @@
 
 ## [0.7.0] - 2026-09-11
 
+### Bug Fixes
+
+- Compare file contents instead of timestamps (6de6780)
+
 ### Documentation
 
 - Doc(site): add custom CSS assets for site palette (05afc13)
@@ -14,6 +18,7 @@
 
 - Re-works started (da571f6)
 - Add docs by hextra (82b32fb)
+- Update CHANGELOG.md (0e480c0)
 
 ### Refactor
 

@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	rmSync,
+	utimesSync,
+	writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { paths } from "./config";
 import {
@@ -96,9 +102,11 @@ describe("syncTree", () => {
 		expect(existsSync(to)).toBe(true);
 	});
 
-	test("propagates updated content", async () => {
+	test("propagates updated content when its timestamp is not newer", async () => {
+		const source = join(root, "from/index.html");
 		syncTree(join(root, "from"), join(root, "to"));
-		writeFileSync(join(root, "from/index.html"), "<p>two</p>");
+		writeFileSync(source, "<p>two</p>");
+		utimesSync(source, new Date(1_000), new Date(1_000));
 
 		syncTree(join(root, "from"), join(root, "to"));
 

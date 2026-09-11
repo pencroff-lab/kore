@@ -4,6 +4,7 @@ import {
 	existsSync,
 	mkdirSync,
 	readdirSync,
+	readFileSync,
 	rmSync,
 	statSync,
 	watch,
@@ -91,7 +92,7 @@ export function syncTree(from: string, to: string): void {
 function sameFile(a: string, b: string): boolean {
 	const sa = statSync(a);
 	const sb = statSync(b);
-	return sa.size === sb.size && sa.mtimeMs <= sb.mtimeMs;
+	return sa.size === sb.size && readFileSync(a).equals(readFileSync(b));
 }
 
 function pruneEmptyDirs(root: string): void {
