@@ -262,6 +262,133 @@ describe("combined site build", () => {
 	);
 
 	test(
+		"refreshes all development metadata after publication and the next version bump",
+		async () => {
+			// Reproduce an old release catalog even after its feature branch is gone.
+			writeFileSync(
+				join(root, "site/versions.yaml"),
+				CATALOG.replace("0.9.0", "0.8.0").replace(
+					'sourceRef: "main"',
+					'sourceRef: "old-feature"',
+				),
+			);
+			const citation =
+				"https://github.com/pencroff-lab/kore/blob/v0.8.0/src/flow/flow.ts#L1";
+			writeFileSync(
+				join(root, "docs/api/flow.md"),
+				`# flow\n\n[Source](${citation})\n`,
+			);
+			await createSnapshot(snapshotOptions("0.8.0"));
+			writeFileSync(
+				join(root, "site/versions.yaml"),
+				readFileSync(join(root, "site/versions.yaml"), "utf8").replace(
+					"releases:",
+					'development:\n  label: "0.8.0 (unreleased)"\n  sourceRef: "old-feature"\n\nreleases:',
+				),
+			);
+			const snapshotBefore = readFileSync(
+				join(root, "site/versions/0.8.0/release.json"),
+				"utf8",
+			);
+			const catalogBefore = readFileSync(
+				join(root, "site/versions.yaml"),
+				"utf8",
+			);
+			// An actual detached checkout models GitHub Actions and requires no
+			// environment-variable assumptions about a PR or former feature branch.
+			for (const args of [
+				["init"],
+				[
+					"-c",
+					"user.name=Fixture",
+					"-c",
+					"user.email=fixture@example.com",
+					"commit",
+					"--allow-empty",
+					"-m",
+					"fixture",
+				],
+				["checkout", "--detach"],
+			]) {
+				expect(Bun.spawnSync(["git", ...args], { cwd: root }).exitCode).toBe(0);
+			}
+			const commit = Bun.spawnSync(["git", "rev-parse", "HEAD"], { cwd: root })
+				.stdout.toString()
+				.trim();
+			const options = {
+				sitePaths: sitePaths(),
+				version: "0.8.0",
+				origin: "http://localhost:4173",
+			};
+			await buildSite(options);
+			expect(
+				readFileSync(join(root, "build/public/next/index.html"), "utf8"),
+			).toContain("0.8.0 (unreleased)");
+
+			await markPublished(["0.8.0"], "0.8.0");
+			await buildSite(options);
+			for (const path of [
+				"index.html",
+				"next/index.html",
+				"v/0.8.0/index.html",
+				"archived/index.html",
+			]) {
+				const html = readFileSync(join(root, "build/public", path), "utf8");
+				expect(html).toContain("Next (unreleased)");
+				expect(html).not.toContain("0.8.0 (unreleased)");
+			}
+			const config = await Bun.file(
+				join(root, "build/editions/next/hugo.json"),
+			).json();
+			expect(config.params.edition).toMatchObject({
+				version: "next",
+				released: false,
+				sourceRef: commit,
+			});
+			expect(config.params.banner.message).toContain("next release");
+			const llms = readFileSync(
+				join(root, "build/public/next/llms.txt"),
+				"utf8",
+			);
+			expect(llms).toContain("Next (unreleased)");
+			expect(llms).not.toContain("unreleased version 0.8.0");
+			expect(
+				readFileSync(
+					join(root, "build/public/next/api/flow/index.html"),
+					"utf8",
+				),
+			).toContain(`/blob/${commit}/src/flow/flow.ts#L1`);
+			expect(
+				readFileSync(
+					join(root, "build/public/v/0.8.0/api/flow/index.html"),
+					"utf8",
+				),
+			).toContain(citation);
+			expect(
+				readFileSync(join(root, "build/public/llms.txt"), "utf8"),
+			).toContain("released version 0.8.0");
+			expect(readFileSync(join(root, "docs/api/flow.md"), "utf8")).toContain(
+				citation,
+			);
+			expect(
+				readFileSync(join(root, "site/versions/0.8.0/release.json"), "utf8"),
+			).toBe(snapshotBefore);
+			expect(readFileSync(join(root, "site/versions.yaml"), "utf8")).toBe(
+				catalogBefore,
+			);
+
+			await buildSite({ ...options, version: "0.9.0" });
+			expect(
+				readFileSync(join(root, "build/public/next/index.html"), "utf8"),
+			).toContain("0.9.0 (unreleased)");
+			expect(
+				readFileSync(join(root, "build/public/next/llms.txt"), "utf8"),
+			).toContain("unreleased version 0.9.0");
+		},
+		BUILD_TIMEOUT,
+	);
+
+	test(
 		"retains the previous site when a build fails",
 		async () => {
 			const good = await buildSite({

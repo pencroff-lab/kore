@@ -205,9 +205,14 @@ without writing anything. Neither form publishes.
 - `deploy` — one artifact, the `github-pages` environment, and a single
   `github-pages` concurrency group so deployments serialize.
 
-`/next/` is built from the development source named in
-[`versions.yaml`](versions.yaml). Update `development.sourceRef` when the
-development branch changes so source citations do not point at a stale branch.
+`/next/` is built from the working tree. Each build derives its label from
+`package.json` and `published.json`: an unrecorded version is labelled
+`<version> (unreleased)`, while a recorded version becomes `Next (unreleased)`.
+Its banner, edition metadata and `llms.txt` use the same state. Rendered source
+citations point to the checked-out Git commit (or `main` for a source archive
+without Git). Generated Markdown and release snapshots keep their release-tag
+citations. No development label or branch needs updating after a release;
+legacy `development` entries in the catalog are ignored.
 
 Action versions were checked on 2026-09-10. Newer majors exist
 (`checkout@v7`, `configure-pages@v6`, `upload-pages-artifact@v5`,

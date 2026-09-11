@@ -572,6 +572,13 @@ The classifier must now report `mode=docs-only`. Merging this receipt commit
 promotes the new documentation edition and deploys GitHub Pages without
 publishing or moving the tag again.
 
+The site build also refreshes development metadata automatically. Once the
+package version is recorded as published, `/next/` becomes `Next (unreleased)`
+in the menu, banner, edition metadata and `llms.txt`. Its rendered source links
+follow the checked-out commit. When a new unrecorded package version is
+prepared, its version label appears automatically. No catalog label edit or
+extra version bump is needed after publication.
+
 ## Troubleshooting releases
 
 ### `git-cliff` suggests the wrong version
