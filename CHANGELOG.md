@@ -4,7 +4,7 @@
 
 ### Bug Fixes
 
-- Compare file contents instead of timestamps (6de6780)
+- Compare file contents instead of timestamps (26477e4)
 
 ### Documentation
 
@@ -18,7 +18,6 @@
 
 - Re-works started (da571f6)
 - Add docs by hextra (82b32fb)
-- Update CHANGELOG.md (0e480c0)
 
 ### Refactor
 
