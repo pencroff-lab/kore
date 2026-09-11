@@ -9,4 +9,7 @@ development:
   label: "0.7.0 (unreleased)"
   sourceRef: "19-re-work-api"
 
-releases: []
+releases:
+  - version: "0.7.0"
+    path: "site/versions/0.7.0"
+    sourceRef: "v0.7.0"

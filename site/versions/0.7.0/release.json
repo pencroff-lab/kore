@@ -1,0 +1,33 @@
+{
+	"schemaVersion": 1,
+	"version": "0.7.0",
+	"sourceRef": "v0.7.0",
+	"files": {
+		"CHANGELOG.md": "06eef256814c5b44664b70d84726db3952fe9eb260b89b7eabcb137db32ae9e7",
+		"README.md": "fcfe4918aff356b155f5b2b69fbc436924c5913c48478540c22ffd9c382b6074",
+		"docs/README.md": "9ec3119aad1cd08a37fa0b0ad39b988eef3fb3076bd297646751974eadede0a1",
+		"docs/api/README.md": "bcf9f81dd087a0c12ac569147b5466115181eeef478203e15a1a13b0e3754530",
+		"docs/api/err.md": "821989a2f33ec3228837b674f7f9e52346f2828ab175cd1689e998197e71ff1c",
+		"docs/api/flow.md": "ea1c62821c8fa41e5a80f11481328359bb971b8d6b03781d0c1d7ad38c30db37",
+		"docs/api/format_dt.md": "93e965d1d3ee2561d9e7e6bbacff4f2cb2ab87498fb8f8d517c165c06c46bae6",
+		"docs/api/logger.md": "ead88982e0bf4daf88b2655bf42203b9793e2615e8403243b9d2880b216668d9",
+		"docs/api/outcome.md": "349b5385ce60379a092c1209257dd8a3726265efbae3c0a22b98c6e94ea275e2",
+		"docs/api/test.md": "8c7115e3456f71e71335e4b11a976ee152c9d3c8ef7ad153aba376fb32683431",
+		"docs/examples/README.md": "33fe52c30ef76d2a9a7c4d2415ce78b6bdca5aa376c5f98f0d3e3fcb6b14692e",
+		"docs/examples/err.md": "6ffe88e72cb7b8923a32cdcee5163a4fe98b3a99cbb77a9a8324e5c52539ae64",
+		"docs/examples/flow.md": "49dc4e2c2f8096c98423edb0dda914f3010affca259cbaad354acfc4711a4d15",
+		"docs/examples/format_dt.md": "638c5538befe81d125640d4c41fcc2784ba813e9e0cfaec40cd8ac23e4ca302c",
+		"docs/examples/logger.md": "8183b8c6207027f384694aeeaa8abb6eddacde2620c557b896f89da2417cc117",
+		"docs/examples/outcome.md": "44dad07adbf8cd8e195568a63560a526661f98abf69eda66f3a916eb2c4d8bf7",
+		"docs/examples/test.md": "e8b00fd77e78b64e8d9f7d52437f5c1311dc9eee8ced6a790c43bed93dda8f89",
+		"docs/guides/docs_guide.md": "fd83c3847a16a6c1dc948c107b9566085def4e3bccd7f2b149d0b9cd76405ef6",
+		"docs/guides/error-handling-patterns.md": "437fdba7da355951d7da7a8178de14181f982e31b223b69e5331fc7dad1202ff",
+		"docs/guides/flow-operation-flows.md": "ee12078d7434e604ba41615c84bbd2ba5fccdb6e2a19c4926c541bbaf353714d",
+		"docs/guides/logging_guide.md": "7e6e9f8a28aced8149728551d979e0a69323c7c54f52d6f6c41609b6b4ada4b6",
+		"docs/guides/migration-from-throwing.md": "b9ba34deac286c96c8a8136e8371bce4ac7189f00150ec963002e3f53ef7048d",
+		"docs/guides/tsdoc_guide.md": "9ff5e1825aad295620963ea2c80f577a1f8cb0b9baaf77df8e222441b4a61800",
+		"llms.txt": "7434ce0f10deea33290aceef709fb9bb2310af54994b1b5ad2be3494d525b635",
+		"navigation.yaml": "ab3739992f1a54fe116009d1451bf8aac27155791f633a5226ee79bae8b409b7"
+	},
+	"digest": "757e526fdd5a787fc1f0c9fcaa71fb489093edd59e25b0ac97afd9276249d8e7"
+}

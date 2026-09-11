@@ -1,0 +1,62 @@
+# @pencroff-lab/kore
+
+> TypeScript core utilities library providing value-based error handling
+> with a Go-style `Err` type and `flow`, a tier of free functions over
+> `ResultTuple<T>`. Published to npm as a dual ESM/CJS package.
+> The `Outcome<T>` class is deprecated and frozen since v0.7.0.
+
+Every link below resolves inside the installed package, relative to the
+package root (`node_modules/@pencroff-lab/kore/` in a conventional install;
+resolve the package directory rather than assuming a flat layout).
+
+## Start here
+
+- [Documentation index](docs/README.md): entry point for all shipped documentation
+
+## Core Modules
+
+- [Err](docs/api/err.md): Immutable, value-based error type with wrapping (cause chains), aggregation, hierarchical error codes, JSON serialization, and conversion to native Error. `Err.isErr` is nominal (`instanceof`) since v0.7.0; reconstruct wire data with `Err.from`
+- [flow](docs/api/flow.md): The primary API — free functions over `ResultTuple<T>` (`readonly [T, null] | readonly [null, Err]`): `ok`, `fail`, `attempt`/`attemptAsync`, `copy`, `map`/`flatMap`/`mapErr`/`effect` plus async forms, `ensure`, the `onOk`/`onErr`/`onTuple` stage factories, `pipe`/`pipeAsync` (typed through ten stages), `defaultTo` (handler-only), `either`, `all`, `any`, `fromJSON`. Every fallible callback returns a `ResultTuple`; the error slot is the only failure signal, and `map` is the one callback whose return is never inspected
+- [flow test helpers](docs/api/test.md): `expectOk` / `expectErr`, published from the `@pencroff-lab/kore/test` subpath only
+- [Outcome](docs/api/outcome.md): **Deprecated, frozen.** Monadic result container wrapping `[T, null] | [null, Err]` with map/pipe chains, combinators (all, any), side effects, and terminal operations. Callbacks follow the value protocol (`Err` = failure, `Outcome` = passthrough, anything else = the success value); `fromTuple`/`fromTupleAsync` are the only tuple entry points, and `toTuple()` is the only extraction
+- [Logger](docs/api/logger.md): Structured, level-filtered logging with pluggable transports and Err integration
+- [dtStamp](docs/api/format_dt.md): Compact, sortable date/time stamps for file names, log prefixes, and IDs
+- [API overview](docs/api/README.md): Every exported symbol, grouped by module
+
+## Usage Examples
+
+Generated from executable example tests, so every snippet is verified.
+
+- [Err examples](docs/examples/err.md): Error creation, wrapping, codes, serialization
+- [flow examples](docs/examples/flow.md): Boundaries, the callback protocol, transformations, pipelines, collections, serialization, input protection
+- [flow test helper examples](docs/examples/test.md): Asserting on result tuples
+- [Outcome examples](docs/examples/outcome.md): Mapping, piping, combinators, error handling
+- [Logger examples](docs/examples/logger.md): Log levels, transports, child loggers
+- [dtStamp examples](docs/examples/format_dt.md): Date formatting options
+- [Examples index](docs/examples/README.md)
+
+## Guides
+
+- [Flow operation flows](docs/guides/flow-operation-flows.md): Creating results, exception boundaries, transformations, pipelines, combinators, terminal operations, serialization, input protection
+- [Error handling patterns](docs/guides/error-handling-patterns.md): Err composition, propagation, the nominal type guard, real-world scenarios
+- [Migration from throwing](docs/guides/migration-from-throwing.md): Step-by-step try/catch to result tuple conversion
+
+## Optional
+
+- [Documentation guide](docs/guides/docs_guide.md): Documentation layers model and budget rules
+- [TSDoc guide](docs/guides/tsdoc_guide.md): Formatting rules for source comments
+- [Changelog](CHANGELOG.md)
+
+## Quick Start
+
+```typescript
+import { Err, ok, fail, pipe, onOk, onErr, defaultTo } from "@pencroff-lab/kore";
+import { dtStamp, log, createLogger } from "@pencroff-lab/kore";
+import { expectOk, expectErr } from "@pencroff-lab/kore/test";
+```
+
+## Install
+
+```bash
+npm install @pencroff-lab/kore
+```
