@@ -1,0 +1,10 @@
+{
+	"$comment": "Exact tool versions validated for the documentation site. Update only after a successful `bun run docs:build` with the new combination.",
+	"bun": "1.4.2",
+	"go": "1.27.1",
+	"hugo": "0.166.0",
+	"hugoEdition": "extended",
+	"hextra": "v0.12.3",
+	"hugoMinimumForHextra": "0.146.0",
+	"validatedOn": "2026-09-10"
+}

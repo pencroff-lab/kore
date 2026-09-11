@@ -1,6 +1,10 @@
 [test]
-root = "src"
+# "." rather than "src": build tooling under scripts/ carries tests too.
+root = "."
 coverageThreshold = 0.83
+# The gate measures the published library; build tooling is exercised by its own
+# tests but its `import.meta.main` runners are not unit-testable in-process.
+coveragePathIgnorePatterns = ["scripts/**"]
 
 [test.reporter]
 dots=true

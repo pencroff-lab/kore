@@ -1,0 +1,9 @@
+{{- /* Machine-readable edition provenance, present on every page. */ -}}
+{{- with site.Params.edition -}}
+<meta name="kore:edition" content="{{ .id }}" />
+<meta name="kore:version" content="{{ .version }}" />
+<meta name="kore:released" content="{{ .released }}" />
+{{- with .sourceRef }}
+<meta name="kore:source-ref" content="{{ . }}" />
+{{- end }}
+{{- end -}}

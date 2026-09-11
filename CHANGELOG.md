@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.7.0] - 2026-09-11
+
+### Bug Fixes
+
+- Compare file contents instead of timestamps (26477e4)
+
+### Documentation
+
+- Doc(site): add custom CSS assets for site palette (05afc13)
+
+### Features
+
+- Feat(flow): functional tuple based err boundaries (e65878e)
+
+### Other
+
+- Re-works started (da571f6)
+- Add docs by hextra (82b32fb)
+- Update CHANGELOG.md (d9f1aa1)
+- Update ci.yml (ed2b033)
+
+### Refactor
+
+- Update protocol docs & tests (795b410)
+
 ## [0.6.0] - 2026-09-01
 
 ### Features
@@ -7,6 +32,11 @@
 - Reject invalid callback returns (2887ef2)
 - Add flatMap, deprecate unit (5c7a4dc)
 - Add metadata immutability support (811fc20)
+- Add flatMap and metadata immutability (d93e698)
+
+### Other
+
+- Merge pull request #18 from pencroff-lab/17-fix-from-callback-various-values (fbc581f)
 
 ## [0.5.0] - 2026-05-11
 

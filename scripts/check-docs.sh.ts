@@ -42,8 +42,7 @@ function analyzeFile(filePath: string, content: string): FileResult {
 	let seenCode = false;
 	let isFirstJSDoc = true;
 
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i]!;
+	for (const [i, line] of lines.entries()) {
 		const trimmed = line.trim();
 
 		if (trimmed.length === 0) continue;

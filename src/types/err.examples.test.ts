@@ -90,8 +90,11 @@ describe("Basic usage", () => {
 		expect(Err.isErr(err)).toBe(true);
 		expect(Err.isErr("not an error")).toBe(false);
 		expect(Err.isErr(null)).toBe(false);
-		expect(Err.isErr({ isErr: true })).toBe(true);
-		expect(Err.isErr({ kind: "Err" })).toBe(true);
+		// Nominal since v0.7.0 — a marker-shaped object is data, not an error.
+		expect(Err.isErr({ isErr: true })).toBe(false);
+		expect(Err.isErr({ kind: "Err" })).toBe(false);
+		// Reconstruct a real instance from wire data instead.
+		expect(Err.isErr(Err.from({ kind: "Err", message: "wire" }))).toBe(true);
 	});
 });
 

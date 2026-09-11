@@ -1,34 +1,36 @@
+import type { ResultTuple } from "./common.types";
 import type { Err } from "./err";
+import type { Outcome } from "./outcome";
 
 // ─── Group: Result types ─────────────────────────────────────────────────────
 
-/**
- * Direct return types for errors or void success.
- * - `null`: void success (function completed, no value to return)
- * - `Err`: error (shorthand for `[null, Err]`)
- */
-export type NullErr = null | Err;
+// Re-exported from the neutral owner so both tiers share one declaration.
+export type { ResultTuple } from "./common.types";
 
 /**
- * Tuple-based result with positional semantics.
- * - `[T, null]`: success with value
- * - `[null, Err]`: error
+ * Callback return under the value protocol.
+ * - `Err`: failure
+ * - `Outcome<T>`: passed through unchanged
+ * - anything else: the success value
  */
-export type ResultTuple<T> = [T, null] | [null, Err];
+export type CallbackReturn<T> = T | Err | Outcome<T>;
 
 /**
- * Combined callback return type for `Outcome.from()` and `Outcome.fromAsync()`.
- * Supports tuple, null (void success), and Err (shorthand) patterns.
+ * Success value a value-protocol callback return resolves to.
  *
- * Discrimination order: `Err.isErr()` → `=== null` → destructure tuple
+ * Distributes over unions, so `42 | Err` resolves to `42`.
  */
-export type CallbackReturn<T> = ResultTuple<T> | NullErr;
+export type ValueOf<R> = R extends Err
+	? never
+	: R extends Outcome<infer V>
+		? V
+		: R;
 
 // ─── Group: Pipe functions ───────────────────────────────────────────────────
 
 /**
  * Synchronous pipe function type.
- * Receives a ResultTuple and returns a CallbackReturn.
+ * Receives a ResultTuple and returns a value-protocol result.
  *
  * @typeParam In - Input value type
  * @typeParam Out - Output value type
@@ -37,7 +39,7 @@ export type PipeFn<In, Out> = (tuple: ResultTuple<In>) => CallbackReturn<Out>;
 
 /**
  * Asynchronous pipe function type.
- * Receives a ResultTuple and returns a Promise of CallbackReturn.
+ * Receives a ResultTuple and returns a Promise of a value-protocol result.
  *
  * @typeParam In - Input value type
  * @typeParam Out - Output value type

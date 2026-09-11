@@ -2,6 +2,8 @@
 	"$schema": "https://typedoc.org/schema.json",
 	"plugin": ["typedoc-plugin-markdown"],
 	"entryPoints": [
+		"./src/flow/flow.ts",
+		"./src/flow/test.ts",
 		"./src/types/err.ts",
 		"./src/types/outcome.ts",
 		"./src/utils/format_dt.ts",
@@ -15,7 +17,7 @@
 	"outputFileStrategy": "modules",
 	"flattenOutputFiles": false,
 	"entryFileName": "README.md",
-	"hidePageHeader": false,
+	"hidePageHeader": true,
 	"hideBreadcrumbs": false,
 	"excludePrivate": true,
 	"excludeInternal": true,

@@ -1,0 +1,12 @@
+# Snapshot catalog. Records the snapshots that exist under site/versions/.
+#
+# A catalog entry is NOT a claim that the version is published to npm; the
+# publication receipt in site/published.json is the only publication evidence.
+# Add entries with `bun run docs:snapshot <version>`; never by hand.
+schemaVersion: 1
+
+development:
+  label: "0.7.0 (unreleased)"
+  sourceRef: "19-re-work-api"
+
+releases: []

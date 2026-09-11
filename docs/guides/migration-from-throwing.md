@@ -1,6 +1,9 @@
 # Migration from Throwing
 
-Step-by-step guide for converting `try/catch` code to `Outcome`-based error handling.
+Step-by-step guide for converting `try/catch` code to result tuples with `flow`.
+
+Every fallible function returns a `ResultTuple<T>` — `readonly [T, null]` on
+success, `readonly [null, Err]` on failure — built with `ok()` and `fail()`.
 
 ## Step 1: Identify the throwing function
 
@@ -13,44 +16,45 @@ function parseConfig(raw: string): Config {
 }
 ```
 
-## Step 2: Wrap with `Outcome.from()`
+## Step 2: Wrap with `attempt()`
 
-The simplest migration — wrap the existing code without changing its internals:
+The simplest migration — keep the internals, change the boundary:
 
 ```typescript
-import { Outcome } from "@pencroff-lab/kore/types";
+import { attempt, ok, type ResultTuple } from "@pencroff-lab/kore";
 
-function parseConfig(raw: string): Outcome<Config> {
-  return Outcome.from(() => {
+function parseConfig(raw: string): ResultTuple<Config> {
+  return attempt(() => {
     const json = JSON.parse(raw);
     if (!json.port) throw new Error("port is required");
-    return [{ port: json.port, host: json.host ?? "localhost" }, null];
+    return ok({ port: json.port, host: json.host ?? "localhost" });
   });
 }
 ```
 
-`Outcome.from()` catches any thrown exception and wraps it as an `Err`.
+`attempt()` catches any thrown exception and converts it with `Err.from()`. The
+callback still has to return a tuple — `ok(...)` or `fail(...)` — so a missing
+return is a compile error rather than a silent success.
 
-## Step 3: Replace throws with explicit errors
+## Step 3: Replace throws with explicit failures
 
-For better error codes and metadata, replace throws with `Err` returns:
+For real error codes and metadata, return `fail()` instead of throwing:
 
 ```typescript
-import { Err, Outcome } from "@pencroff-lab/kore/types";
+import { attempt, Err, fail, ok, type ResultTuple } from "@pencroff-lab/kore";
 
-function parseConfig(raw: string): Outcome<Config> {
-  return Outcome.from(() => {
-    let json: unknown;
-    try {
-      json = JSON.parse(raw);
-    } catch (e) {
-      return Err.from(e as Error).wrap("Invalid JSON", { code: "PARSE_ERROR" });
-    }
+function parseConfig(raw: string): ResultTuple<Config> {
+  const [json, parseErr] = attempt<unknown>(() => ok(JSON.parse(raw)));
+  if (parseErr) {
+    return fail(parseErr.wrap("Invalid JSON", { code: "PARSE_ERROR" }));
+  }
 
-    const obj = json as Record<string, unknown>;
-    if (!obj.port) return Err.from("port is required", "MISSING_FIELD");
+  const obj = json as Record<string, unknown>;
+  if (!obj.port) return fail("port is required", "MISSING_FIELD");
 
-    return [{ port: obj.port as number, host: (obj.host as string) ?? "localhost" }, null];
+  return ok({
+    port: obj.port as number,
+    host: (obj.host as string) ?? "localhost",
   });
 }
 ```
@@ -67,8 +71,8 @@ try {
   process.exit(1);
 }
 
-// After: tuple destructuring
-const [config, err] = parseConfig(raw).toTuple();
+// After: destructure the result — there is nothing to unwrap
+const [config, err] = parseConfig(raw);
 if (err) {
   console.error("Failed:", err.toString());
   process.exit(1);
@@ -76,10 +80,11 @@ if (err) {
 startServer(config);
 ```
 
-Or with `either` for inline handling:
+Or fold both channels inline with `either`:
 
 ```typescript
-parseConfig(raw).either(
+either(
+  parseConfig(raw),
   (config) => startServer(config),
   (err) => {
     console.error("Failed:", err.toString());
@@ -90,7 +95,7 @@ parseConfig(raw).either(
 
 ## Async functions
 
-Use `Outcome.fromAsync()` for async throwing code:
+Use `attemptAsync()` for async throwing code:
 
 ```typescript
 // Before
@@ -101,62 +106,83 @@ async function fetchUser(id: string): Promise<User> {
 }
 
 // After
-async function fetchUser(id: string): Promise<Outcome<User>> {
-  return Outcome.fromAsync(async () => {
+async function fetchUser(id: string): Promise<ResultTuple<User>> {
+  return attemptAsync(async () => {
     const res = await fetch(`/api/users/${id}`);
     if (!res.ok) {
-      return Err.from(`HTTP ${res.status}`, {
-        code: "HTTP_ERROR",
-        metadata: { status: res.status, url: `/api/users/${id}` },
-      });
+      return fail(
+        Err.from(`HTTP ${res.status}`, {
+          code: "HTTP_ERROR",
+          metadata: { status: res.status, url: `/api/users/${id}` },
+        }),
+      );
     }
-    return [await res.json(), null] as [User, null];
+    return ok((await res.json()) as User);
   });
 }
 ```
 
 ## Common refactoring patterns
 
-### Wrapping existing throwing libraries
+### Wrapping a throwing library call
 
 ```typescript
-function safeJsonParse(raw: string): Outcome<unknown> {
-  return Outcome.from(() => {
-    return [JSON.parse(raw), null] as [unknown, null];
-  });
-}
+const safeJsonParse = (raw: string): ResultTuple<unknown> =>
+  attempt(() => ok(JSON.parse(raw)));
 ```
 
-### Converting callback-to-tuple returns
+### Composing tuple-returning functions
 
-If a function already returns `[value, null] | [null, Err]`, lift it into `Outcome`:
+A tuple-returning callee composes directly — no lifting step, no unwrapping:
 
 ```typescript
-const [user, err] = findUser(id);
-const outcome = Outcome.fromTuple([user, err]);
+const config = flatMap(findUser(id), loadConfigFor);
+
+const loaded = pipe(
+  ok(raw),
+  onOk(parseConfig),
+  onOk(validate),
+  onErr((e) => fail(e.wrap("Startup failed", { code: "STARTUP" }))),
+);
 ```
 
 ### Gradual migration
 
-You don't need to convert everything at once. `Err.from()` accepts native `Error`:
+Nothing needs converting at once. `Err.from()` accepts a native `Error`, so a
+legacy `try/catch` produces a value the rest of the code can carry:
 
 ```typescript
 try {
   legacyOperation();
 } catch (e) {
   const err = Err.from(e as Error).withCode("LEGACY_ERROR");
-  // Now you have a proper Err to work with
+  return fail(err);
 }
 ```
 
 ## Gotchas
 
-- **`Outcome.from()` catches all throws** — including programming errors like `TypeError`. If you want to only catch expected errors, use explicit try/catch inside the callback.
-- **`from`/`fromAsync` callbacks must return tuples or Err** — returning a plain value (not wrapped in a tuple) is a type error. This applies to `mapErr` and `pipe` too, but **not** to `map`, which takes a plain `(value) => value` and carries whatever it returns.
-- **`null` return means void success** — `return null` inside `Outcome.from()` is equivalent to `Outcome.ok(null)`. Note `Outcome.ok()` with no argument carries `undefined`, not `null`.
-- **Error codes are not inherited** — wrapping an Err does not copy the code. Use `err.hasCode()` to search the cause chain.
+- **`attempt()` catches every throw** — including programming errors like
+  `TypeError`. To catch only expected failures, use an explicit `try/catch`
+  inside the callback and return `fail(...)` yourself.
+- **A fallible callback must return a tuple.** A bare value, a bare `Err`, and a
+  missing return are all compile errors. `map` is the one exception: its return
+  is data, never control flow.
+- **`ok(err)` carries an error as data.** The tuple's error slot is the only
+  failure signal, so a value that happens to be an `Err` — or a tuple — is
+  carried unchanged.
+- **`ok()` is `undefined`, `ok(null)` is `null`.** `ok()` is typed
+  `ResultTuple<void>`; it serializes to `[null, null]` and comes back as
+  `ok(null)`.
+- **`defaultTo` is handler-only.** A constant fallback is a thunk:
+  `defaultTo(result, () => 0)`.
+- **Error codes are not inherited** — wrapping an `Err` does not copy the code.
+  Use `err.hasCode()` to search the cause chain.
+- **`Err.isErr` is nominal.** A plain `{ kind: "Err" }` object is data, not an
+  error; use `Err.from(marker)` to reconstruct a real instance from wire data.
 
 ## See also
 
-- [outcome.examples.test.ts](../../src/types/outcome.examples.test.ts) — section 7 "Migration from throwing"
-- [err.examples.test.ts](../../src/types/err.examples.test.ts) — section 3 "Catching native errors"
+- [flow examples](../examples/flow.md) — every pattern above, executable
+- [Err examples](../examples/err.md) — section 3 "Catching native errors"
+- [Migrating from `Outcome`](../../README.md#migrating-from-outcome) — the class-tier operation map

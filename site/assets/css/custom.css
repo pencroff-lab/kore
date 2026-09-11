@@ -1,0 +1,334 @@
+/*
+ * Colorful Classic for Kore.
+ *
+ * The neutral, status and syntax colors come from the shared Colorful Classic
+ * palette. To give another site its own identity, change only the three
+ * --kore-accent-* values in each mode; Hextra's primary scale is derived from
+ * them below.
+ *
+ * Ready-to-copy light / dark accent pairs from Colorful Classic:
+ * - Blue-ish (current): #126c8a (195deg 77% 31%) / #69bfd2 (191deg 54% 62%)
+ * - Green-ish: #0d7447 (154deg 80% 25%) / #4dc58d (152deg 51% 54%)
+ * - Purple-ish: #5e58b2 (244deg 37% 52%) / #8986d9 (242deg 52% 69%)
+ * - Red-ish: #bd0d1b (355deg 87% 40%) / #fa6a60 (4deg 94% 68%)
+ * - Yellow-ish: #695c05 (52deg 91% 22%) / #ffe37b (47deg 100% 74%)
+ * - Orange-ish: #923403 (21deg 96% 29%) / #ff7b00 (29deg 100% 50%)
+ */
+
+:root {
+	color-scheme: light;
+
+	/* Kore accent: Colorful Classic cyan. */
+	--kore-accent-hue: 154deg;
+	--kore-accent-saturation: 80%;
+	--kore-accent-lightness: 25%;
+
+	--kore-accent: hsl(
+		var(--kore-accent-hue) var(--kore-accent-saturation)
+			var(--kore-accent-lightness)
+	);
+
+	--primary-hue: var(--kore-accent-hue);
+	--primary-saturation: var(--kore-accent-saturation);
+	--primary-lightness: var(--kore-accent-lightness);
+
+	--kore-background: #ede3d6;
+	--kore-surface: #ddd1c0;
+	--kore-surface-raised: #d9cab8;
+	--kore-border: #aea08e;
+	--kore-text: #35312b;
+	--kore-text-muted: #725c3a;
+	--kore-code-background: #ede3d6;
+	--kore-inline-code-background: #ede3d6;
+	--kore-selection: #126c8a2e;
+	--kore-on-accent: #ede3d6;
+
+	--kore-syntax-comment: #725c3a;
+	--kore-syntax-keyword: #915004;
+	--kore-syntax-string: #075f33;
+	--kore-syntax-number: #145ebd;
+	--kore-syntax-variable: #145ebd;
+	--kore-syntax-constant: #0d7447;
+	--kore-syntax-function: #695c05;
+	--kore-syntax-method: #923403;
+	--kore-syntax-type: #923403;
+	--kore-syntax-property: #366d05;
+	--kore-syntax-tag: #695c05;
+	--kore-syntax-punctuation: #6a553c;
+	--kore-syntax-decorator: #5e58b2;
+	--kore-error: #bd0d1b;
+	--kore-error-background: #bd0d1b0d;
+	--kore-success: #376b14;
+	--kore-success-background: #376b140d;
+}
+
+html.dark {
+	color-scheme: dark;
+
+	/* The same Kore cyan, lifted for contrast on the dark canvas. */
+	--kore-accent-hue: 152deg;
+	--kore-accent-saturation: 51%;
+	--kore-accent-lightness: 54%;
+
+	--kore-background: #1b1712;
+	--kore-surface: #26201b;
+	--kore-surface-raised: #29231d;
+	--kore-border: #3b2f25;
+	--kore-text: #d6c0a2;
+	--kore-text-muted: #ab916d;
+	--kore-code-background: #2d261e;
+	--kore-inline-code-background: #342c22;
+	--kore-selection: #69bfd226;
+	--kore-on-accent: #1b1712;
+
+	--kore-syntax-comment: #ab916d;
+	--kore-syntax-keyword: #d68a40;
+	--kore-syntax-string: #2ce7ac;
+	--kore-syntax-number: #6897bb;
+	--kore-syntax-variable: #7cafc2;
+	--kore-syntax-constant: #6eb5a6;
+	--kore-syntax-function: #ffe37b;
+	--kore-syntax-method: #ff7b00;
+	--kore-syntax-type: #c67f58;
+	--kore-syntax-property: #5bc600;
+	--kore-syntax-tag: #e8bf6a;
+	--kore-syntax-punctuation: #c9af93;
+	--kore-syntax-decorator: #8986d9;
+	--kore-error: #fa6a60;
+	--kore-error-background: #fa6a6019;
+	--kore-success: #4dc58d;
+	--kore-success-background: #4dc58d19;
+}
+
+/* Hextra v0.12 uses Tailwind v4 theme variables with an hx prefix. */
+@layer theme {
+	:root {
+		--hx-color-white: #ede3d6;
+		--hx-color-black: #35312b;
+		--hx-color-dark: #1b1712;
+
+		--hx-color-slate-50: #ede3d6;
+		--hx-color-slate-100: #ddd1c0;
+		--hx-color-slate-900: #211d17;
+
+		--hx-color-gray-50: #ede3d6;
+		--hx-color-gray-100: #ddd1c0;
+		--hx-color-gray-200: #c1b4a4;
+		--hx-color-gray-300: #aea08e;
+		--hx-color-gray-400: #8e7a5e;
+		--hx-color-gray-500: #705b3c;
+		--hx-color-gray-600: #725c3a;
+		--hx-color-gray-700: #4a3821;
+		--hx-color-gray-800: #35312b;
+		--hx-color-gray-900: #211d17;
+
+		--hx-color-neutral-50: #ede3d6;
+		--hx-color-neutral-200: #c1b4a4;
+		--hx-color-neutral-300: #aea08e;
+		--hx-color-neutral-400: #948064;
+		--hx-color-neutral-500: #7e6a50;
+		--hx-color-neutral-600: #705b3c;
+		--hx-color-neutral-700: #725c3a;
+		--hx-color-neutral-800: #35312b;
+		--hx-color-neutral-900: #211d17;
+
+		--hx-color-red-100: #bd0d1b0d;
+		--hx-color-red-200: #bd0d1b80;
+		--hx-color-red-900: #bd0d1b;
+		--hx-color-orange-50: #7d57050d;
+		--hx-color-orange-100: #7d570580;
+		--hx-color-orange-300: #7d5705;
+		--hx-color-orange-800: #7d5705;
+		--hx-color-yellow-50: #7d57050d;
+		--hx-color-yellow-100: #7d570580;
+		--hx-color-yellow-200: #7d5705;
+		--hx-color-yellow-900: #7d5705;
+		--hx-color-green-100: #376b140d;
+		--hx-color-green-200: #376b1480;
+		--hx-color-green-900: #376b14;
+		--hx-color-blue-100: #0d65880d;
+		--hx-color-blue-200: #0d658880;
+		--hx-color-blue-900: #0d6588;
+	}
+
+	html.dark {
+		--hx-color-white: #ebd9c6;
+		--hx-color-black: #1b1712;
+
+		--hx-color-slate-50: #ebd9c6;
+		--hx-color-slate-100: #d6c0a2;
+		--hx-color-slate-900: #342c22;
+
+		--hx-color-gray-50: #ebd9c6;
+		--hx-color-gray-100: #d6c0a2;
+		--hx-color-gray-200: #c9af93;
+		--hx-color-gray-300: #ab916d;
+		--hx-color-gray-400: #917959;
+		--hx-color-gray-500: #7e694d;
+		--hx-color-gray-600: #6a563d;
+		--hx-color-gray-700: #50402e;
+		--hx-color-gray-800: #3b2f25;
+		--hx-color-gray-900: #342c22;
+
+		--hx-color-neutral-50: #ebd9c6;
+		--hx-color-neutral-200: #d6c0a2;
+		--hx-color-neutral-300: #ab916d;
+		--hx-color-neutral-400: #917959;
+		--hx-color-neutral-500: #6a563d;
+		--hx-color-neutral-600: #50402e;
+		--hx-color-neutral-700: #3b2f25;
+		--hx-color-neutral-800: #342c22;
+		--hx-color-neutral-900: #26201b;
+
+		--hx-color-red-100: #fa6a6019;
+		--hx-color-red-200: #fa6a60;
+		--hx-color-red-900: #fa6a60;
+		--hx-color-orange-50: #ea6a1419;
+		--hx-color-orange-100: #ea6a1480;
+		--hx-color-orange-300: #ea6a14;
+		--hx-color-orange-800: #ea6a14;
+		--hx-color-yellow-50: #e4a91f19;
+		--hx-color-yellow-100: #e4a91f80;
+		--hx-color-yellow-200: #e1bc5f;
+		--hx-color-yellow-900: #e1bc5f;
+		--hx-color-green-100: #4dc58d19;
+		--hx-color-green-200: #4dc58d;
+		--hx-color-green-900: #4dc58d;
+		--hx-color-blue-100: #69bfd219;
+		--hx-color-blue-200: #69bfd2;
+		--hx-color-blue-900: #69bfd2;
+	}
+}
+
+body {
+	background: var(--kore-background);
+	color: var(--kore-text);
+}
+
+/* Cyan is a text accent in dark mode, so controls on cyan use dark ink. */
+a.hx\:bg-primary-600.hx\:text-white,
+a.hx\:focus-visible\:bg-primary-500.hx\:focus-visible\:text-white:focus-visible {
+	color: var(--kore-on-accent);
+}
+
+::selection {
+	background: var(--kore-selection);
+}
+
+.content code:not(.hextra-code-block code),
+.content kbd {
+	border-color: var(--kore-border);
+	background: var(--kore-inline-code-background);
+	color: var(--kore-accent);
+}
+
+.hextra-code-block pre,
+.content pre {
+	border: 1px solid var(--kore-border);
+	background: var(--kore-code-background);
+}
+
+.hextra-code-filename {
+	border-bottom: 1px solid var(--kore-border);
+	background: var(--kore-surface-raised);
+}
+
+.hextra-scrollbar {
+	scrollbar-color: var(--kore-border) transparent;
+}
+
+/* Keep the active page warm and quiet; reserve Kore's accent for its label. */
+.hextra-sidebar-active-item {
+	background-color: var(--kore-surface-raised);
+	color: var(--kore-accent);
+}
+
+/*
+ * Hextra's TOC and sidebar footers fade over scrolling content with hard-coded
+ * white/#111 shadows. Match those fades to the Colorful Classic canvas.
+ */
+.hextra-toc .hx\:sticky.hx\:bottom-0,
+.hextra-sidebar-container > .hx\:sticky.hx\:bottom-0 {
+	background-color: var(--kore-background);
+	box-shadow: 0 -12px 16px var(--kore-background);
+}
+
+@media (prefers-contrast: more) {
+	.hextra-toc .hx\:sticky.hx\:bottom-0,
+	.hextra-sidebar-container > .hx\:sticky.hx\:bottom-0 {
+		box-shadow: none;
+	}
+}
+
+/* Colorful Classic syntax roles, shared by light and dark through the tokens. */
+:is(.highlight, .dark .highlight)
+	.chroma
+	:is(.c, .ch, .cm, .c1, .cs, .cp, .cpf, .go, .gp) {
+	color: var(--kore-syntax-comment);
+}
+
+:is(.highlight, .dark .highlight)
+	.chroma
+	:is(.k, .kc, .kd, .kn, .kp, .kr, .kt, .o, .ow, .se) {
+	color: var(--kore-syntax-keyword);
+}
+
+:is(.highlight, .dark .highlight)
+	.chroma
+	:is(.s, .sa, .sb, .sc, .dl, .sd, .s2, .sh, .si, .sx, .s1, .ss) {
+	color: var(--kore-syntax-string);
+}
+
+:is(.highlight, .dark .highlight)
+	.chroma
+	:is(.sr, .m, .mb, .mf, .mh, .mi, .il, .mo, .ld) {
+	color: var(--kore-syntax-number);
+}
+
+:is(.highlight, .dark .highlight)
+	.chroma
+	:is(.na, .nb, .bp, .nv, .vc, .vg, .vi, .vm) {
+	color: var(--kore-syntax-variable);
+}
+
+:is(.highlight, .dark .highlight) .chroma :is(.no, .nl) {
+	color: var(--kore-syntax-constant);
+}
+
+:is(.highlight, .dark .highlight) .chroma :is(.nf, .fm) {
+	color: var(--kore-syntax-function);
+}
+
+:is(.highlight, .dark .highlight) .chroma :is(.nx, .py) {
+	color: var(--kore-syntax-property);
+}
+
+:is(.highlight, .dark .highlight) .chroma :is(.nc, .ne, .nn) {
+	color: var(--kore-syntax-type);
+}
+
+:is(.highlight, .dark .highlight) .chroma .nd {
+	color: var(--kore-syntax-decorator);
+}
+
+:is(.highlight, .dark .highlight) .chroma .nt {
+	color: var(--kore-syntax-tag);
+}
+
+:is(.highlight, .dark .highlight) .chroma .p {
+	color: var(--kore-syntax-punctuation);
+}
+
+:is(.highlight, .dark .highlight) .chroma :is(.err, .gr, .gt) {
+	color: var(--kore-error);
+}
+
+:is(.highlight, .dark .highlight) .chroma .gd {
+	background: var(--kore-error-background);
+	color: var(--kore-error);
+}
+
+:is(.highlight, .dark .highlight) .chroma .gi {
+	background: var(--kore-success-background);
+	color: var(--kore-success);
+}
