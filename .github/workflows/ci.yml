@@ -20,7 +20,9 @@ permissions:
   contents: read
 
 env:
-  BUN_VERSION: "1.4.2"
+  # `env` is unavailable while GitHub evaluates `container.image`; the YAML
+  # anchor keeps the source-pinned image and the runtime variable identical.
+  CI_IMAGE: &ci-image "oven/bun:1.4.2-slim"
   GO_VERSION: "1.27.1"
   HUGO_VERSION: "0.166.0"
 
@@ -30,8 +32,16 @@ jobs:
     name: Library checks
     runs-on: ubuntu-latest
     container:
-      image: oven/bun:1.4-slim
+      image: *ci-image
     steps:
+      - &install-system-dependencies
+        name: Install system dependencies
+        run: >-
+          apt-get update &&
+          DEBIAN_FRONTEND=noninteractive apt-get install -y
+          --no-install-recommends curl git &&
+          rm -rf /var/lib/apt/lists/*
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -62,18 +72,17 @@ jobs:
   release_state:
     name: Classify release state
     runs-on: ubuntu-latest
+    container:
+      image: *ci-image
     outputs:
       version: ${{ steps.state.outputs.version }}
       mode: ${{ steps.state.outputs.mode }}
       latest_stable: ${{ steps.state.outputs.latest_stable }}
     steps:
+      - *install-system-dependencies
+
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -94,15 +103,14 @@ jobs:
   docs:
     name: Documentation site
     runs-on: ubuntu-latest
+    container:
+      image: *ci-image
     needs: release_state
     steps:
+      - *install-system-dependencies
+
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -111,10 +119,10 @@ jobs:
 
       - name: Install Hugo Extended ${{ env.HUGO_VERSION }}
         run: |
-          set -euo pipefail
+          set -eu
           url="https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb"
           curl -sSL --fail -o /tmp/hugo.deb "$url"
-          sudo dpkg -i /tmp/hugo.deb
+          dpkg -i /tmp/hugo.deb
           hugo version
 
       - name: Install dependencies
@@ -173,18 +181,17 @@ jobs:
   publish:
     name: Publish to npm
     runs-on: ubuntu-latest
+    container:
+      image: *ci-image
     needs: [library, docs, release_state]
     if: github.event_name == 'push' && needs.release_state.outputs.mode == 'release'
     permissions:
       contents: read
     steps:
+      - *install-system-dependencies
+
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -199,9 +206,9 @@ jobs:
 
       - name: Verify the exact published version
         run: |
-          set -euo pipefail
+          set -eu
           version="${{ needs.release_state.outputs.version }}"
-          npm view "@pencroff-lab/kore@${version}" version
+          bun info "@pencroff-lab/kore@${version}" version
         env:
           NPM_TOKEN: "---"
 
@@ -238,7 +245,7 @@ jobs:
 
       - name: Verify publication and produce the receipt patch
         run: |
-          set -euo pipefail
+          set -eu
           bun run docs:record-publication -- "${{ needs.release_state.outputs.version }}"
           mkdir -p build/receipt
           cp site/published.json build/receipt/published.json
