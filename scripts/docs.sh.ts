@@ -253,7 +253,7 @@ async function run(args: ParsedArgs): Promise<void> {
 			console.log(
 				args.options.has("dry-run")
 					? `Dry run: ${outcome.receiptPath} not written. Patch:\n${outcome.patch}`
-					: `Updated ${outcome.receiptPath}. Commit it as the documentation-only finalization change.`,
+					: `Updated ${outcome.receiptPath}. The publish job commits it automatically; for manual recovery, commit it as a documentation-only change.`,
 			);
 			return;
 		}
