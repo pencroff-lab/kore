@@ -89,7 +89,7 @@ Output format (pretty transport, colors disabled):
 Logger is passed through deps, matching the handler factory pattern. Only import `createLogger` at the entry point; everywhere else receive `Logger` type via deps:
 
 ```typescript
-import type { Logger } from "@pencroff-lab/kore";
+import { ok, type Logger, type ResultTuple } from "@pencroff-lab/kore";
 
 interface HandlerDeps {
   db: Database;
@@ -97,7 +97,7 @@ interface HandlerDeps {
   config: Config;
 }
 
-function createHandler(deps: HandlerDeps): Outcome<Handler> {
+function createHandler(deps: HandlerDeps): ResultTuple<Handler> {
   // Validate deps...
 
   const handler = async (argv: ArgumentsCamelCase<Args>): Promise<void> => {
@@ -119,10 +119,11 @@ function createHandler(deps: HandlerDeps): Outcome<Handler> {
       dryRunLog,
     };
 
-    // ... handler logic
+    runLog(runLog.INFO, 'Starting handler');
+    // ... application logic using ctx
   };
 
-  return Outcome.ok(handler);
+  return ok(handler);
 }
 ```
 
@@ -145,8 +146,10 @@ runLog(runLog.INFO, 'Processing section', { index: 1, title: "Gradient Descent" 
 ### Service Layer (Origin) - DEBUG Only
 
 ```typescript
-async function callClaude(prompt: string, ctx: ExecutionContext): Promise<Outcome<string>> {
-  return Outcome.fromAsync(async () => {
+import { attemptAsync, Err, fail, ok, type ResultTuple } from "@pencroff-lab/kore";
+
+async function callClaude(prompt: string, ctx: ExecutionContext): Promise<ResultTuple<string>> {
+  return attemptAsync(async () => {
     const result = await $`claude -p ${prompt}`.nothrow().quiet();
 
     if (result.exitCode !== 0) {
@@ -155,10 +158,10 @@ async function callClaude(prompt: string, ctx: ExecutionContext): Promise<Outcom
 
       // DEBUG at origin - captures technical detail
       ctx.log(ctx.log.DEBUG, 'Claude CLI failed', err);
-      throw err;
+      return fail(err);
     }
 
-    return [result.stdout.toString(), null];
+    return ok(result.stdout.toString());
   });
 }
 ```
@@ -166,25 +169,27 @@ async function callClaude(prompt: string, ctx: ExecutionContext): Promise<Outcom
 ### Intermediate Layer - Wrap Error, No Logging
 
 ```typescript
+import { fail, ok, type ResultTuple } from "@pencroff-lab/kore";
+
 async function generateNote(
   section: Section,
   ctx: ExecutionContext
-): Promise<Outcome<GeneratedNote>> {
+): Promise<ResultTuple<GeneratedNote>> {
   const prompt = buildPrompt(section);
 
-  const [output, cliErr] = await callClaude(prompt, ctx).toTuple();
-  if (cliErr) {
+  const [output, cliErr] = await callClaude(prompt, ctx);
+  if (cliErr !== null) {
     // Wrap with context, don't log (avoid duplication)
-    return Outcome.err(cliErr.wrap(`Failed to generate note for "${section.title}"`));
+    return fail(cliErr.wrap(`Failed to generate note for "${section.title}"`));
   }
 
-  const [note, parseErr] = parseNoteOutput(output).toTuple();
-  if (parseErr) {
+  const [note, parseErr] = parseNoteOutput(output);
+  if (parseErr !== null) {
     ctx.log(ctx.log.DEBUG, 'Note parsing failed', parseErr);
-    return Outcome.err(parseErr.wrap("Failed to parse generated note"));
+    return fail(parseErr.wrap("Failed to parse generated note"));
   }
 
-  return Outcome.ok(note);
+  return ok(note);
 }
 ```
 
@@ -204,8 +209,8 @@ const handler = async (argv: Args): Promise<void> => {
       title: section.title
     });
 
-    const [note, err] = await generateNote(section, ctx).toTuple();
-    if (err) {
+    const [note, err] = await generateNote(section, ctx);
+    if (err !== null) {
       // ERROR at boundary - single log with full wrapped context
       log(log.ERROR, 'Section processing failed', err);
       continue;  // or return based on strategy
@@ -223,22 +228,24 @@ const handler = async (argv: Args): Promise<void> => {
 Use a child logger with `DRY-RUN` module prefix for simulated operations:
 
 ```typescript
+import { attemptAsync, ok, type ResultTuple } from "@pencroff-lab/kore";
+
 async function saveNote(
   note: GeneratedNote,
   ctx: ExecutionContext
-): Promise<Outcome<string>> {
+): Promise<ResultTuple<string>> {
   const path = resolvePath(note);
 
   if (ctx.dryRun && ctx.dryRunLog) {
     // Use dedicated dry-run logger - message clearly marked
     ctx.dryRunLog(ctx.dryRunLog.INFO, 'Would write note', { path, size: note.content.length });
-    return Outcome.ok(path);
+    return ok(path);
   }
 
-  return Outcome.fromAsync(async () => {
+  return attemptAsync(async () => {
     await Bun.write(path, note.content);
     ctx.log(ctx.log.INFO, 'Wrote note', { path });
-    return [path, null];
+    return ok(path);
   });
 }
 
@@ -251,7 +258,11 @@ async function saveNote(
 Services receive logger through their factory/constructor and create service-specific child loggers:
 
 ```typescript
-import type { Logger } from "@pencroff-lab/kore";
+import { attemptAsync, ok, type Logger, type ResultTuple } from "@pencroff-lab/kore";
+
+interface ShellExecutor {
+  run(prompt: string, model: string): Promise<string>;
+}
 
 interface ClaudeServiceDeps {
   shell: ShellExecutor;
@@ -266,13 +277,13 @@ function createClaudeService(deps: ClaudeServiceDeps) {
   const svcLog = log.child('claude');
 
   return {
-    async generate(prompt: string): Promise<Outcome<string>> {
+    async generate(prompt: string): Promise<ResultTuple<string>> {
       svcLog(svcLog.DEBUG, 'Calling Claude CLI', {
         model: config.model,
         promptLength: prompt.length
       });
 
-      // ... implementation
+      return attemptAsync(async () => ok(await shell.run(prompt, config.model)));
     }
   };
 }
@@ -281,24 +292,24 @@ function createClaudeService(deps: ClaudeServiceDeps) {
 ## CLI Initialization with Logger
 
 ```typescript
-import { createLogger } from "@pencroff-lab/kore";
+import { createLogger, fail, ok, type ResultTuple } from "@pencroff-lab/kore";
 
-async function initializeCli(): Promise<Outcome<void>> {
+async function initializeCli(): Promise<ResultTuple<void>> {
   // 1. Create root logger
   const log = createLogger('app');
 
   // 2. Load config
-  const [config, configErr] = await loadConfig().toTuple();
-  if (configErr) {
+  const [config, configErr] = await loadConfig();
+  if (configErr !== null) {
     log(log.FATAL, 'Config load failed', configErr);
-    return Outcome.err(configErr);
+    return fail(configErr);
   }
 
   // 3. Initialize DB
-  const [db, dbErr] = createDatabase(config.paths.workspace_dir).toTuple();
-  if (dbErr) {
+  const [db, dbErr] = createDatabase(config.paths.workspace_dir);
+  if (dbErr !== null) {
     log(log.FATAL, 'Database init failed', dbErr);
-    return Outcome.err(dbErr);
+    return fail(dbErr);
   }
 
   // 4. Create handler with log in deps
@@ -306,11 +317,11 @@ async function initializeCli(): Promise<Outcome<void>> {
     db,
     log,
     config
-  }).toTuple();
+  });
 
-  if (handlerErr) {
+  if (handlerErr !== null) {
     log(log.FATAL, 'Handler creation failed', handlerErr);
-    return Outcome.err(handlerErr);
+    return fail(handlerErr);
   }
 
   // 5. Register and run
@@ -318,7 +329,7 @@ async function initializeCli(): Promise<Outcome<void>> {
     .command({ command: "study_note from_plan", handler })
     .parse();
 
-  return Outcome.ok(null);
+  return ok();
 }
 ```
 
@@ -370,6 +381,7 @@ Logger is silent in tests for v1. Use a mock logger that captures calls for asse
 ```typescript
 import sinon from "sinon";
 import type { Logger } from "@pencroff-lab/kore";
+import { expectOk } from "@pencroff-lab/kore/test";
 
 export function createMockLog(): Logger {
   const log = sinon.stub() as unknown as Logger;
@@ -391,7 +403,7 @@ export function createMockLog(): Logger {
 const mockLog = createMockLog();
 const deps = { log: mockLog, db: mockDb, config: testConfig };
 
-const [handler] = createHandler(deps).toTuple();
+const handler = expectOk(createHandler(deps));
 await handler({ plan: "./test.md" });
 
 sinon.assert.calledWith(
