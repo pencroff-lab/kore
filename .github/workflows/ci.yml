@@ -203,16 +203,15 @@ jobs:
         run: bun run build
 
       - name: Publish
-        run: bun run publish_pkg
+        run: bun scripts/publish-release.sh.ts publish "$VERSION"
         env:
+          VERSION: ${{ needs.release_state.outputs.version }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Verify the exact published version
-        run: |
-          set -eu
-          version="${{ needs.release_state.outputs.version }}"
-          bun info "@pencroff-lab/kore@${version}" version
+        run: bun scripts/publish-release.sh.ts wait "$VERSION"
         env:
+          VERSION: ${{ needs.release_state.outputs.version }}
           NPM_TOKEN: "---"
 
       - name: Create or verify the release tag at this commit
