@@ -1,5 +1,137 @@
 # Changelog
 
+## [0.7.1] - 2026-10-20
+
+### Bug Fixes
+
+- Recover and document 0.7.0 publication (3d9f83d)
+
+### Documentation
+
+- Rename CLAUDE.md to AGENTS.md to manage codex as well (44cfd0c)
+- Move consumer guides from Outcome to flow (7db7e59)
+
+### Features
+
+- Close agentic safety holes in flow typing and add result-usage checks (1202b41)
+
+- CI now commits verified publication receipts to main automatically; the artifact remains available for manual recovery.
+
+### Other
+
+- Merge pull request #23 from pencroff-lab/fix/publication-bun (3eae79c)
+- Merge pull request #24 from pencroff-lab/fix/publication-bun (e6122b5)
+
+### Breaking changes and migration
+
+v0.7.1 tightens the flow type contracts. Although this release uses a patch
+version, the following previously accepted TypeScript calls must migrate.
+
+#### Validate untyped values at an adapter boundary
+
+Fallible callbacks, pipeline stages and sources now reject visible inferred
+`any` and `Promise<any>`. Replace `attempt(() => JSON.parse(raw))` with
+`attemptValue`, then validate its `unknown` payload. The adapters always add a
+success envelope, so parsed tuple-shaped or error-shaped data stays data.
+
+```typescript
+import {
+	attemptValue, attemptValueAsync, fail, flatMap, ok, type ResultTuple,
+} from "@pencroff-lab/kore";
+
+function parsePort(raw: string): ResultTuple<number> {
+	return flatMap(attemptValue(() => JSON.parse(raw)), (data) => {
+		if (
+			typeof data !== "object" || data === null ||
+			!("port" in data) || typeof data.port !== "number"
+		) {
+			return fail("numeric port required", "CONFIG:PORT");
+		}
+		return ok(data.port);
+	});
+}
+
+function readResponse(response: Response): Promise<ResultTuple<unknown>> {
+	return attemptValueAsync(() => response.json());
+}
+```
+
+`attemptValue` rejects known Promise/PromiseLike returns, including mixed
+value-or-promise returns. Use `attemptValueAsync` for them; it awaits thenables
+and converts rejections to failures. Validate the resulting payload before
+reading its properties, as in `parsePort` above.
+
+Explicit success type arguments remain a guard bypass:
+`attempt<number>(() => JSON.parse(raw))` still compiles. Preannotated callbacks,
+operator aliases and casts can also erase the raw return type; JavaScript has
+no type protection. Consumers need type-aware unsafe-any lint for returns,
+assignments, arguments, member access and calls. An explicit generic is a type
+claim, not data validation.
+
+#### Split pipelines longer than ten stages
+
+The widening overloads are removed. `pipe` and `pipeAsync` now reject an
+eleventh stage; compose typed chunks instead.
+
+```typescript
+import { ok, onOk, pipe, type ResultTuple } from "@pencroff-lab/kore";
+
+const step = onOk((n: number) => ok(n + 1));
+const first = pipe(
+	ok(0), step, step, step, step, step, step, step, step, step, step,
+);
+const result: ResultTuple<number> = pipe(first, step);
+```
+
+For async chunks, await the first `pipeAsync` result or pass its promise as
+the source of the next `pipeAsync` call.
+
+#### Make side-effect returns explicit
+
+`effect` accepts only `void`/`undefined` callbacks. It now rejects tuple returns,
+async callbacks, and expression-bodied value returns such as
+`() => seen.push(1)` (which returns a number). Use a block with no return for
+synchronous void work:
+
+```typescript
+import { effect, ok } from "@pencroff-lab/kore";
+
+const seen: number[] = [];
+const recorded = effect(ok(1), () => {
+	seen.push(1);
+});
+```
+
+Use `flatMap`/`flatMapAsync` for fallible work, preserving the original value
+with `map` if needed. Use `effectAsync` and await it for asynchronous void work.
+
+```typescript
+import {
+	effectAsync, flatMap, flatMapAsync, map, ok, type ResultTuple,
+} from "@pencroff-lab/kore";
+
+declare function save(n: number): ResultTuple<void>;
+declare function saveAsync(n: number): Promise<ResultTuple<void>>;
+declare function notify(): Promise<void>;
+
+const saved = flatMap(ok(1), (n) => map(save(n), () => n));
+const savedAsync = await flatMapAsync(ok(1), async (n) =>
+	map(await saveAsync(n), () => n),
+);
+const notified = await effectAsync(ok(1), async () => {
+	await notify();
+});
+```
+
+#### Handle every result
+
+Enable `noFloatingPromises`, and handle or propagate every tuple, including
+awaited results. Promise lint alone permits awaited or explicitly voided tuples
+to be discarded. v0.7.1 adds an in-repository tuple usage checker and Biome
+promise checks to local lint and CI; it ships no downstream tuple must-use
+rule. Consumer rule delivery remains a follow-up. These checks do not prove
+that every later caller handles an assigned or passed result.
+
 ## [0.7.0] - 2026-09-11
 
 ### Bug Fixes

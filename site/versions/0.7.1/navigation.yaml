@@ -1,0 +1,88 @@
+# Titles, ordering and section metadata for the current documentation edition.
+#
+# `path` is relative to docs/. A page without an entry keeps its first H1 as the
+# title and sorts after every listed page. Snapshots capture their own copy of
+# this file, so changing it never alters a released edition.
+schemaVersion: 1
+
+sections:
+  - path: guides
+    title: Guides
+    weight: 20
+    description: Task-oriented explanations of how the library is meant to be used.
+  - path: examples
+    title: Examples
+    weight: 30
+    description: Executable examples, generated from the library's own test suite.
+  - path: api
+    title: API reference
+    weight: 40
+    description: Generated from the source comments on every exported symbol.
+
+pages:
+  - path: README.md
+    title: Overview
+    weight: 1
+
+  - path: guides/flow-operation-flows.md
+    title: Flow operation flows
+    weight: 21
+  - path: guides/error-handling-patterns.md
+    title: Error handling patterns
+    weight: 22
+  - path: guides/migration-from-throwing.md
+    title: Migration from throwing
+    weight: 23
+  - path: guides/logging_guide.md
+    title: Logging guide
+    weight: 24
+  - path: guides/docs_guide.md
+    title: Documentation guide
+    weight: 25
+  - path: guides/tsdoc_guide.md
+    title: TSDoc formatting rules
+    weight: 26
+
+  - path: examples/README.md
+    title: Examples
+    weight: 30
+  - path: examples/flow.md
+    title: flow examples
+    weight: 31
+  - path: examples/err.md
+    title: Err examples
+    weight: 32
+  - path: examples/test.md
+    title: Test helper examples
+    weight: 33
+  - path: examples/outcome.md
+    title: Outcome examples
+    weight: 34
+  - path: examples/logger.md
+    title: Logger examples
+    weight: 35
+  - path: examples/format_dt.md
+    title: dtStamp examples
+    weight: 36
+
+  - path: api/README.md
+    title: API reference
+    weight: 40
+  - path: api/flow.md
+    title: flow
+    weight: 41
+  - path: api/err.md
+    title: Err
+    weight: 42
+  - path: api/test.md
+    title: Test helpers
+    weight: 43
+  - path: api/outcome.md
+    title: Outcome (deprecated)
+    weight: 44
+  - path: api/logger.md
+    title: Logger
+    weight: 45
+  - path: api/format_dt.md
+    title: dtStamp
+    weight: 46

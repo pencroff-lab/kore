@@ -179,26 +179,29 @@ err.chain().map(e => e.message);
 Wrap errors at each layer to build a cause chain:
 
 ```typescript
+import { attempt, either, fail, ok, type ResultTuple } from "@pencroff-lab/kore";
+
 // Repository layer
-function findUser(id: string): [User, null] | [null, Err] {
+function findUser(id: string): ResultTuple<User> {
   const [row, err] = db.query("SELECT ...", [id]);
-  if (err) return [null, err.wrap("findUser failed")];
-  return [row, null];
+  if (err !== null) return fail(err.wrap("findUser failed"));
+  return ok(row);
 }
 
 // Service layer
-function getProfile(id: string): Outcome<Profile> {
-  return Outcome.from(() => {
+function getProfile(id: string): ResultTuple<Profile> {
+  return attempt(() => {
     const [user, err] = findUser(id);
-    if (err) return err.wrap("getProfile failed").withCode("PROFILE_ERROR");
-    return [{ ...user, displayName: user.name }, null];
+    if (err !== null) return fail(err.wrap("getProfile failed").withCode("PROFILE_ERROR"));
+    return ok({ ...user, displayName: user.name });
   });
 }
 
 // Handler layer
 function handleRequest(id: string): HttpResponse {
-  return getProfile(id).either(
-    (profile) => ({ status: 200, body: profile }),
+  return either(
+    getProfile(id),
+    (profile): HttpResponse => ({ status: 200, body: profile }),
     (err) => ({
       status: err.hasCode("NOT_FOUND") ? 404 : 500,
       body: { error: err.message },
@@ -401,7 +404,7 @@ restored.hasCode("NOT_FOUND"); // true
 
 Cause chains and aggregated errors are serialized/deserialized recursively.
 
-**Note:** `Err.fromJSON()` throws on invalid payloads (missing fields, wrong types). This contrasts with `Outcome.fromJSON()`, which returns an error `Outcome` instead of throwing.
+**Note:** `Err.fromJSON()` throws on invalid payloads (missing fields, wrong types). The flow function `fromJSON()` never throws; it returns a failed `ResultTuple` with code `INVALID_JSON` for an invalid envelope.
 
 ### Controlling serialized fields
 
@@ -485,4 +488,4 @@ Err.from("Validation failed", { code: "VALIDATION" })
 
 - [flow-operation-flows.md](./flow-operation-flows.md) — `flow` patterns for operation flows
 - [Err examples](../examples/err.md) — Err usage examples
-- [Outcome examples](../examples/outcome.md) — Outcome usage examples
+- [Outcome examples](../examples/outcome.md) — deprecated, frozen class reference

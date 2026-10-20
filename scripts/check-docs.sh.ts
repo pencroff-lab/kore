@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { Glob } from "bun";
+import { guideOutcomeViolations } from "./check-guide-outcome";
 
 const root = resolve(import.meta.dir, "..");
 
@@ -220,6 +221,12 @@ for await (const filePath of glob.scan({ cwd: root, absolute: true })) {
 
 	allErrors.push(...errors);
 	allWarnings.push(...warnings);
+}
+
+for await (const path of new Glob("docs/guides/**/*.md").scan({ cwd: root })) {
+	allErrors.push(
+		...guideOutcomeViolations(path, await Bun.file(resolve(root, path)).text()),
+	);
 }
 
 // ─── Output ──────────────────────────────────────────────────────────────────

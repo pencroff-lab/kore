@@ -164,16 +164,21 @@ example uses `<version>` as a placeholder — never publish a fixture version.
 6. **Finalize.** CI runs `docs:record-publication`, which verifies the registry
    version, its integrity and dist-tag, the tag's commit, and the stored
    snapshot digest, then writes `site/published.json` and uploads it as the
-   `publication-receipt-<version>` artifact. **Commit that receipt.** Until it
-   is committed, the site keeps serving the previous default edition.
-7. **Deploy.** Merging the receipt commit runs the documentation-only path: it
-   validates and deploys, and cannot republish npm or move the tag.
+   `publication-receipt-<version>` fallback artifact. Using `REPO_TAG_TOKEN`,
+   CI commits the verified receipt directly to `main`. An identical receipt
+   is a no-op; if the receipt changed since the release commit, the update
+   fails without overwriting it. A failed automatic commit leaves the artifact
+   available for manual recovery; it does not undo npm publication.
+7. **Deploy.** The receipt commit triggers the documentation-only workflow:
+   it validates and deploys, and cannot republish npm or move the tag. No
+   receipt-download step or second pull request is normally needed.
 
 The split between step 5 and step 6 is deliberate. A snapshot in
 `versions.yaml` records only that content exists; `published.json` is the sole
-evidence that a version is published, and it is a normal reviewed commit rather
-than an expiring CI cache. An unrecorded snapshot stays out of navigation and
-never becomes the default edition.
+evidence that a version is published, and CI persists it in Git rather than
+relying on an expiring artifact. Until that commit exists, the site keeps
+serving the previous default edition; an unrecorded snapshot stays out of
+navigation and never becomes the default edition.
 
 ### Retries and recovery
 
@@ -181,7 +186,7 @@ never becomes the default edition.
 | --- | --- |
 | npm publish failed | Fix and re-run. The snapshot is still a candidate; nothing was recorded. |
 | npm published, deployment failed | Do **not** republish. Re-run the workflow, or use the `deploy_docs_only` dispatch. |
-| Receipt never committed | Commit it later; the docs-only path deploys the promotion. |
+| Automatic receipt commit failed | Recover the verified artifact following the [root runbook](../README.md#the-receipt-exists-but-was-not-committed); preserve newer entries if main changed. The docs-only path deploys the recovered receipt. |
 | Need to deploy between releases | Run the workflow manually with `deploy_docs_only`. |
 | An older re-run finishes late | It cannot revert the default: promotion only moves forward, by version order, for a stable release intended as npm `latest`. |
 

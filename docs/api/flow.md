@@ -11,11 +11,15 @@ result destructures at any point and every operation is a plain function.
 **Key concepts:**
 - **One fallible protocol** — every fallible callback returns a `ResultTuple`.
   The error slot is the only failure signal; no operator inspects a value's
-  runtime shape. `map` is the single exception: its return is always data.
+  runtime shape. Maps and value adapters always carry callback returns as data.
 - **`ok` / `fail` are the boundary** — `ok(err)` and `ok(tuple)` carry
   error- or tuple-shaped values as successful data.
 - **Exception boundaries** — `attempt`/`attemptAsync`, every callback-taking
   operation, and every pipeline stage convert a throw into `Err.from(caught)`.
+  `attemptValue` / `attemptValueAsync` always envelope throwing value returns,
+  normalizing untyped data to `unknown` for validation by the caller.
+- **Type guards** reject inferred raw `any` returns and sources. Explicit type
+  arguments, preannotations and casts erase that check; use unsafe-any lint.
 - **Input protection** — a pipeline copies its source once on entry, and tuple
   callbacks receive a copy. Payloads are never cloned.
 - **Error enrichment** lives on `Err`: use `mapErr`/`onErr` and chain
@@ -27,11 +31,11 @@ result destructures at any point and every operation is a plain function.
 
 ## Type Aliases
 
-### AnyOp()
+### AnyOp
 
-> **AnyOp**\<`In`, `Out`\> = (`tuple`) => [`ResultTuple`](#resulttuple)\<`Out`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+> **AnyOp**\<`In`, `Out`, `Raw`\> = (`tuple`) => `Raw` & `NoAny`\<`Raw`, `unknown`, `UseAttemptValueOrAttemptValueAsync`\>
 
-Defined in: [flow/flow.types.ts:32](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.types.ts#L32)
+Defined in: [flow/flow.types.ts:66](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.types.ts#L66)
 
 Stage accepted by `pipeAsync`: it may settle synchronously or not.
 
@@ -51,23 +55,17 @@ make an async stage valid in the synchronous `pipe`.
 
 `Out`
 
-#### Parameters
+##### Raw
 
-##### tuple
-
-[`ResultTuple`](#resulttuple)\<`In`\>
-
-#### Returns
-
-[`ResultTuple`](#resulttuple)\<`Out`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+`Raw` *extends* [`AsyncSource`](#asyncsource)\<`Out`\> = [`AsyncSource`](#asyncsource)\<`Out`\>
 
 ***
 
 ### AsyncSource
 
-> **AsyncSource**\<`T`\> = [`ResultTuple`](#resulttuple)\<`T`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`T`\>\>
+> **AsyncSource**\<`T`, `Raw`\> = `Raw` & `NoAny`\<`Raw`\>
 
-Defined in: [flow/flow.types.ts:37](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.types.ts#L37)
+Defined in: [flow/flow.types.ts:72](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.types.ts#L72)
 
 Source accepted by `pipeAsync`: a tuple, or a promise of one.
 
@@ -77,13 +75,17 @@ Source accepted by `pipeAsync`: a tuple, or a promise of one.
 
 `T`
 
+##### Raw
+
+`Raw` *extends* [`ResultTuple`](#resulttuple)\<`T`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`T`\>\> = [`ResultTuple`](#resulttuple)\<`T`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`T`\>\>
+
 ***
 
 ### OkValue
 
 > **OkValue**\<`R`\> = `R` *extends* readonly \[infer V, `null`\] ? `V` : `never`
 
-Defined in: [flow/flow.types.ts:42](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.types.ts#L42)
+Defined in: [flow/flow.types.ts:82](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.types.ts#L82)
 
 Success type carried by a result tuple.
 
@@ -99,7 +101,7 @@ Success type carried by a result tuple.
 
 > **OkValues**\<`T`\> = `{ -readonly [K in keyof T]: OkValue<T[K]> }`
 
-Defined in: [flow/flow.types.ts:48](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.types.ts#L48)
+Defined in: [flow/flow.types.ts:88](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.types.ts#L88)
 
 Success types of a collection of result tuples, positionally.
 A tuple of results maps to a tuple of values; an array maps to an array.
@@ -112,11 +114,11 @@ A tuple of results maps to a tuple of values; an array maps to an array.
 
 ***
 
-### Op()
+### Op
 
-> **Op**\<`In`, `Out`\> = (`tuple`) => [`ResultTuple`](#resulttuple)\<`Out`\>
+> **Op**\<`In`, `Out`, `Raw`\> = (`tuple`) => `Raw` & `NoAny`\<`Raw`, `unknown`, `UseAttemptValueOrAttemptValueAsync`\>
 
-Defined in: [flow/flow.types.ts:11](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.types.ts#L11)
+Defined in: [flow/flow.types.ts:39](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.types.ts#L39)
 
 Synchronous pipeline stage: tuple in, tuple out.
 
@@ -134,23 +136,17 @@ Input success type
 
 Output success type
 
-#### Parameters
+##### Raw
 
-##### tuple
-
-[`ResultTuple`](#resulttuple)\<`In`\>
-
-#### Returns
-
-[`ResultTuple`](#resulttuple)\<`Out`\>
+`Raw` *extends* [`ResultTuple`](#resulttuple)\<`Out`\> = [`ResultTuple`](#resulttuple)\<`Out`\>
 
 ***
 
-### OpAsync()
+### OpAsync
 
-> **OpAsync**\<`In`, `Out`\> = (`tuple`) => `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+> **OpAsync**\<`In`, `Out`, `Raw`\> = (`tuple`) => `Raw` & `NoAny`\<`Raw`, `unknown`, `UseAttemptValueOrAttemptValueAsync`\>
 
-Defined in: [flow/flow.types.ts:19](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.types.ts#L19)
+Defined in: [flow/flow.types.ts:50](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.types.ts#L50)
 
 Asynchronous pipeline stage.
 
@@ -168,15 +164,9 @@ Input success type
 
 Output success type
 
-#### Parameters
+##### Raw
 
-##### tuple
-
-[`ResultTuple`](#resulttuple)\<`In`\>
-
-#### Returns
-
-`Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+`Raw` *extends* `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\> = `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
 
 ***
 
@@ -184,7 +174,7 @@ Output success type
 
 > **ResultTuple**\<`T`\> = readonly \[`T`, `null`\] \| readonly \[`null`, [`Err`](err.md#err)\]
 
-Defined in: [types/common.types.ts:15](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/types/common.types.ts#L15)
+Defined in: [types/common.types.ts:15](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/types/common.types.ts#L15)
 
 Tuple-based result with positional semantics, shared by the `flow` and
 `Outcome` tiers.
@@ -207,7 +197,7 @@ The error slot is the discriminant — `ok(null)` is the valid success tuple
 
 > **all**\<`T`\>(`results`): [`ResultTuple`](#resulttuple)\<[`OkValues`](#okvalues)\<`T`\>\>
 
-Defined in: [flow/flow.ts:709](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L709)
+Defined in: [flow/flow.ts:1111](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L1111)
 
 Combine already-evaluated results, succeeding only if every one succeeded.
 
@@ -241,7 +231,7 @@ Success with all values, or one aggregate failure
 
 > **any**\<`T`\>(`results`): [`ResultTuple`](#resulttuple)\<`T`\>
 
-Defined in: [flow/flow.ts:738](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L738)
+Defined in: [flow/flow.ts:1140](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L1140)
 
 Return the first successful result, by reference.
 
@@ -272,9 +262,9 @@ The first success, or an aggregate failure
 
 ### attempt()
 
-> **attempt**\<`T`\>(`fn`): [`ResultTuple`](#resulttuple)\<`T`\>
+> **attempt**\<`T`, `Raw`\>(`fn`): [`ResultTuple`](#resulttuple)\<[`OkValue`](#okvalue)\<`Raw`\>\>
 
-Defined in: [flow/flow.ts:103](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L103)
+Defined in: [flow/flow.ts:120](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L120)
 
 Run a fallible callback, converting a throw into a failure tuple.
 
@@ -284,17 +274,21 @@ Run a fallible callback, converting a throw into a failure tuple.
 
 `T`
 
+##### Raw
+
+`Raw` *extends* [`ResultTuple`](#resulttuple)\<`T`\> = [`ResultTuple`](#resulttuple)\<`T`\>
+
 #### Parameters
 
 ##### fn
 
-() => [`ResultTuple`](#resulttuple)\<`T`\>
+() => `Raw` & `NoAny`\<`Raw`, `unknown`, `UseAttemptValueOrAttemptValueAsync`\>
 
 Callback returning a result tuple
 
 #### Returns
 
-[`ResultTuple`](#resulttuple)\<`T`\>
+[`ResultTuple`](#resulttuple)\<[`OkValue`](#okvalue)\<`Raw`\>\>
 
 The callback's tuple, or `Err.from(caught)` as a failure
 
@@ -302,11 +296,45 @@ The callback's tuple, or `Err.from(caught)` as a failure
 
 ### attemptAsync()
 
-> **attemptAsync**\<`T`\>(`fn`): `Promise`\<[`ResultTuple`](#resulttuple)\<`T`\>\>
+> **attemptAsync**\<`T`, `Raw`\>(`fn`): `Promise`\<[`ResultTuple`](#resulttuple)\<[`OkValue`](#okvalue)\<`Awaited`\<`Raw`\>\>\>\>
 
-Defined in: [flow/flow.ts:117](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L117)
+Defined in: [flow/flow.ts:136](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L136)
 
 Async counterpart of `attempt()`. Converts throws and rejections.
+
+#### Type Parameters
+
+##### T
+
+`T`
+
+##### Raw
+
+`Raw` *extends* [`ResultTuple`](#resulttuple)\<`T`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`T`\>\> = `Promise`\<[`ResultTuple`](#resulttuple)\<`T`\>\>
+
+#### Parameters
+
+##### fn
+
+() => `Raw` & `NoAny`\<`Raw`, `Promise`\<`unknown`\>, `UseAttemptValueOrAttemptValueAsync`\>
+
+Async callback returning a result tuple
+
+#### Returns
+
+`Promise`\<[`ResultTuple`](#resulttuple)\<[`OkValue`](#okvalue)\<`Awaited`\<`Raw`\>\>\>\>
+
+Promise of the callback's tuple, or of a failure
+
+***
+
+### attemptValue()
+
+> **attemptValue**\<`T`\>(`fn`): [`ResultTuple`](#resulttuple)\<`SafeValue`\<`T`\>\>
+
+Defined in: [flow/flow.ts:157](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L157)
+
+Wrap a throwing value callback as data, normalizing `any` to `unknown`.
 
 #### Type Parameters
 
@@ -318,15 +346,49 @@ Async counterpart of `attempt()`. Converts throws and rejections.
 
 ##### fn
 
-() => `Promise`\<[`ResultTuple`](#resulttuple)\<`T`\>\>
+() => `T` & `SyncValue`\<`T`\>
 
-Async callback returning a result tuple
+Synchronous data callback; use `attemptValueAsync` for PromiseLike returns
 
 #### Returns
 
-`Promise`\<[`ResultTuple`](#resulttuple)\<`T`\>\>
+[`ResultTuple`](#resulttuple)\<`SafeValue`\<`T`\>\>
 
-Promise of the callback's tuple, or of a failure
+A success envelope, or a caught throw as a failure
+
+#### See
+
+[flow.examples.test.ts](../examples/flow.md)
+
+***
+
+### attemptValueAsync()
+
+> **attemptValueAsync**\<`T`\>(`fn`): `Promise`\<[`ResultTuple`](#resulttuple)\<`SafeValue`\<`Awaited`\<`T`\>\>\>\>
+
+Defined in: [flow/flow.ts:173](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L173)
+
+Await and wrap a value callback, converting throws and rejections.
+
+#### Type Parameters
+
+##### T
+
+`T`
+
+#### Parameters
+
+##### fn
+
+() => `PromiseLike`\<`T`\>
+
+Callback returning a promise of data
+
+#### Returns
+
+`Promise`\<[`ResultTuple`](#resulttuple)\<`SafeValue`\<`Awaited`\<`T`\>\>\>\>
+
+A success envelope with awaited `any` normalized to `unknown`, or a failure
 
 ***
 
@@ -334,7 +396,7 @@ Promise of the callback's tuple, or of a failure
 
 > **copy**\<`T`\>(`tuple`): `T`
 
-Defined in: [flow/flow.ts:51](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L51)
+Defined in: [flow/flow.ts:68](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L68)
 
 Copy a result tuple, keeping its narrowed type.
 
@@ -366,7 +428,7 @@ A new tuple with the same slots
 
 > **defaultTo**\<`T`\>(`tuple`, `onErr`): `T`
 
-Defined in: [flow/flow.ts:670](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L670)
+Defined in: [flow/flow.ts:1072](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L1072)
 
 Extract the success value, or compute a fallback from the error.
 
@@ -405,12 +467,12 @@ The success value, or the handler's result
 
 > **effect**\<`T`\>(`tuple`, `fn`): [`ResultTuple`](#resulttuple)\<`T`\>
 
-Defined in: [flow/flow.ts:266](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L266)
+Defined in: [flow/flow.ts:342](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L342)
 
 Run a side effect on either channel.
 
 The callback receives the returned copy, not the caller's tuple, and its
-normal return value is ignored. A throw becomes the failure.
+callback must return void or undefined. A throw becomes the failure.
 
 #### Type Parameters
 
@@ -428,7 +490,7 @@ Source result
 
 ##### fn
 
-(`tuple`) => `void`
+(`tuple`) => `void` \| `undefined`
 
 Side effect receiving the output tuple
 
@@ -444,7 +506,7 @@ The output copy, or a caught throw as a failure
 
 > **effectAsync**\<`T`\>(`tuple`, `fn`): `Promise`\<[`ResultTuple`](#resulttuple)\<`T`\>\>
 
-Defined in: [flow/flow.ts:286](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L286)
+Defined in: [flow/flow.ts:363](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L363)
 
 Async counterpart of `effect()`.
 
@@ -480,7 +542,7 @@ Promise of the output copy, or of a failure
 
 > **either**\<`T`, `U`\>(`tuple`, `onOk`, `onErr`): `U`
 
-Defined in: [flow/flow.ts:686](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L686)
+Defined in: [flow/flow.ts:1088](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L1088)
 
 Fold both channels to a common output type. Handler exceptions propagate.
 
@@ -524,9 +586,9 @@ The selected handler's result
 
 ### ensure()
 
-> **ensure**\<`T`, `S`\>(`tuple`, `predicate`, `toErr`): [`ResultTuple`](#resulttuple)\<`S`\>
+> **ensure**\<`T`, `S`, `Predicate`, `ErrorValue`\>(`tuple`, `predicate`, `toErr`): [`ResultTuple`](#resulttuple)\<`S`\>
 
-Defined in: [flow/flow.ts:311](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L311)
+Defined in: [flow/flow.ts:388](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L388)
 
 Validate a success value, optionally refining its type.
 
@@ -544,6 +606,14 @@ failure. A failure input passes through and calls neither callback.
 
 `S` = `T`
 
+##### Predicate
+
+`Predicate` *extends* `boolean` = `boolean`
+
+##### ErrorValue
+
+`ErrorValue` *extends* [`Err`](err.md#err) = [`Err`](err.md#err)
+
 #### Parameters
 
 ##### tuple
@@ -556,11 +626,11 @@ Source result
 
 Type predicate or boolean test
 
-(`value`) => `value is S` | (`value`) => `boolean`
+(`value`) => `value is S` | (`value`) => `Predicate` & `NoAny`\<`Predicate`\>
 
 ##### toErr
 
-(`value`) => [`Err`](err.md#err)
+(`value`) => `ErrorValue` & `NoAny`\<`ErrorValue`, `unknown`, `UseAttemptValueOrAttemptValueAsync`\>
 
 Error factory, called only when the predicate fails
 
@@ -576,7 +646,7 @@ The original success, a constructed failure, or a caught throw
 
 > **fail**(`error`, `code?`): [`ResultTuple`](#resulttuple)\<`never`\>
 
-Defined in: [flow/flow.ts:90](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L90)
+Defined in: [flow/flow.ts:107](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L107)
 
 Create a failure tuple.
 
@@ -609,9 +679,9 @@ Optional error code
 
 ### flatMap()
 
-> **flatMap**\<`In`, `Out`\>(`tuple`, `fn`): [`ResultTuple`](#resulttuple)\<`Out`\>
+> **flatMap**\<`In`, `Out`, `Raw`\>(`tuple`, `fn`): [`ResultTuple`](#resulttuple)\<[`OkValue`](#okvalue)\<`Raw`\>\>
 
-Defined in: [flow/flow.ts:183](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L183)
+Defined in: [flow/flow.ts:239](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L239)
 
 Chain a fallible callback on the success channel.
 
@@ -629,6 +699,10 @@ through by reference.
 
 `Out`
 
+##### Raw
+
+`Raw` *extends* [`ResultTuple`](#resulttuple)\<`Out`\> = [`ResultTuple`](#resulttuple)\<`Out`\>
+
 #### Parameters
 
 ##### tuple
@@ -639,13 +713,13 @@ Source result
 
 ##### fn
 
-(`value`) => [`ResultTuple`](#resulttuple)\<`Out`\>
+(`value`) => `Raw` & `NoAny`\<`Raw`, `unknown`, `UseAttemptValueOrAttemptValueAsync`\>
 
 Callback returning a result tuple
 
 #### Returns
 
-[`ResultTuple`](#resulttuple)\<`Out`\>
+[`ResultTuple`](#resulttuple)\<[`OkValue`](#okvalue)\<`Raw`\>\>
 
 The callback's tuple, the original failure, or a caught throw
 
@@ -653,9 +727,9 @@ The callback's tuple, the original failure, or a caught throw
 
 ### flatMapAsync()
 
-> **flatMapAsync**\<`In`, `Out`\>(`tuple`, `fn`): `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+> **flatMapAsync**\<`In`, `Out`, `Raw`\>(`tuple`, `fn`): `Promise`\<[`ResultTuple`](#resulttuple)\<[`OkValue`](#okvalue)\<`Awaited`\<`Raw`\>\>\>\>
 
-Defined in: [flow/flow.ts:202](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L202)
+Defined in: [flow/flow.ts:263](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L263)
 
 Async counterpart of `flatMap()`.
 
@@ -669,6 +743,10 @@ Async counterpart of `flatMap()`.
 
 `Out`
 
+##### Raw
+
+`Raw` *extends* [`ResultTuple`](#resulttuple)\<`Out`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\> = `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+
 #### Parameters
 
 ##### tuple
@@ -679,13 +757,13 @@ Source result
 
 ##### fn
 
-(`value`) => `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+(`value`) => `Raw` & `NoAny`\<`Raw`, `Promise`\<`unknown`\>, `UseAttemptValueOrAttemptValueAsync`\>
 
 Async callback returning a result tuple
 
 #### Returns
 
-`Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+`Promise`\<[`ResultTuple`](#resulttuple)\<[`OkValue`](#okvalue)\<`Awaited`\<`Raw`\>\>\>\>
 
 Promise of the resulting tuple
 
@@ -695,7 +773,7 @@ Promise of the resulting tuple
 
 > **fromJSON**\<`T`\>(`payload`): [`ResultTuple`](#resulttuple)\<`T`\>
 
-Defined in: [flow/flow.ts:778](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L778)
+Defined in: [flow/flow.ts:1180](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L1180)
 
 Reconstruct a result tuple from `JSON.parse` output.
 
@@ -731,7 +809,7 @@ The reconstructed tuple, or an `INVALID_JSON` failure
 
 > **map**\<`In`, `Out`\>(`tuple`, `fn`): [`ResultTuple`](#resulttuple)\<`Out`\>
 
-Defined in: [flow/flow.ts:141](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L141)
+Defined in: [flow/flow.ts:197](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L197)
 
 Transform a success value with a total function.
 
@@ -774,7 +852,7 @@ Transformed success, the original failure, or a caught throw
 
 > **mapAsync**\<`In`, `Out`\>(`tuple`, `fn`): `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
 
-Defined in: [flow/flow.ts:160](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L160)
+Defined in: [flow/flow.ts:216](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L216)
 
 Async counterpart of `map()`.
 
@@ -812,9 +890,9 @@ Promise of the transformed result
 
 ### mapErr()
 
-> **mapErr**\<`In`, `Out`\>(`tuple`, `fn`): [`ResultTuple`](#resulttuple)\<`In` \| `Out`\>
+> **mapErr**\<`In`, `Out`, `Raw`\>(`tuple`, `fn`): [`ResultTuple`](#resulttuple)\<`In` \| [`OkValue`](#okvalue)\<`Raw`\>\>
 
-Defined in: [flow/flow.ts:225](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L225)
+Defined in: [flow/flow.ts:291](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L291)
 
 Transform or recover from a failure.
 
@@ -832,6 +910,10 @@ reference.
 
 `Out`
 
+##### Raw
+
+`Raw` *extends* [`ResultTuple`](#resulttuple)\<`Out`\> = [`ResultTuple`](#resulttuple)\<`Out`\>
+
 #### Parameters
 
 ##### tuple
@@ -842,13 +924,13 @@ Source result
 
 ##### fn
 
-(`error`) => [`ResultTuple`](#resulttuple)\<`Out`\>
+(`error`) => `Raw` & `NoAny`\<`Raw`, `unknown`, `UseAttemptValueOrAttemptValueAsync`\>
 
 Callback receiving the error and returning a result tuple
 
 #### Returns
 
-[`ResultTuple`](#resulttuple)\<`In` \| `Out`\>
+[`ResultTuple`](#resulttuple)\<`In` \| [`OkValue`](#okvalue)\<`Raw`\>\>
 
 The callback's tuple, the original success, or a caught throw
 
@@ -856,9 +938,9 @@ The callback's tuple, the original success, or a caught throw
 
 ### mapErrAsync()
 
-> **mapErrAsync**\<`In`, `Out`\>(`tuple`, `fn`): `Promise`\<[`ResultTuple`](#resulttuple)\<`In` \| `Out`\>\>
+> **mapErrAsync**\<`In`, `Out`, `Raw`\>(`tuple`, `fn`): `Promise`\<[`ResultTuple`](#resulttuple)\<`In` \| [`OkValue`](#okvalue)\<`Awaited`\<`Raw`\>\>\>\>
 
-Defined in: [flow/flow.ts:244](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L244)
+Defined in: [flow/flow.ts:315](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L315)
 
 Async counterpart of `mapErr()`.
 
@@ -872,6 +954,10 @@ Async counterpart of `mapErr()`.
 
 `Out`
 
+##### Raw
+
+`Raw` *extends* [`ResultTuple`](#resulttuple)\<`Out`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\> = `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+
 #### Parameters
 
 ##### tuple
@@ -882,13 +968,13 @@ Source result
 
 ##### fn
 
-(`error`) => `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+(`error`) => `Raw` & `NoAny`\<`Raw`, `Promise`\<`unknown`\>, `UseAttemptValueOrAttemptValueAsync`\>
 
 Async callback receiving the error
 
 #### Returns
 
-`Promise`\<[`ResultTuple`](#resulttuple)\<`In` \| `Out`\>\>
+`Promise`\<[`ResultTuple`](#resulttuple)\<`In` \| [`OkValue`](#okvalue)\<`Awaited`\<`Raw`\>\>\>\>
 
 Promise of the resulting tuple
 
@@ -900,7 +986,7 @@ Promise of the resulting tuple
 
 > **ok**(): [`ResultTuple`](#resulttuple)\<`void`\>
 
-Defined in: [flow/flow.ts:60](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L60)
+Defined in: [flow/flow.ts:77](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L77)
 
 Create a success tuple with no value.
 
@@ -914,7 +1000,7 @@ Create a success tuple with no value.
 
 > **ok**\<`T`\>(`value`): [`ResultTuple`](#resulttuple)\<`T`\>
 
-Defined in: [flow/flow.ts:71](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L71)
+Defined in: [flow/flow.ts:88](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L88)
 
 Create a success tuple carrying a value.
 
@@ -945,9 +1031,9 @@ The success value
 
 ### onErr()
 
-> **onErr**\<`Out`\>(`fn`): \<`In`\>(`tuple`) => [`ResultTuple`](#resulttuple)\<`Out` \| `In`\>
+> **onErr**\<`Out`, `Raw`\>(`fn`): \<`In`\>(`tuple`) => [`ResultTuple`](#resulttuple)\<`In` \| [`OkValue`](#okvalue)\<`Raw`\>\>
 
-Defined in: [flow/flow.ts:365](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L365)
+Defined in: [flow/flow.ts:456](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L456)
 
 Stage running a callback on the error channel.
 
@@ -962,11 +1048,15 @@ a variable, widening the whole pipeline.
 
 `Out`
 
+##### Raw
+
+`Raw` *extends* [`ResultTuple`](#resulttuple)\<`Out`\> = [`ResultTuple`](#resulttuple)\<`Out`\>
+
 #### Parameters
 
 ##### fn
 
-(`error`) => [`ResultTuple`](#resulttuple)\<`Out`\>
+(`error`) => `Raw` & `NoAny`\<`Raw`, `unknown`, `UseAttemptValueOrAttemptValueAsync`\>
 
 Callback receiving the error and returning a result tuple
 
@@ -974,7 +1064,7 @@ Callback receiving the error and returning a result tuple
 
 A synchronous pipeline stage that preserves the success type
 
-> \<`In`\>(`tuple`): [`ResultTuple`](#resulttuple)\<`Out` \| `In`\>
+> \<`In`\>(`tuple`): [`ResultTuple`](#resulttuple)\<`In` \| [`OkValue`](#okvalue)\<`Raw`\>\>
 
 ##### Type Parameters
 
@@ -990,15 +1080,15 @@ A synchronous pipeline stage that preserves the success type
 
 ##### Returns
 
-[`ResultTuple`](#resulttuple)\<`Out` \| `In`\>
+[`ResultTuple`](#resulttuple)\<`In` \| [`OkValue`](#okvalue)\<`Raw`\>\>
 
 ***
 
 ### onErrAsync()
 
-> **onErrAsync**\<`Out`\>(`fn`): \<`In`\>(`tuple`) => `Promise`\<[`ResultTuple`](#resulttuple)\<`Out` \| `In`\>\>
+> **onErrAsync**\<`Out`, `Raw`\>(`fn`): \<`In`\>(`tuple`) => `Promise`\<[`ResultTuple`](#resulttuple)\<`In` \| [`OkValue`](#okvalue)\<`Awaited`\<`Raw`\>\>\>\>
 
-Defined in: [flow/flow.ts:377](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L377)
+Defined in: [flow/flow.ts:469](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L469)
 
 Async counterpart of `onErr()`.
 
@@ -1008,11 +1098,15 @@ Async counterpart of `onErr()`.
 
 `Out`
 
+##### Raw
+
+`Raw` *extends* [`ResultTuple`](#resulttuple)\<`Out`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\> = `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+
 #### Parameters
 
 ##### fn
 
-(`error`) => `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+(`error`) => `Raw` & `NoAny`\<`Raw`, `Promise`\<`unknown`\>, `UseAttemptValueOrAttemptValueAsync`\>
 
 Async callback receiving the error
 
@@ -1020,7 +1114,7 @@ Async callback receiving the error
 
 An asynchronous pipeline stage that preserves the success type
 
-> \<`In`\>(`tuple`): `Promise`\<[`ResultTuple`](#resulttuple)\<`Out` \| `In`\>\>
+> \<`In`\>(`tuple`): `Promise`\<[`ResultTuple`](#resulttuple)\<`In` \| [`OkValue`](#okvalue)\<`Awaited`\<`Raw`\>\>\>\>
 
 ##### Type Parameters
 
@@ -1036,15 +1130,15 @@ An asynchronous pipeline stage that preserves the success type
 
 ##### Returns
 
-`Promise`\<[`ResultTuple`](#resulttuple)\<`Out` \| `In`\>\>
+`Promise`\<[`ResultTuple`](#resulttuple)\<`In` \| [`OkValue`](#okvalue)\<`Awaited`\<`Raw`\>\>\>\>
 
 ***
 
 ### onOk()
 
-> **onOk**\<`In`, `Out`\>(`fn`): [`Op`](#op)\<`In`, `Out`\>
+> **onOk**\<`In`, `Out`, `Raw`\>(`fn`): (`tuple`) => [`ResultTuple`](#resulttuple)
 
-Defined in: [flow/flow.ts:336](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L336)
+Defined in: [flow/flow.ts:421](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L421)
 
 Stage running a fallible callback on the success value.
 
@@ -1058,27 +1152,41 @@ Stage running a fallible callback on the success value.
 
 `Out`
 
+##### Raw
+
+`Raw` *extends* [`ResultTuple`](#resulttuple)\<`Out`\> = [`ResultTuple`](#resulttuple)\<`Out`\>
+
 #### Parameters
 
 ##### fn
 
-(`value`) => [`ResultTuple`](#resulttuple)\<`Out`\>
+(`value`) => `Raw` & `NoAny`\<`Raw`, `unknown`, `UseAttemptValueOrAttemptValueAsync`\>
 
 Callback returning a result tuple
 
 #### Returns
 
-[`Op`](#op)\<`In`, `Out`\>
-
 A synchronous pipeline stage
+
+> (`tuple`): [`ResultTuple`](#resulttuple)
+
+##### Parameters
+
+###### tuple
+
+[`ResultTuple`](#resulttuple)\<`In`\>
+
+##### Returns
+
+[`ResultTuple`](#resulttuple)
 
 ***
 
 ### onOkAsync()
 
-> **onOkAsync**\<`In`, `Out`\>(`fn`): [`OpAsync`](#opasync)\<`In`, `Out`\>
+> **onOkAsync**\<`In`, `Out`, `Raw`\>(`fn`): (`tuple`) => `Promise`
 
-Defined in: [flow/flow.ts:348](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L348)
+Defined in: [flow/flow.ts:434](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L434)
 
 Async counterpart of `onOk()`.
 
@@ -1092,27 +1200,41 @@ Async counterpart of `onOk()`.
 
 `Out`
 
+##### Raw
+
+`Raw` *extends* [`ResultTuple`](#resulttuple)\<`Out`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\> = `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+
 #### Parameters
 
 ##### fn
 
-(`value`) => `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+(`value`) => `Raw` & `NoAny`\<`Raw`, `Promise`\<`unknown`\>, `UseAttemptValueOrAttemptValueAsync`\>
 
 Async callback returning a result tuple
 
 #### Returns
 
-[`OpAsync`](#opasync)\<`In`, `Out`\>
-
 An asynchronous pipeline stage
+
+> (`tuple`): `Promise`
+
+##### Parameters
+
+###### tuple
+
+[`ResultTuple`](#resulttuple)\<`In`\>
+
+##### Returns
+
+`Promise`
 
 ***
 
 ### onTuple()
 
-> **onTuple**\<`In`, `Out`\>(`fn`): [`Op`](#op)\<`In`, `Out`\>
+> **onTuple**\<`In`, `Out`, `Raw`\>(`fn`): (`tuple`) => [`ResultTuple`](#resulttuple)
 
-Defined in: [flow/flow.ts:389](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L389)
+Defined in: [flow/flow.ts:487](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L487)
 
 Stage running a callback on a copy of the whole tuple, on either channel.
 
@@ -1126,27 +1248,41 @@ Stage running a callback on a copy of the whole tuple, on either channel.
 
 `Out`
 
+##### Raw
+
+`Raw` *extends* [`ResultTuple`](#resulttuple)\<`Out`\> = [`ResultTuple`](#resulttuple)\<`Out`\>
+
 #### Parameters
 
 ##### fn
 
-(`tuple`) => [`ResultTuple`](#resulttuple)\<`Out`\>
+(`tuple`) => `Raw` & `NoAny`\<`Raw`, `unknown`, `UseAttemptValueOrAttemptValueAsync`\>
 
 Callback receiving a tuple copy and returning a result tuple
 
 #### Returns
 
-[`Op`](#op)\<`In`, `Out`\>
-
 A synchronous pipeline stage
+
+> (`tuple`): [`ResultTuple`](#resulttuple)
+
+##### Parameters
+
+###### tuple
+
+[`ResultTuple`](#resulttuple)\<`In`\>
+
+##### Returns
+
+[`ResultTuple`](#resulttuple)
 
 ***
 
 ### onTupleAsync()
 
-> **onTupleAsync**\<`In`, `Out`\>(`fn`): [`OpAsync`](#opasync)\<`In`, `Out`\>
+> **onTupleAsync**\<`In`, `Out`, `Raw`\>(`fn`): (`tuple`) => `Promise`
 
-Defined in: [flow/flow.ts:401](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L401)
+Defined in: [flow/flow.ts:505](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L505)
 
 Async counterpart of `onTuple()`.
 
@@ -1160,19 +1296,33 @@ Async counterpart of `onTuple()`.
 
 `Out`
 
+##### Raw
+
+`Raw` *extends* [`ResultTuple`](#resulttuple)\<`Out`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\> = `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+
 #### Parameters
 
 ##### fn
 
-(`tuple`) => `Promise`\<[`ResultTuple`](#resulttuple)\<`Out`\>\>
+(`tuple`) => `Raw` & `NoAny`\<`Raw`, `Promise`\<`unknown`\>, `UseAttemptValueOrAttemptValueAsync`\>
 
 Async callback receiving a tuple copy
 
 #### Returns
 
-[`OpAsync`](#opasync)\<`In`, `Out`\>
-
 An asynchronous pipeline stage
+
+> (`tuple`): `Promise`
+
+##### Parameters
+
+###### tuple
+
+[`ResultTuple`](#resulttuple)\<`In`\>
+
+##### Returns
+
+`Promise`
 
 ***
 
@@ -1180,15 +1330,15 @@ An asynchronous pipeline stage
 
 #### Call Signature
 
-> **pipe**\<`A`\>(`source`): [`ResultTuple`](#resulttuple)\<`A`\>
+> **pipe**\<`A`, `Source`\>(`source`): [`ResultTuple`](#resulttuple)\<[`OkValue`](#okvalue)\<`Source`\>\>
 
-Defined in: [flow/flow.ts:420](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L420)
+Defined in: [flow/flow.ts:532](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L532)
 
 Run synchronous stages over a result tuple.
 
 The source is copied once on entry, and each stage is caught separately so a
-later `onErr` stage can recover. Typed through ten stages; past that the
-result widens to `ResultTuple<unknown>`.
+later `onErr` stage can recover. Accepts up to ten typed stages; compose
+longer flows in typed chunks.
 
 ##### Type Parameters
 
@@ -1196,15 +1346,19 @@ result widens to `ResultTuple<unknown>`.
 
 `A`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> = [`ResultTuple`](#resulttuple)\<`A`\>
+
 ##### Parameters
 
 ###### source
 
-[`ResultTuple`](#resulttuple)\<`A`\>
+`Source` & `NoAny`\<`Source`\>
 
 ##### Returns
 
-[`ResultTuple`](#resulttuple)\<`A`\>
+[`ResultTuple`](#resulttuple)\<[`OkValue`](#okvalue)\<`Source`\>\>
 
 ##### See
 
@@ -1212,15 +1366,15 @@ result widens to `ResultTuple<unknown>`.
 
 #### Call Signature
 
-> **pipe**\<`A`, `B`\>(`source`, `op1`): [`ResultTuple`](#resulttuple)\<`B`\>
+> **pipe**\<`A`, `B`, `Source`, `R1`\>(`source`, `op1`): [`ResultTuple`](#resulttuple)\<`B`\>
 
-Defined in: [flow/flow.ts:421](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L421)
+Defined in: [flow/flow.ts:536](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L536)
 
 Run synchronous stages over a result tuple.
 
 The source is copied once on entry, and each stage is caught separately so a
-later `onErr` stage can recover. Typed through ten stages; past that the
-result widens to `ResultTuple<unknown>`.
+later `onErr` stage can recover. Accepts up to ten typed stages; compose
+longer flows in typed chunks.
 
 ##### Type Parameters
 
@@ -1232,15 +1386,23 @@ result widens to `ResultTuple<unknown>`.
 
 `B`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> = [`ResultTuple`](#resulttuple)\<`A`\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> = [`ResultTuple`](#resulttuple)\<`B`\>
+
 ##### Parameters
 
 ###### source
 
-[`ResultTuple`](#resulttuple)\<`A`\>
+`Source` & `ResultSlots`\<`A`\> & `NoAny`\<`Source`\>
 
 ###### op1
 
-[`Op`](#op)\<`A`, `B`\>
+[`Op`](#op)\<`NoInfer`\<`A`\>, `B`, `R1` & `ResultSlots`\<`B`\>\>
 
 ##### Returns
 
@@ -1252,15 +1414,15 @@ result widens to `ResultTuple<unknown>`.
 
 #### Call Signature
 
-> **pipe**\<`A`, `B`, `C`\>(`source`, `op1`, `op2`): [`ResultTuple`](#resulttuple)\<`C`\>
+> **pipe**\<`A`, `B`, `C`, `Source`, `R1`, `R2`\>(`source`, `op1`, `op2`): [`ResultTuple`](#resulttuple)\<`C`\>
 
-Defined in: [flow/flow.ts:425](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L425)
+Defined in: [flow/flow.ts:546](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L546)
 
 Run synchronous stages over a result tuple.
 
 The source is copied once on entry, and each stage is caught separately so a
-later `onErr` stage can recover. Typed through ten stages; past that the
-result widens to `ResultTuple<unknown>`.
+later `onErr` stage can recover. Accepts up to ten typed stages; compose
+longer flows in typed chunks.
 
 ##### Type Parameters
 
@@ -1276,19 +1438,31 @@ result widens to `ResultTuple<unknown>`.
 
 `C`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> = [`ResultTuple`](#resulttuple)\<`A`\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> = [`ResultTuple`](#resulttuple)\<`B`\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> = [`ResultTuple`](#resulttuple)\<`C`\>
+
 ##### Parameters
 
 ###### source
 
-[`ResultTuple`](#resulttuple)\<`A`\>
+`Source` & `ResultSlots`\<`A`\> & `NoAny`\<`Source`\>
 
 ###### op1
 
-[`Op`](#op)\<`A`, `B`\>
+[`Op`](#op)\<`NoInfer`\<`A`\>, `B`, `R1` & `ResultSlots`\<`B`\>\>
 
 ###### op2
 
-[`Op`](#op)\<`B`, `C`\>
+[`Op`](#op)\<`NoInfer`\<`B`\>, `C`, `R2` & `ResultSlots`\<`C`\>\>
 
 ##### Returns
 
@@ -1300,15 +1474,15 @@ result widens to `ResultTuple<unknown>`.
 
 #### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`\>(`source`, `op1`, `op2`, `op3`): [`ResultTuple`](#resulttuple)\<`D`\>
+> **pipe**\<`A`, `B`, `C`, `D`, `Source`, `R1`, `R2`, `R3`\>(`source`, `op1`, `op2`, `op3`): [`ResultTuple`](#resulttuple)\<`D`\>
 
-Defined in: [flow/flow.ts:430](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L430)
+Defined in: [flow/flow.ts:559](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L559)
 
 Run synchronous stages over a result tuple.
 
 The source is copied once on entry, and each stage is caught separately so a
-later `onErr` stage can recover. Typed through ten stages; past that the
-result widens to `ResultTuple<unknown>`.
+later `onErr` stage can recover. Accepts up to ten typed stages; compose
+longer flows in typed chunks.
 
 ##### Type Parameters
 
@@ -1328,23 +1502,39 @@ result widens to `ResultTuple<unknown>`.
 
 `D`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> = [`ResultTuple`](#resulttuple)\<`A`\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> = [`ResultTuple`](#resulttuple)\<`B`\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> = [`ResultTuple`](#resulttuple)\<`C`\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> = [`ResultTuple`](#resulttuple)\<`D`\>
+
 ##### Parameters
 
 ###### source
 
-[`ResultTuple`](#resulttuple)\<`A`\>
+`Source` & `ResultSlots`\<`A`\> & `NoAny`\<`Source`\>
 
 ###### op1
 
-[`Op`](#op)\<`A`, `B`\>
+[`Op`](#op)\<`NoInfer`\<`A`\>, `B`, `R1` & `ResultSlots`\<`B`\>\>
 
 ###### op2
 
-[`Op`](#op)\<`B`, `C`\>
+[`Op`](#op)\<`NoInfer`\<`B`\>, `C`, `R2` & `ResultSlots`\<`C`\>\>
 
 ###### op3
 
-[`Op`](#op)\<`C`, `D`\>
+[`Op`](#op)\<`NoInfer`\<`C`\>, `D`, `R3` & `ResultSlots`\<`D`\>\>
 
 ##### Returns
 
@@ -1356,15 +1546,15 @@ result widens to `ResultTuple<unknown>`.
 
 #### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`\>(`source`, `op1`, `op2`, `op3`, `op4`): [`ResultTuple`](#resulttuple)\<`E`\>
+> **pipe**\<`A`, `B`, `C`, `D`, `E`, `Source`, `R1`, `R2`, `R3`, `R4`\>(`source`, `op1`, `op2`, `op3`, `op4`): [`ResultTuple`](#resulttuple)\<`E`\>
 
-Defined in: [flow/flow.ts:436](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L436)
+Defined in: [flow/flow.ts:575](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L575)
 
 Run synchronous stages over a result tuple.
 
 The source is copied once on entry, and each stage is caught separately so a
-later `onErr` stage can recover. Typed through ten stages; past that the
-result widens to `ResultTuple<unknown>`.
+later `onErr` stage can recover. Accepts up to ten typed stages; compose
+longer flows in typed chunks.
 
 ##### Type Parameters
 
@@ -1388,27 +1578,47 @@ result widens to `ResultTuple<unknown>`.
 
 `E`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> = [`ResultTuple`](#resulttuple)\<`A`\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> = [`ResultTuple`](#resulttuple)\<`B`\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> = [`ResultTuple`](#resulttuple)\<`C`\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> = [`ResultTuple`](#resulttuple)\<`D`\>
+
+###### R4
+
+`R4` *extends* [`ResultTuple`](#resulttuple)\<`E`\> = [`ResultTuple`](#resulttuple)\<`E`\>
+
 ##### Parameters
 
 ###### source
 
-[`ResultTuple`](#resulttuple)\<`A`\>
+`Source` & `ResultSlots`\<`A`\> & `NoAny`\<`Source`\>
 
 ###### op1
 
-[`Op`](#op)\<`A`, `B`\>
+[`Op`](#op)\<`NoInfer`\<`A`\>, `B`, `R1` & `ResultSlots`\<`B`\>\>
 
 ###### op2
 
-[`Op`](#op)\<`B`, `C`\>
+[`Op`](#op)\<`NoInfer`\<`B`\>, `C`, `R2` & `ResultSlots`\<`C`\>\>
 
 ###### op3
 
-[`Op`](#op)\<`C`, `D`\>
+[`Op`](#op)\<`NoInfer`\<`C`\>, `D`, `R3` & `ResultSlots`\<`D`\>\>
 
 ###### op4
 
-[`Op`](#op)\<`D`, `E`\>
+[`Op`](#op)\<`NoInfer`\<`D`\>, `E`, `R4` & `ResultSlots`\<`E`\>\>
 
 ##### Returns
 
@@ -1420,15 +1630,15 @@ result widens to `ResultTuple<unknown>`.
 
 #### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`): [`ResultTuple`](#resulttuple)\<`F`\>
+> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `Source`, `R1`, `R2`, `R3`, `R4`, `R5`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`): [`ResultTuple`](#resulttuple)\<`F`\>
 
-Defined in: [flow/flow.ts:443](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L443)
+Defined in: [flow/flow.ts:594](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L594)
 
 Run synchronous stages over a result tuple.
 
 The source is copied once on entry, and each stage is caught separately so a
-later `onErr` stage can recover. Typed through ten stages; past that the
-result widens to `ResultTuple<unknown>`.
+later `onErr` stage can recover. Accepts up to ten typed stages; compose
+longer flows in typed chunks.
 
 ##### Type Parameters
 
@@ -1456,31 +1666,55 @@ result widens to `ResultTuple<unknown>`.
 
 `F`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> = [`ResultTuple`](#resulttuple)\<`A`\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> = [`ResultTuple`](#resulttuple)\<`B`\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> = [`ResultTuple`](#resulttuple)\<`C`\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> = [`ResultTuple`](#resulttuple)\<`D`\>
+
+###### R4
+
+`R4` *extends* [`ResultTuple`](#resulttuple)\<`E`\> = [`ResultTuple`](#resulttuple)\<`E`\>
+
+###### R5
+
+`R5` *extends* [`ResultTuple`](#resulttuple)\<`F`\> = [`ResultTuple`](#resulttuple)\<`F`\>
+
 ##### Parameters
 
 ###### source
 
-[`ResultTuple`](#resulttuple)\<`A`\>
+`Source` & `ResultSlots`\<`A`\> & `NoAny`\<`Source`\>
 
 ###### op1
 
-[`Op`](#op)\<`A`, `B`\>
+[`Op`](#op)\<`NoInfer`\<`A`\>, `B`, `R1` & `ResultSlots`\<`B`\>\>
 
 ###### op2
 
-[`Op`](#op)\<`B`, `C`\>
+[`Op`](#op)\<`NoInfer`\<`B`\>, `C`, `R2` & `ResultSlots`\<`C`\>\>
 
 ###### op3
 
-[`Op`](#op)\<`C`, `D`\>
+[`Op`](#op)\<`NoInfer`\<`C`\>, `D`, `R3` & `ResultSlots`\<`D`\>\>
 
 ###### op4
 
-[`Op`](#op)\<`D`, `E`\>
+[`Op`](#op)\<`NoInfer`\<`D`\>, `E`, `R4` & `ResultSlots`\<`E`\>\>
 
 ###### op5
 
-[`Op`](#op)\<`E`, `F`\>
+[`Op`](#op)\<`NoInfer`\<`E`\>, `F`, `R5` & `ResultSlots`\<`F`\>\>
 
 ##### Returns
 
@@ -1492,15 +1726,15 @@ result widens to `ResultTuple<unknown>`.
 
 #### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`): [`ResultTuple`](#resulttuple)\<`G`\>
+> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `Source`, `R1`, `R2`, `R3`, `R4`, `R5`, `R6`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`): [`ResultTuple`](#resulttuple)\<`G`\>
 
-Defined in: [flow/flow.ts:451](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L451)
+Defined in: [flow/flow.ts:616](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L616)
 
 Run synchronous stages over a result tuple.
 
 The source is copied once on entry, and each stage is caught separately so a
-later `onErr` stage can recover. Typed through ten stages; past that the
-result widens to `ResultTuple<unknown>`.
+later `onErr` stage can recover. Accepts up to ten typed stages; compose
+longer flows in typed chunks.
 
 ##### Type Parameters
 
@@ -1532,35 +1766,63 @@ result widens to `ResultTuple<unknown>`.
 
 `G`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> = [`ResultTuple`](#resulttuple)\<`A`\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> = [`ResultTuple`](#resulttuple)\<`B`\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> = [`ResultTuple`](#resulttuple)\<`C`\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> = [`ResultTuple`](#resulttuple)\<`D`\>
+
+###### R4
+
+`R4` *extends* [`ResultTuple`](#resulttuple)\<`E`\> = [`ResultTuple`](#resulttuple)\<`E`\>
+
+###### R5
+
+`R5` *extends* [`ResultTuple`](#resulttuple)\<`F`\> = [`ResultTuple`](#resulttuple)\<`F`\>
+
+###### R6
+
+`R6` *extends* [`ResultTuple`](#resulttuple)\<`G`\> = [`ResultTuple`](#resulttuple)\<`G`\>
+
 ##### Parameters
 
 ###### source
 
-[`ResultTuple`](#resulttuple)\<`A`\>
+`Source` & `ResultSlots`\<`A`\> & `NoAny`\<`Source`\>
 
 ###### op1
 
-[`Op`](#op)\<`A`, `B`\>
+[`Op`](#op)\<`NoInfer`\<`A`\>, `B`, `R1` & `ResultSlots`\<`B`\>\>
 
 ###### op2
 
-[`Op`](#op)\<`B`, `C`\>
+[`Op`](#op)\<`NoInfer`\<`B`\>, `C`, `R2` & `ResultSlots`\<`C`\>\>
 
 ###### op3
 
-[`Op`](#op)\<`C`, `D`\>
+[`Op`](#op)\<`NoInfer`\<`C`\>, `D`, `R3` & `ResultSlots`\<`D`\>\>
 
 ###### op4
 
-[`Op`](#op)\<`D`, `E`\>
+[`Op`](#op)\<`NoInfer`\<`D`\>, `E`, `R4` & `ResultSlots`\<`E`\>\>
 
 ###### op5
 
-[`Op`](#op)\<`E`, `F`\>
+[`Op`](#op)\<`NoInfer`\<`E`\>, `F`, `R5` & `ResultSlots`\<`F`\>\>
 
 ###### op6
 
-[`Op`](#op)\<`F`, `G`\>
+[`Op`](#op)\<`NoInfer`\<`F`\>, `G`, `R6` & `ResultSlots`\<`G`\>\>
 
 ##### Returns
 
@@ -1572,15 +1834,15 @@ result widens to `ResultTuple<unknown>`.
 
 #### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`): [`ResultTuple`](#resulttuple)\<`H`\>
+> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `Source`, `R1`, `R2`, `R3`, `R4`, `R5`, `R6`, `R7`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`): [`ResultTuple`](#resulttuple)\<`H`\>
 
-Defined in: [flow/flow.ts:460](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L460)
+Defined in: [flow/flow.ts:641](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L641)
 
 Run synchronous stages over a result tuple.
 
 The source is copied once on entry, and each stage is caught separately so a
-later `onErr` stage can recover. Typed through ten stages; past that the
-result widens to `ResultTuple<unknown>`.
+later `onErr` stage can recover. Accepts up to ten typed stages; compose
+longer flows in typed chunks.
 
 ##### Type Parameters
 
@@ -1616,39 +1878,71 @@ result widens to `ResultTuple<unknown>`.
 
 `H`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> = [`ResultTuple`](#resulttuple)\<`A`\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> = [`ResultTuple`](#resulttuple)\<`B`\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> = [`ResultTuple`](#resulttuple)\<`C`\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> = [`ResultTuple`](#resulttuple)\<`D`\>
+
+###### R4
+
+`R4` *extends* [`ResultTuple`](#resulttuple)\<`E`\> = [`ResultTuple`](#resulttuple)\<`E`\>
+
+###### R5
+
+`R5` *extends* [`ResultTuple`](#resulttuple)\<`F`\> = [`ResultTuple`](#resulttuple)\<`F`\>
+
+###### R6
+
+`R6` *extends* [`ResultTuple`](#resulttuple)\<`G`\> = [`ResultTuple`](#resulttuple)\<`G`\>
+
+###### R7
+
+`R7` *extends* [`ResultTuple`](#resulttuple)\<`H`\> = [`ResultTuple`](#resulttuple)\<`H`\>
+
 ##### Parameters
 
 ###### source
 
-[`ResultTuple`](#resulttuple)\<`A`\>
+`Source` & `ResultSlots`\<`A`\> & `NoAny`\<`Source`\>
 
 ###### op1
 
-[`Op`](#op)\<`A`, `B`\>
+[`Op`](#op)\<`NoInfer`\<`A`\>, `B`, `R1` & `ResultSlots`\<`B`\>\>
 
 ###### op2
 
-[`Op`](#op)\<`B`, `C`\>
+[`Op`](#op)\<`NoInfer`\<`B`\>, `C`, `R2` & `ResultSlots`\<`C`\>\>
 
 ###### op3
 
-[`Op`](#op)\<`C`, `D`\>
+[`Op`](#op)\<`NoInfer`\<`C`\>, `D`, `R3` & `ResultSlots`\<`D`\>\>
 
 ###### op4
 
-[`Op`](#op)\<`D`, `E`\>
+[`Op`](#op)\<`NoInfer`\<`D`\>, `E`, `R4` & `ResultSlots`\<`E`\>\>
 
 ###### op5
 
-[`Op`](#op)\<`E`, `F`\>
+[`Op`](#op)\<`NoInfer`\<`E`\>, `F`, `R5` & `ResultSlots`\<`F`\>\>
 
 ###### op6
 
-[`Op`](#op)\<`F`, `G`\>
+[`Op`](#op)\<`NoInfer`\<`F`\>, `G`, `R6` & `ResultSlots`\<`G`\>\>
 
 ###### op7
 
-[`Op`](#op)\<`G`, `H`\>
+[`Op`](#op)\<`NoInfer`\<`G`\>, `H`, `R7` & `ResultSlots`\<`H`\>\>
 
 ##### Returns
 
@@ -1660,15 +1954,15 @@ result widens to `ResultTuple<unknown>`.
 
 #### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`): [`ResultTuple`](#resulttuple)\<`I`\>
+> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `Source`, `R1`, `R2`, `R3`, `R4`, `R5`, `R6`, `R7`, `R8`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`): [`ResultTuple`](#resulttuple)\<`I`\>
 
-Defined in: [flow/flow.ts:470](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L470)
+Defined in: [flow/flow.ts:669](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L669)
 
 Run synchronous stages over a result tuple.
 
 The source is copied once on entry, and each stage is caught separately so a
-later `onErr` stage can recover. Typed through ten stages; past that the
-result widens to `ResultTuple<unknown>`.
+later `onErr` stage can recover. Accepts up to ten typed stages; compose
+longer flows in typed chunks.
 
 ##### Type Parameters
 
@@ -1708,43 +2002,79 @@ result widens to `ResultTuple<unknown>`.
 
 `I`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> = [`ResultTuple`](#resulttuple)\<`A`\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> = [`ResultTuple`](#resulttuple)\<`B`\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> = [`ResultTuple`](#resulttuple)\<`C`\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> = [`ResultTuple`](#resulttuple)\<`D`\>
+
+###### R4
+
+`R4` *extends* [`ResultTuple`](#resulttuple)\<`E`\> = [`ResultTuple`](#resulttuple)\<`E`\>
+
+###### R5
+
+`R5` *extends* [`ResultTuple`](#resulttuple)\<`F`\> = [`ResultTuple`](#resulttuple)\<`F`\>
+
+###### R6
+
+`R6` *extends* [`ResultTuple`](#resulttuple)\<`G`\> = [`ResultTuple`](#resulttuple)\<`G`\>
+
+###### R7
+
+`R7` *extends* [`ResultTuple`](#resulttuple)\<`H`\> = [`ResultTuple`](#resulttuple)\<`H`\>
+
+###### R8
+
+`R8` *extends* [`ResultTuple`](#resulttuple)\<`I`\> = [`ResultTuple`](#resulttuple)\<`I`\>
+
 ##### Parameters
 
 ###### source
 
-[`ResultTuple`](#resulttuple)\<`A`\>
+`Source` & `ResultSlots`\<`A`\> & `NoAny`\<`Source`\>
 
 ###### op1
 
-[`Op`](#op)\<`A`, `B`\>
+[`Op`](#op)\<`NoInfer`\<`A`\>, `B`, `R1` & `ResultSlots`\<`B`\>\>
 
 ###### op2
 
-[`Op`](#op)\<`B`, `C`\>
+[`Op`](#op)\<`NoInfer`\<`B`\>, `C`, `R2` & `ResultSlots`\<`C`\>\>
 
 ###### op3
 
-[`Op`](#op)\<`C`, `D`\>
+[`Op`](#op)\<`NoInfer`\<`C`\>, `D`, `R3` & `ResultSlots`\<`D`\>\>
 
 ###### op4
 
-[`Op`](#op)\<`D`, `E`\>
+[`Op`](#op)\<`NoInfer`\<`D`\>, `E`, `R4` & `ResultSlots`\<`E`\>\>
 
 ###### op5
 
-[`Op`](#op)\<`E`, `F`\>
+[`Op`](#op)\<`NoInfer`\<`E`\>, `F`, `R5` & `ResultSlots`\<`F`\>\>
 
 ###### op6
 
-[`Op`](#op)\<`F`, `G`\>
+[`Op`](#op)\<`NoInfer`\<`F`\>, `G`, `R6` & `ResultSlots`\<`G`\>\>
 
 ###### op7
 
-[`Op`](#op)\<`G`, `H`\>
+[`Op`](#op)\<`NoInfer`\<`G`\>, `H`, `R7` & `ResultSlots`\<`H`\>\>
 
 ###### op8
 
-[`Op`](#op)\<`H`, `I`\>
+[`Op`](#op)\<`NoInfer`\<`H`\>, `I`, `R8` & `ResultSlots`\<`I`\>\>
 
 ##### Returns
 
@@ -1756,15 +2086,15 @@ result widens to `ResultTuple<unknown>`.
 
 #### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`, `op9`): [`ResultTuple`](#resulttuple)\<`J`\>
+> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `Source`, `R1`, `R2`, `R3`, `R4`, `R5`, `R6`, `R7`, `R8`, `R9`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`, `op9`): [`ResultTuple`](#resulttuple)\<`J`\>
 
-Defined in: [flow/flow.ts:481](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L481)
+Defined in: [flow/flow.ts:700](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L700)
 
 Run synchronous stages over a result tuple.
 
 The source is copied once on entry, and each stage is caught separately so a
-later `onErr` stage can recover. Typed through ten stages; past that the
-result widens to `ResultTuple<unknown>`.
+later `onErr` stage can recover. Accepts up to ten typed stages; compose
+longer flows in typed chunks.
 
 ##### Type Parameters
 
@@ -1808,47 +2138,87 @@ result widens to `ResultTuple<unknown>`.
 
 `J`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> = [`ResultTuple`](#resulttuple)\<`A`\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> = [`ResultTuple`](#resulttuple)\<`B`\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> = [`ResultTuple`](#resulttuple)\<`C`\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> = [`ResultTuple`](#resulttuple)\<`D`\>
+
+###### R4
+
+`R4` *extends* [`ResultTuple`](#resulttuple)\<`E`\> = [`ResultTuple`](#resulttuple)\<`E`\>
+
+###### R5
+
+`R5` *extends* [`ResultTuple`](#resulttuple)\<`F`\> = [`ResultTuple`](#resulttuple)\<`F`\>
+
+###### R6
+
+`R6` *extends* [`ResultTuple`](#resulttuple)\<`G`\> = [`ResultTuple`](#resulttuple)\<`G`\>
+
+###### R7
+
+`R7` *extends* [`ResultTuple`](#resulttuple)\<`H`\> = [`ResultTuple`](#resulttuple)\<`H`\>
+
+###### R8
+
+`R8` *extends* [`ResultTuple`](#resulttuple)\<`I`\> = [`ResultTuple`](#resulttuple)\<`I`\>
+
+###### R9
+
+`R9` *extends* [`ResultTuple`](#resulttuple)\<`J`\> = [`ResultTuple`](#resulttuple)\<`J`\>
+
 ##### Parameters
 
 ###### source
 
-[`ResultTuple`](#resulttuple)\<`A`\>
+`Source` & `ResultSlots`\<`A`\> & `NoAny`\<`Source`\>
 
 ###### op1
 
-[`Op`](#op)\<`A`, `B`\>
+[`Op`](#op)\<`NoInfer`\<`A`\>, `B`, `R1` & `ResultSlots`\<`B`\>\>
 
 ###### op2
 
-[`Op`](#op)\<`B`, `C`\>
+[`Op`](#op)\<`NoInfer`\<`B`\>, `C`, `R2` & `ResultSlots`\<`C`\>\>
 
 ###### op3
 
-[`Op`](#op)\<`C`, `D`\>
+[`Op`](#op)\<`NoInfer`\<`C`\>, `D`, `R3` & `ResultSlots`\<`D`\>\>
 
 ###### op4
 
-[`Op`](#op)\<`D`, `E`\>
+[`Op`](#op)\<`NoInfer`\<`D`\>, `E`, `R4` & `ResultSlots`\<`E`\>\>
 
 ###### op5
 
-[`Op`](#op)\<`E`, `F`\>
+[`Op`](#op)\<`NoInfer`\<`E`\>, `F`, `R5` & `ResultSlots`\<`F`\>\>
 
 ###### op6
 
-[`Op`](#op)\<`F`, `G`\>
+[`Op`](#op)\<`NoInfer`\<`F`\>, `G`, `R6` & `ResultSlots`\<`G`\>\>
 
 ###### op7
 
-[`Op`](#op)\<`G`, `H`\>
+[`Op`](#op)\<`NoInfer`\<`G`\>, `H`, `R7` & `ResultSlots`\<`H`\>\>
 
 ###### op8
 
-[`Op`](#op)\<`H`, `I`\>
+[`Op`](#op)\<`NoInfer`\<`H`\>, `I`, `R8` & `ResultSlots`\<`I`\>\>
 
 ###### op9
 
-[`Op`](#op)\<`I`, `J`\>
+[`Op`](#op)\<`NoInfer`\<`I`\>, `J`, `R9` & `ResultSlots`\<`J`\>\>
 
 ##### Returns
 
@@ -1860,15 +2230,15 @@ result widens to `ResultTuple<unknown>`.
 
 #### Call Signature
 
-> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`, `op9`, `op10`): [`ResultTuple`](#resulttuple)\<`K`\>
+> **pipe**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `Source`, `R1`, `R2`, `R3`, `R4`, `R5`, `R6`, `R7`, `R8`, `R9`, `R10`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`, `op9`, `op10`): [`ResultTuple`](#resulttuple)\<`K`\>
 
-Defined in: [flow/flow.ts:493](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L493)
+Defined in: [flow/flow.ts:734](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L734)
 
 Run synchronous stages over a result tuple.
 
 The source is copied once on entry, and each stage is caught separately so a
-later `onErr` stage can recover. Typed through ten stages; past that the
-result widens to `ResultTuple<unknown>`.
+later `onErr` stage can recover. Accepts up to ten typed stages; compose
+longer flows in typed chunks.
 
 ##### Type Parameters
 
@@ -1916,85 +2286,99 @@ result widens to `ResultTuple<unknown>`.
 
 `K`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> = [`ResultTuple`](#resulttuple)\<`A`\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> = [`ResultTuple`](#resulttuple)\<`B`\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> = [`ResultTuple`](#resulttuple)\<`C`\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> = [`ResultTuple`](#resulttuple)\<`D`\>
+
+###### R4
+
+`R4` *extends* [`ResultTuple`](#resulttuple)\<`E`\> = [`ResultTuple`](#resulttuple)\<`E`\>
+
+###### R5
+
+`R5` *extends* [`ResultTuple`](#resulttuple)\<`F`\> = [`ResultTuple`](#resulttuple)\<`F`\>
+
+###### R6
+
+`R6` *extends* [`ResultTuple`](#resulttuple)\<`G`\> = [`ResultTuple`](#resulttuple)\<`G`\>
+
+###### R7
+
+`R7` *extends* [`ResultTuple`](#resulttuple)\<`H`\> = [`ResultTuple`](#resulttuple)\<`H`\>
+
+###### R8
+
+`R8` *extends* [`ResultTuple`](#resulttuple)\<`I`\> = [`ResultTuple`](#resulttuple)\<`I`\>
+
+###### R9
+
+`R9` *extends* [`ResultTuple`](#resulttuple)\<`J`\> = [`ResultTuple`](#resulttuple)\<`J`\>
+
+###### R10
+
+`R10` *extends* [`ResultTuple`](#resulttuple)\<`K`\> = [`ResultTuple`](#resulttuple)\<`K`\>
+
 ##### Parameters
 
 ###### source
 
-[`ResultTuple`](#resulttuple)\<`A`\>
+`Source` & `ResultSlots`\<`A`\> & `NoAny`\<`Source`\>
 
 ###### op1
 
-[`Op`](#op)\<`A`, `B`\>
+[`Op`](#op)\<`NoInfer`\<`A`\>, `B`, `R1` & `ResultSlots`\<`B`\>\>
 
 ###### op2
 
-[`Op`](#op)\<`B`, `C`\>
+[`Op`](#op)\<`NoInfer`\<`B`\>, `C`, `R2` & `ResultSlots`\<`C`\>\>
 
 ###### op3
 
-[`Op`](#op)\<`C`, `D`\>
+[`Op`](#op)\<`NoInfer`\<`C`\>, `D`, `R3` & `ResultSlots`\<`D`\>\>
 
 ###### op4
 
-[`Op`](#op)\<`D`, `E`\>
+[`Op`](#op)\<`NoInfer`\<`D`\>, `E`, `R4` & `ResultSlots`\<`E`\>\>
 
 ###### op5
 
-[`Op`](#op)\<`E`, `F`\>
+[`Op`](#op)\<`NoInfer`\<`E`\>, `F`, `R5` & `ResultSlots`\<`F`\>\>
 
 ###### op6
 
-[`Op`](#op)\<`F`, `G`\>
+[`Op`](#op)\<`NoInfer`\<`F`\>, `G`, `R6` & `ResultSlots`\<`G`\>\>
 
 ###### op7
 
-[`Op`](#op)\<`G`, `H`\>
+[`Op`](#op)\<`NoInfer`\<`G`\>, `H`, `R7` & `ResultSlots`\<`H`\>\>
 
 ###### op8
 
-[`Op`](#op)\<`H`, `I`\>
+[`Op`](#op)\<`NoInfer`\<`H`\>, `I`, `R8` & `ResultSlots`\<`I`\>\>
 
 ###### op9
 
-[`Op`](#op)\<`I`, `J`\>
+[`Op`](#op)\<`NoInfer`\<`I`\>, `J`, `R9` & `ResultSlots`\<`J`\>\>
 
 ###### op10
 
-[`Op`](#op)\<`J`, `K`\>
+[`Op`](#op)\<`NoInfer`\<`J`\>, `K`, `R10` & `ResultSlots`\<`K`\>\>
 
 ##### Returns
 
 [`ResultTuple`](#resulttuple)\<`K`\>
-
-##### See
-
-[pipeAsync](#pipeasync) for asynchronous and mixed stages
-
-#### Call Signature
-
-> **pipe**(`source`, ...`ops`): [`ResultTuple`](#resulttuple)\<`unknown`\>
-
-Defined in: [flow/flow.ts:508](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L508)
-
-Run synchronous stages over a result tuple.
-
-The source is copied once on entry, and each stage is caught separately so a
-later `onErr` stage can recover. Typed through ten stages; past that the
-result widens to `ResultTuple<unknown>`.
-
-##### Parameters
-
-###### source
-
-[`ResultTuple`](#resulttuple)\<`unknown`\>
-
-###### ops
-
-...[`Op`](#op)\<`any`, `any`\>[]
-
-##### Returns
-
-[`ResultTuple`](#resulttuple)\<`unknown`\>
 
 ##### See
 
@@ -2006,9 +2390,9 @@ result widens to `ResultTuple<unknown>`.
 
 #### Call Signature
 
-> **pipeAsync**\<`A`\>(`source`): `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\>
+> **pipeAsync**\<`A`, `Source`\>(`source`): `Promise`\<[`ResultTuple`](#resulttuple)\<[`OkValue`](#okvalue)\<`Awaited`\<`Source`\>\>\>\>
 
-Defined in: [flow/flow.ts:540](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L540)
+Defined in: [flow/flow.ts:797](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L797)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2022,15 +2406,19 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 `A`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\> = [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\>
+
 ##### Parameters
 
 ###### source
 
-[`AsyncSource`](#asyncsource)\<`A`\>
+`Source` & `NoAny`\<`Source`\>
 
 ##### Returns
 
-`Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\>
+`Promise`\<[`ResultTuple`](#resulttuple)\<[`OkValue`](#okvalue)\<`Awaited`\<`Source`\>\>\>\>
 
 ##### See
 
@@ -2038,9 +2426,9 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 #### Call Signature
 
-> **pipeAsync**\<`A`, `B`\>(`source`, `op1`): `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\>
+> **pipeAsync**\<`A`, `B`, `Source`, `R1`\>(`source`, `op1`): `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\>
 
-Defined in: [flow/flow.ts:541](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L541)
+Defined in: [flow/flow.ts:801](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L801)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2058,15 +2446,23 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 `B`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\> = [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\> = [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\>
+
 ##### Parameters
 
 ###### source
 
-[`AsyncSource`](#asyncsource)\<`A`\>
+`Source` & AsyncSlots\<A\> & NoAny\<Source\>
 
 ###### op1
 
-[`AnyOp`](#anyop)\<`A`, `B`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`A`\>, `B`, `R1` & `AsyncSlots`\<`B`\>\>
 
 ##### Returns
 
@@ -2078,9 +2474,9 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 #### Call Signature
 
-> **pipeAsync**\<`A`, `B`, `C`\>(`source`, `op1`, `op2`): `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\>
+> **pipeAsync**\<`A`, `B`, `C`, `Source`, `R1`, `R2`\>(`source`, `op1`, `op2`): `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\>
 
-Defined in: [flow/flow.ts:545](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L545)
+Defined in: [flow/flow.ts:811](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L811)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2102,19 +2498,31 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 `C`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\> = [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\> = [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\> = [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\>
+
 ##### Parameters
 
 ###### source
 
-[`AsyncSource`](#asyncsource)\<`A`\>
+`Source` & AsyncSlots\<A\> & NoAny\<Source\>
 
 ###### op1
 
-[`AnyOp`](#anyop)\<`A`, `B`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`A`\>, `B`, `R1` & `AsyncSlots`\<`B`\>\>
 
 ###### op2
 
-[`AnyOp`](#anyop)\<`B`, `C`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`B`\>, `C`, `R2` & `AsyncSlots`\<`C`\>\>
 
 ##### Returns
 
@@ -2126,9 +2534,9 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 #### Call Signature
 
-> **pipeAsync**\<`A`, `B`, `C`, `D`\>(`source`, `op1`, `op2`, `op3`): `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\>
+> **pipeAsync**\<`A`, `B`, `C`, `D`, `Source`, `R1`, `R2`, `R3`\>(`source`, `op1`, `op2`, `op3`): `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\>
 
-Defined in: [flow/flow.ts:550](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L550)
+Defined in: [flow/flow.ts:824](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L824)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2154,23 +2562,39 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 `D`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\> = [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\> = [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\> = [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\> = [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\>
+
 ##### Parameters
 
 ###### source
 
-[`AsyncSource`](#asyncsource)\<`A`\>
+`Source` & AsyncSlots\<A\> & NoAny\<Source\>
 
 ###### op1
 
-[`AnyOp`](#anyop)\<`A`, `B`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`A`\>, `B`, `R1` & `AsyncSlots`\<`B`\>\>
 
 ###### op2
 
-[`AnyOp`](#anyop)\<`B`, `C`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`B`\>, `C`, `R2` & `AsyncSlots`\<`C`\>\>
 
 ###### op3
 
-[`AnyOp`](#anyop)\<`C`, `D`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`C`\>, `D`, `R3` & `AsyncSlots`\<`D`\>\>
 
 ##### Returns
 
@@ -2182,9 +2606,9 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 #### Call Signature
 
-> **pipeAsync**\<`A`, `B`, `C`, `D`, `E`\>(`source`, `op1`, `op2`, `op3`, `op4`): `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\>
+> **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `Source`, `R1`, `R2`, `R3`, `R4`\>(`source`, `op1`, `op2`, `op3`, `op4`): `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\>
 
-Defined in: [flow/flow.ts:556](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L556)
+Defined in: [flow/flow.ts:840](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L840)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2214,27 +2638,47 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 `E`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\> = [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\> = [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\> = [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\> = [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\>
+
+###### R4
+
+`R4` *extends* [`ResultTuple`](#resulttuple)\<`E`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\> = [`ResultTuple`](#resulttuple)\<`E`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\>
+
 ##### Parameters
 
 ###### source
 
-[`AsyncSource`](#asyncsource)\<`A`\>
+`Source` & AsyncSlots\<A\> & NoAny\<Source\>
 
 ###### op1
 
-[`AnyOp`](#anyop)\<`A`, `B`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`A`\>, `B`, `R1` & `AsyncSlots`\<`B`\>\>
 
 ###### op2
 
-[`AnyOp`](#anyop)\<`B`, `C`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`B`\>, `C`, `R2` & `AsyncSlots`\<`C`\>\>
 
 ###### op3
 
-[`AnyOp`](#anyop)\<`C`, `D`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`C`\>, `D`, `R3` & `AsyncSlots`\<`D`\>\>
 
 ###### op4
 
-[`AnyOp`](#anyop)\<`D`, `E`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`D`\>, `E`, `R4` & `AsyncSlots`\<`E`\>\>
 
 ##### Returns
 
@@ -2246,9 +2690,9 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 #### Call Signature
 
-> **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`): `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\>
+> **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `Source`, `R1`, `R2`, `R3`, `R4`, `R5`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`): `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\>
 
-Defined in: [flow/flow.ts:563](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L563)
+Defined in: [flow/flow.ts:859](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L859)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2282,31 +2726,55 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 `F`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\> = [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\> = [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\> = [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\> = [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\>
+
+###### R4
+
+`R4` *extends* [`ResultTuple`](#resulttuple)\<`E`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\> = [`ResultTuple`](#resulttuple)\<`E`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\>
+
+###### R5
+
+`R5` *extends* [`ResultTuple`](#resulttuple)\<`F`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\> = [`ResultTuple`](#resulttuple)\<`F`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\>
+
 ##### Parameters
 
 ###### source
 
-[`AsyncSource`](#asyncsource)\<`A`\>
+`Source` & AsyncSlots\<A\> & NoAny\<Source\>
 
 ###### op1
 
-[`AnyOp`](#anyop)\<`A`, `B`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`A`\>, `B`, `R1` & `AsyncSlots`\<`B`\>\>
 
 ###### op2
 
-[`AnyOp`](#anyop)\<`B`, `C`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`B`\>, `C`, `R2` & `AsyncSlots`\<`C`\>\>
 
 ###### op3
 
-[`AnyOp`](#anyop)\<`C`, `D`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`C`\>, `D`, `R3` & `AsyncSlots`\<`D`\>\>
 
 ###### op4
 
-[`AnyOp`](#anyop)\<`D`, `E`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`D`\>, `E`, `R4` & `AsyncSlots`\<`E`\>\>
 
 ###### op5
 
-[`AnyOp`](#anyop)\<`E`, `F`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`E`\>, `F`, `R5` & `AsyncSlots`\<`F`\>\>
 
 ##### Returns
 
@@ -2318,9 +2786,9 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 #### Call Signature
 
-> **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`): `Promise`\<[`ResultTuple`](#resulttuple)\<`G`\>\>
+> **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `Source`, `R1`, `R2`, `R3`, `R4`, `R5`, `R6`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`): `Promise`\<[`ResultTuple`](#resulttuple)\<`G`\>\>
 
-Defined in: [flow/flow.ts:571](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L571)
+Defined in: [flow/flow.ts:881](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L881)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2358,35 +2826,63 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 `G`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\> = [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\> = [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\> = [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\> = [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\>
+
+###### R4
+
+`R4` *extends* [`ResultTuple`](#resulttuple)\<`E`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\> = [`ResultTuple`](#resulttuple)\<`E`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\>
+
+###### R5
+
+`R5` *extends* [`ResultTuple`](#resulttuple)\<`F`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\> = [`ResultTuple`](#resulttuple)\<`F`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\>
+
+###### R6
+
+`R6` *extends* [`ResultTuple`](#resulttuple)\<`G`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`G`\>\> = [`ResultTuple`](#resulttuple)\<`G`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`G`\>\>
+
 ##### Parameters
 
 ###### source
 
-[`AsyncSource`](#asyncsource)\<`A`\>
+`Source` & AsyncSlots\<A\> & NoAny\<Source\>
 
 ###### op1
 
-[`AnyOp`](#anyop)\<`A`, `B`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`A`\>, `B`, `R1` & `AsyncSlots`\<`B`\>\>
 
 ###### op2
 
-[`AnyOp`](#anyop)\<`B`, `C`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`B`\>, `C`, `R2` & `AsyncSlots`\<`C`\>\>
 
 ###### op3
 
-[`AnyOp`](#anyop)\<`C`, `D`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`C`\>, `D`, `R3` & `AsyncSlots`\<`D`\>\>
 
 ###### op4
 
-[`AnyOp`](#anyop)\<`D`, `E`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`D`\>, `E`, `R4` & `AsyncSlots`\<`E`\>\>
 
 ###### op5
 
-[`AnyOp`](#anyop)\<`E`, `F`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`E`\>, `F`, `R5` & `AsyncSlots`\<`F`\>\>
 
 ###### op6
 
-[`AnyOp`](#anyop)\<`F`, `G`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`F`\>, `G`, `R6` & `AsyncSlots`\<`G`\>\>
 
 ##### Returns
 
@@ -2398,9 +2894,9 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 #### Call Signature
 
-> **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`): `Promise`\<[`ResultTuple`](#resulttuple)\<`H`\>\>
+> **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `Source`, `R1`, `R2`, `R3`, `R4`, `R5`, `R6`, `R7`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`): `Promise`\<[`ResultTuple`](#resulttuple)\<`H`\>\>
 
-Defined in: [flow/flow.ts:580](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L580)
+Defined in: [flow/flow.ts:906](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L906)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2442,39 +2938,71 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 `H`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\> = [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\> = [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\> = [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\> = [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\>
+
+###### R4
+
+`R4` *extends* [`ResultTuple`](#resulttuple)\<`E`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\> = [`ResultTuple`](#resulttuple)\<`E`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\>
+
+###### R5
+
+`R5` *extends* [`ResultTuple`](#resulttuple)\<`F`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\> = [`ResultTuple`](#resulttuple)\<`F`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\>
+
+###### R6
+
+`R6` *extends* [`ResultTuple`](#resulttuple)\<`G`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`G`\>\> = [`ResultTuple`](#resulttuple)\<`G`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`G`\>\>
+
+###### R7
+
+`R7` *extends* [`ResultTuple`](#resulttuple)\<`H`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`H`\>\> = [`ResultTuple`](#resulttuple)\<`H`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`H`\>\>
+
 ##### Parameters
 
 ###### source
 
-[`AsyncSource`](#asyncsource)\<`A`\>
+`Source` & AsyncSlots\<A\> & NoAny\<Source\>
 
 ###### op1
 
-[`AnyOp`](#anyop)\<`A`, `B`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`A`\>, `B`, `R1` & `AsyncSlots`\<`B`\>\>
 
 ###### op2
 
-[`AnyOp`](#anyop)\<`B`, `C`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`B`\>, `C`, `R2` & `AsyncSlots`\<`C`\>\>
 
 ###### op3
 
-[`AnyOp`](#anyop)\<`C`, `D`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`C`\>, `D`, `R3` & `AsyncSlots`\<`D`\>\>
 
 ###### op4
 
-[`AnyOp`](#anyop)\<`D`, `E`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`D`\>, `E`, `R4` & `AsyncSlots`\<`E`\>\>
 
 ###### op5
 
-[`AnyOp`](#anyop)\<`E`, `F`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`E`\>, `F`, `R5` & `AsyncSlots`\<`F`\>\>
 
 ###### op6
 
-[`AnyOp`](#anyop)\<`F`, `G`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`F`\>, `G`, `R6` & `AsyncSlots`\<`G`\>\>
 
 ###### op7
 
-[`AnyOp`](#anyop)\<`G`, `H`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`G`\>, `H`, `R7` & `AsyncSlots`\<`H`\>\>
 
 ##### Returns
 
@@ -2486,9 +3014,9 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 #### Call Signature
 
-> **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`): `Promise`\<[`ResultTuple`](#resulttuple)\<`I`\>\>
+> **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `Source`, `R1`, `R2`, `R3`, `R4`, `R5`, `R6`, `R7`, `R8`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`): `Promise`\<[`ResultTuple`](#resulttuple)\<`I`\>\>
 
-Defined in: [flow/flow.ts:590](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L590)
+Defined in: [flow/flow.ts:934](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L934)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2534,43 +3062,79 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 `I`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\> = [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\> = [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\> = [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\> = [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\>
+
+###### R4
+
+`R4` *extends* [`ResultTuple`](#resulttuple)\<`E`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\> = [`ResultTuple`](#resulttuple)\<`E`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\>
+
+###### R5
+
+`R5` *extends* [`ResultTuple`](#resulttuple)\<`F`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\> = [`ResultTuple`](#resulttuple)\<`F`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\>
+
+###### R6
+
+`R6` *extends* [`ResultTuple`](#resulttuple)\<`G`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`G`\>\> = [`ResultTuple`](#resulttuple)\<`G`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`G`\>\>
+
+###### R7
+
+`R7` *extends* [`ResultTuple`](#resulttuple)\<`H`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`H`\>\> = [`ResultTuple`](#resulttuple)\<`H`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`H`\>\>
+
+###### R8
+
+`R8` *extends* [`ResultTuple`](#resulttuple)\<`I`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`I`\>\> = [`ResultTuple`](#resulttuple)\<`I`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`I`\>\>
+
 ##### Parameters
 
 ###### source
 
-[`AsyncSource`](#asyncsource)\<`A`\>
+`Source` & AsyncSlots\<A\> & NoAny\<Source\>
 
 ###### op1
 
-[`AnyOp`](#anyop)\<`A`, `B`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`A`\>, `B`, `R1` & `AsyncSlots`\<`B`\>\>
 
 ###### op2
 
-[`AnyOp`](#anyop)\<`B`, `C`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`B`\>, `C`, `R2` & `AsyncSlots`\<`C`\>\>
 
 ###### op3
 
-[`AnyOp`](#anyop)\<`C`, `D`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`C`\>, `D`, `R3` & `AsyncSlots`\<`D`\>\>
 
 ###### op4
 
-[`AnyOp`](#anyop)\<`D`, `E`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`D`\>, `E`, `R4` & `AsyncSlots`\<`E`\>\>
 
 ###### op5
 
-[`AnyOp`](#anyop)\<`E`, `F`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`E`\>, `F`, `R5` & `AsyncSlots`\<`F`\>\>
 
 ###### op6
 
-[`AnyOp`](#anyop)\<`F`, `G`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`F`\>, `G`, `R6` & `AsyncSlots`\<`G`\>\>
 
 ###### op7
 
-[`AnyOp`](#anyop)\<`G`, `H`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`G`\>, `H`, `R7` & `AsyncSlots`\<`H`\>\>
 
 ###### op8
 
-[`AnyOp`](#anyop)\<`H`, `I`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`H`\>, `I`, `R8` & `AsyncSlots`\<`I`\>\>
 
 ##### Returns
 
@@ -2582,9 +3146,9 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 #### Call Signature
 
-> **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`, `op9`): `Promise`\<[`ResultTuple`](#resulttuple)\<`J`\>\>
+> **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `Source`, `R1`, `R2`, `R3`, `R4`, `R5`, `R6`, `R7`, `R8`, `R9`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`, `op9`): `Promise`\<[`ResultTuple`](#resulttuple)\<`J`\>\>
 
-Defined in: [flow/flow.ts:601](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L601)
+Defined in: [flow/flow.ts:965](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L965)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2634,47 +3198,87 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 `J`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\> = [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\> = [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\> = [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\> = [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\>
+
+###### R4
+
+`R4` *extends* [`ResultTuple`](#resulttuple)\<`E`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\> = [`ResultTuple`](#resulttuple)\<`E`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\>
+
+###### R5
+
+`R5` *extends* [`ResultTuple`](#resulttuple)\<`F`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\> = [`ResultTuple`](#resulttuple)\<`F`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\>
+
+###### R6
+
+`R6` *extends* [`ResultTuple`](#resulttuple)\<`G`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`G`\>\> = [`ResultTuple`](#resulttuple)\<`G`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`G`\>\>
+
+###### R7
+
+`R7` *extends* [`ResultTuple`](#resulttuple)\<`H`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`H`\>\> = [`ResultTuple`](#resulttuple)\<`H`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`H`\>\>
+
+###### R8
+
+`R8` *extends* [`ResultTuple`](#resulttuple)\<`I`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`I`\>\> = [`ResultTuple`](#resulttuple)\<`I`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`I`\>\>
+
+###### R9
+
+`R9` *extends* [`ResultTuple`](#resulttuple)\<`J`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`J`\>\> = [`ResultTuple`](#resulttuple)\<`J`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`J`\>\>
+
 ##### Parameters
 
 ###### source
 
-[`AsyncSource`](#asyncsource)\<`A`\>
+`Source` & AsyncSlots\<A\> & NoAny\<Source\>
 
 ###### op1
 
-[`AnyOp`](#anyop)\<`A`, `B`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`A`\>, `B`, `R1` & `AsyncSlots`\<`B`\>\>
 
 ###### op2
 
-[`AnyOp`](#anyop)\<`B`, `C`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`B`\>, `C`, `R2` & `AsyncSlots`\<`C`\>\>
 
 ###### op3
 
-[`AnyOp`](#anyop)\<`C`, `D`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`C`\>, `D`, `R3` & `AsyncSlots`\<`D`\>\>
 
 ###### op4
 
-[`AnyOp`](#anyop)\<`D`, `E`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`D`\>, `E`, `R4` & `AsyncSlots`\<`E`\>\>
 
 ###### op5
 
-[`AnyOp`](#anyop)\<`E`, `F`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`E`\>, `F`, `R5` & `AsyncSlots`\<`F`\>\>
 
 ###### op6
 
-[`AnyOp`](#anyop)\<`F`, `G`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`F`\>, `G`, `R6` & `AsyncSlots`\<`G`\>\>
 
 ###### op7
 
-[`AnyOp`](#anyop)\<`G`, `H`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`G`\>, `H`, `R7` & `AsyncSlots`\<`H`\>\>
 
 ###### op8
 
-[`AnyOp`](#anyop)\<`H`, `I`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`H`\>, `I`, `R8` & `AsyncSlots`\<`I`\>\>
 
 ###### op9
 
-[`AnyOp`](#anyop)\<`I`, `J`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`I`\>, `J`, `R9` & `AsyncSlots`\<`J`\>\>
 
 ##### Returns
 
@@ -2686,9 +3290,9 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 #### Call Signature
 
-> **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`, `op9`, `op10`): `Promise`\<[`ResultTuple`](#resulttuple)\<`K`\>\>
+> **pipeAsync**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`, `I`, `J`, `K`, `Source`, `R1`, `R2`, `R3`, `R4`, `R5`, `R6`, `R7`, `R8`, `R9`, `R10`\>(`source`, `op1`, `op2`, `op3`, `op4`, `op5`, `op6`, `op7`, `op8`, `op9`, `op10`): `Promise`\<[`ResultTuple`](#resulttuple)\<`K`\>\>
 
-Defined in: [flow/flow.ts:613](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L613)
+Defined in: [flow/flow.ts:999](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/flow.ts#L999)
 
 Run synchronous and asynchronous stages over a result tuple or a promise of
 one.
@@ -2742,85 +3346,99 @@ later `onErr` stage can still recover. Typed through ten stages.
 
 `K`
 
+###### Source
+
+`Source` *extends* [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\> = [`ResultTuple`](#resulttuple)\<`A`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`A`\>\>
+
+###### R1
+
+`R1` *extends* [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\> = [`ResultTuple`](#resulttuple)\<`B`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`B`\>\>
+
+###### R2
+
+`R2` *extends* [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\> = [`ResultTuple`](#resulttuple)\<`C`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`C`\>\>
+
+###### R3
+
+`R3` *extends* [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\> = [`ResultTuple`](#resulttuple)\<`D`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`D`\>\>
+
+###### R4
+
+`R4` *extends* [`ResultTuple`](#resulttuple)\<`E`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\> = [`ResultTuple`](#resulttuple)\<`E`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`E`\>\>
+
+###### R5
+
+`R5` *extends* [`ResultTuple`](#resulttuple)\<`F`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\> = [`ResultTuple`](#resulttuple)\<`F`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`F`\>\>
+
+###### R6
+
+`R6` *extends* [`ResultTuple`](#resulttuple)\<`G`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`G`\>\> = [`ResultTuple`](#resulttuple)\<`G`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`G`\>\>
+
+###### R7
+
+`R7` *extends* [`ResultTuple`](#resulttuple)\<`H`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`H`\>\> = [`ResultTuple`](#resulttuple)\<`H`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`H`\>\>
+
+###### R8
+
+`R8` *extends* [`ResultTuple`](#resulttuple)\<`I`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`I`\>\> = [`ResultTuple`](#resulttuple)\<`I`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`I`\>\>
+
+###### R9
+
+`R9` *extends* [`ResultTuple`](#resulttuple)\<`J`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`J`\>\> = [`ResultTuple`](#resulttuple)\<`J`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`J`\>\>
+
+###### R10
+
+`R10` *extends* [`ResultTuple`](#resulttuple)\<`K`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`K`\>\> = [`ResultTuple`](#resulttuple)\<`K`\> \| `Promise`\<[`ResultTuple`](#resulttuple)\<`K`\>\>
+
 ##### Parameters
 
 ###### source
 
-[`AsyncSource`](#asyncsource)\<`A`\>
+`Source` & AsyncSlots\<A\> & NoAny\<Source\>
 
 ###### op1
 
-[`AnyOp`](#anyop)\<`A`, `B`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`A`\>, `B`, `R1` & `AsyncSlots`\<`B`\>\>
 
 ###### op2
 
-[`AnyOp`](#anyop)\<`B`, `C`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`B`\>, `C`, `R2` & `AsyncSlots`\<`C`\>\>
 
 ###### op3
 
-[`AnyOp`](#anyop)\<`C`, `D`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`C`\>, `D`, `R3` & `AsyncSlots`\<`D`\>\>
 
 ###### op4
 
-[`AnyOp`](#anyop)\<`D`, `E`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`D`\>, `E`, `R4` & `AsyncSlots`\<`E`\>\>
 
 ###### op5
 
-[`AnyOp`](#anyop)\<`E`, `F`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`E`\>, `F`, `R5` & `AsyncSlots`\<`F`\>\>
 
 ###### op6
 
-[`AnyOp`](#anyop)\<`F`, `G`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`F`\>, `G`, `R6` & `AsyncSlots`\<`G`\>\>
 
 ###### op7
 
-[`AnyOp`](#anyop)\<`G`, `H`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`G`\>, `H`, `R7` & `AsyncSlots`\<`H`\>\>
 
 ###### op8
 
-[`AnyOp`](#anyop)\<`H`, `I`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`H`\>, `I`, `R8` & `AsyncSlots`\<`I`\>\>
 
 ###### op9
 
-[`AnyOp`](#anyop)\<`I`, `J`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`I`\>, `J`, `R9` & `AsyncSlots`\<`J`\>\>
 
 ###### op10
 
-[`AnyOp`](#anyop)\<`J`, `K`\>
+[`AnyOp`](#anyop)\<`NoInfer`\<`J`\>, `K`, `R10` & `AsyncSlots`\<`K`\>\>
 
 ##### Returns
 
 `Promise`\<[`ResultTuple`](#resulttuple)\<`K`\>\>
-
-##### See
-
-[pipe](#pipe) for the synchronous version
-
-#### Call Signature
-
-> **pipeAsync**(`source`, ...`ops`): `Promise`\<[`ResultTuple`](#resulttuple)\<`unknown`\>\>
-
-Defined in: [flow/flow.ts:628](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/flow.ts#L628)
-
-Run synchronous and asynchronous stages over a result tuple or a promise of
-one.
-
-A rejected source enters the failure channel before the first stage, so a
-later `onErr` stage can still recover. Typed through ten stages.
-
-##### Parameters
-
-###### source
-
-[`AsyncSource`](#asyncsource)\<`unknown`\>
-
-###### ops
-
-...[`AnyOp`](#anyop)\<`any`, `any`\>[]
-
-##### Returns
-
-`Promise`\<[`ResultTuple`](#resulttuple)\<`unknown`\>\>
 
 ##### See
 

@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -31,6 +31,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Snapshot a release's docs | `bun run docs:snapshot <version>` |
 | Record a verified npm release | `bun run docs:record-publication <version>` |
 | Check import boundaries | `bun run check:boundaries` |
+| Check discarded result tuples | `bun run check:result-usage` |
 | Test build tooling | `bun test ./scripts/<name>.test.ts` (also covered by `bun test`) |
 | Check release state (version vs CHANGELOG) | `bun run check:release` |
 | Verify built package consumers | `bun scripts/verify-consumers.sh.ts` (runs automatically in build) |
@@ -124,7 +125,7 @@ TypeDoc entry point; `src/flow/flow.types.ts` holds `Op`, `OpAsync`, `AnyOp`,
 
 - **One fallible protocol.** Every fallible callback returns a `ResultTuple`.
   The error slot is the only failure signal — no operator inspects a value's
-  runtime shape. `map` is the single exception: its return is always data.
+  runtime shape. Maps and value adapters carry callback returns as data.
   A bare value, a bare `Err`, and a missing return are all compile errors.
 - **`ok(...)`** is the one way to carry error- or tuple-shaped data as success.
   `fail` has exactly one signature (`Err | string`, optional code); richer
@@ -140,7 +141,22 @@ TypeDoc entry point; `src/flow/flow.types.ts` holds `Op`, `OpAsync`, `AnyOp`,
   constructs; `any` returns the winning input by reference. Payloads are never
   cloned. `copy` is exported for custom operators.
 - **Ten typed stages** in both `pipe` and `pipeAsync`, matching the frozen
-  `Outcome` ladders; past ten the result widens to `ResultTuple<unknown>`.
+  `Outcome` ladders. Flow rejects longer calls; compose typed chunks instead.
+- Raw callback/source returns are inferred and guarded against `any` and
+  `Promise<any>`. Explicit type arguments, preannotations/operator aliases and
+  casts erase those checks; consumer unsafe-any lint remains necessary.
+  `attemptValue` / `attemptValueAsync` envelope untyped data as `unknown`.
+- `check:result-usage` checks structural tuple drops and void-consumer callbacks
+  in `src/` and `scripts/`, including result arrays, parallel/allSettled results,
+  for-loop discards, and contextually void handlers. It checks structural
+  result-bearing unions and PromiseLike results. Any/unknown/opaque callees and
+  erased annotations are analysis limits; passing or assigning a result counts
+  as consumption, without proving its error is eventually handled.
+  An intentional discard requires `// kore-ignore-result: <reason>` immediately
+  before an explicit `void` statement. It suppresses only that discard; nested
+  statements remain checked. Use suppressions for reviewed test probes or other
+  deliberate discards, never ordinary failure handling. Biome checks floating promises;
+  both checks run in CI. No downstream tuple checker is shipped in v0.7.1.
 - Data-first functions hold the logic; `onOk`/`onErr`/`onTuple` only delegate.
   No error-enrichment helpers exist — chain `Err` methods inside `mapErr`/`onErr`.
 - `fromJSON` validates the envelope and the error slot only, never throws, and
@@ -226,7 +242,7 @@ package. The full contributor and release runbook is
 
 ## Documentation Rules
 
-### Doc Budget (enforced in CI)
+### Doc Budget (ratios warn; convention errors fail CI)
 
 Tiered by file size (threshold: 100 non-blank lines). The first `@module` JSDoc block is excluded from the ratio.
 
@@ -268,7 +284,7 @@ Tiered by file size (threshold: 100 non-blank lines). The first `@module` JSDoc 
 ### TypeScript patterns
 
 - `flow`'s `fail()` returns `ResultTuple<never>` and chains without a generic claim, because the tuple is covariant in `T`. The class-tier `Outcome.err()` returns `Outcome<never>`, which is assignable everywhere but does not chain — claim the success type instead of casting: `Outcome.err<number>("msg").defaultTo(0)`.
-- The rest overloads of `pipe`/`pipeAsync` widen their stages with `any`, not `unknown`: under `strictFunctionTypes` an `Op<number, string>` is not assignable to `Op<unknown, unknown>`, so an `unknown` fall-off overload would reject every typed stage.
+- `pipe`/`pipeAsync` expose only zero-through-ten typed stage overloads. There is no public widening rest overload: it swallowed invalid stage inputs. The hidden implementation can retain `any` for variance; never replace the public limit with an `Op<never, unknown>` or `Op<unknown, unknown>` escape hatch. Inferred raw stage/source types keep the guard ahead of tuple annotation erasure.
 - **A stage factory whose callback has no inference site must return a generic stage.** `onErr`/`onErrAsync` receive an `Err`, so an `In` type parameter on the *factory* collapses to `unknown` the moment the stage is stored in a variable — silently widening the whole pipeline. They return `<In>(tuple: ResultTuple<In>) => ResultTuple<In | Out>` (and its async form), written **inline at the factory**: the public operator type list is exactly `Op`, `OpAsync`, `AnyOp`, and a name is easier to add later than to withdraw. `onOk` and `onTuple` do not need this — their callbacks name the input. Typed-stage tests must store a stage in a variable; an inline call passes under the broken declaration too.
 - **`AnyOp` is one call signature with a union return**, not `Op | OpAsync`. TypeScript cannot instantiate a generic stage against a union target, so the union form collapsed every `pipeAsync` recovery stage to `ResultTuple<unknown>`.
 - `all` infers heterogeneous input through `OkValues<T>`, a mapped type over the alias `OkValue<R> = R extends readonly [infer V, null] ? V : never`. The conditional must live in its own alias so it distributes over the `ResultTuple` union; inlining it in the mapped type does not.

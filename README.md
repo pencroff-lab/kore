@@ -26,6 +26,8 @@ The package ships its own documentation. After installing, start at
 resolve inside the installed package, so they always describe the version you
 have.
 
+Agents can start with the [core subset and safety rules](llms.txt#core-subset).
+
 Detailed API documentation for each module:
 
 - [Err](docs/api/err.md) -- Immutable, value-based error type with wrapping, aggregation, and serialization
@@ -163,9 +165,9 @@ ok(Err.from("this is data"));   // ResultTuple<Err>
 ok(ok(1));                      // ResultTuple<ResultTuple<number>> — nesting is explicit
 ```
 
-`map` is the single exception: its return is never inspected, so an `Err` or a
-tuple returned from `map` is data. A callback that returns a bare value, a bare
-`Err`, or nothing at all does not compile.
+`map` and the explicit value adapters carry callback returns as data, including
+an `Err` or a tuple. A fallible callback that returns a bare value, a bare
+`Err`, or nothing at all does not compile on the typed path.
 
 #### Boundaries and transformations
 
@@ -175,7 +177,7 @@ ok();                         // [undefined, null] — ResultTuple<void>
 fail("Not found", "NOT_FOUND");
 fail(Err.from(caught, { code: "READ_FAILED", metadata: { path } }));
 
-attempt(() => ok(JSON.parse(raw)));            // converts a throw to a failure
+attemptValue(() => JSON.parse(raw));           // unknown data; validate before use
 await attemptAsync(async () => ok(await fetchUser(id)));
 
 map(result, (n) => n * 2);                     // total callback, return-preserving
@@ -208,8 +210,8 @@ const fetched = await pipeAsync(
 
 `pipe` and `pipeAsync` copy the source once on entry and catch each stage
 separately, so a later `onErr` stage can recover from a throwing custom stage.
-Both are typed through ten stages; past that the result widens to
-`ResultTuple<unknown>`. A reusable pipeline is an ordinary typed function:
+Both accept at most ten stages; compose longer flows in typed chunks.
+A reusable pipeline is an ordinary typed function:
 
 ```typescript
 const transform = (source: ResultTuple<Input>) =>
@@ -550,27 +552,21 @@ does not publish. Merging the prepared commit to `main` publishes npm, verifies
 the exact registry version, creates `v<version>`, and uploads the verified
 `publication-receipt-<version>` artifact.
 
-### 3. Commit the publication receipt
+### 3. Automatic publication receipt and deployment
 
-Download the receipt artifact from the successful workflow run, copy its
-`published.json` over `site/published.json`, and commit it in a second pull
-request. With the GitHub CLI:
+After verifying npm and the release tag, the publish job commits
+`site/published.json` directly to `main` using `REPO_TAG_TOKEN`. That commit
+triggers the documentation-only workflow: it validates the receipt and deploys
+GitHub Pages without publishing npm or moving the tag again. No receipt download
+or second pull request is normally needed. Follow the receipt commit's CI run
+to confirm deployment completed.
 
-```bash
-VERSION=0.8.0
-RUN_ID=123456789
-gh run download "$RUN_ID" \
-  --name "publication-receipt-${VERSION}" \
-  --dir build/receipt
-cp build/receipt/published.json site/published.json
-bun run docs:release-state
-git add site/published.json
-git commit -m "docs: record ${VERSION} publication"
-```
-
-The classifier must now report `mode=docs-only`. Merging this receipt commit
-promotes the new documentation edition and deploys GitHub Pages without
-publishing or moving the tag again.
+An identical receipt on `main` makes a rerun a no-op. The update compares the
+receipt's blob SHA with the release commit, so it cannot overwrite a receipt
+changed by another release. If the automatic step fails, publication remains
+successful and the job summary points to the verified
+`publication-receipt-<version>` artifact. Use the [manual receipt recovery
+procedure](#the-receipt-exists-but-was-not-committed) only for that fallback.
 
 The site build also refreshes development metadata automatically. Once the
 package version is recorded as published, `/next/` becomes `Next (unreleased)`
@@ -663,9 +659,32 @@ commit; a mismatched tag requires manual investigation.
 
 ### The receipt exists but was not committed
 
-Download `publication-receipt-<version>` from the original workflow run and
-commit its `published.json` as described above. If the artifact expired, check
-out `v<version>` and recreate it with `docs:record-publication`.
+The publish job normally commits it automatically. If that step fails, inspect
+its error and download `publication-receipt-<version>` from the successful
+publication run. Start a recovery branch from current `main`:
+
+```bash
+VERSION=0.8.0
+RUN_ID=123456789
+git fetch origin main
+git switch -c "docs/record-${VERSION}" origin/main
+gh run download "$RUN_ID" \
+  --name "publication-receipt-${VERSION}" \
+  --dir build/receipt
+cp build/receipt/published.json site/published.json
+git diff -- site/published.json
+bun run docs:release-state
+git add site/published.json
+git commit -m "docs: record ${VERSION} publication"
+```
+
+A `409` error means the receipt changed after the release commit. Review the
+diff before committing: retain newer release entries and `latestStable` rather
+than replacing them with an older artifact. The classifier must report
+`mode=docs-only`. Merge the recovery PR to trigger the documentation-only
+workflow; do not publish npm again. If the artifact expired, check out
+`v<version>` and recreate it with `docs:record-publication` as described in
+[receipt-generation recovery](#npm-published-but-receipt-generation-failed).
 
 ### Documentation validation cannot find Hugo
 
@@ -681,7 +700,8 @@ for example, replace `actions/checkout@v4` with `actions/checkout@v5`.
 
 ### npm succeeded but GitHub Pages deployment failed
 
-Commit the verified receipt first if it is still pending. Then rerun the failed
-deployment or manually dispatch the CI workflow with `deploy_docs_only=true`.
+Confirm the automatic receipt commit succeeded; use manual recovery if it
+is still pending. Then rerun the failed deployment or manually dispatch the CI
+workflow with `deploy_docs_only=true`.
 That path rebuilds and deploys the committed documentation state and cannot
 republish npm or move the release tag.

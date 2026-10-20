@@ -8,6 +8,10 @@ import {
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import {
+	resultUsageProgram,
+	resultUsageViolations,
+} from "./check-result-usage.sh";
 
 const root = resolve(import.meta.dir, "..");
 const failures: string[] = [];
@@ -40,20 +44,30 @@ assert(fromJSON("nope")[1].code === "INVALID_JSON", "fromJSON rejection");
 assert(expectOk(ok(7)) === 7, "expectOk");
 assert(expectErr(fail("boom")).message === "boom", "expectErr");
 assert(Err.from("x", "CODE").code === "CODE", "Err still exported");
+assert.deepEqual(expectOk(attemptValue(() => JSON.parse('[7,null]'))), [7, null], "adapter keeps tuple-shaped data");
+assert(expectErr(attemptValue(() => { throw new Error("sync failure"); })).message === "sync failure", "adapter catches throws");
+async function verifyAsyncAdapter() {
+  assert.deepEqual(expectOk(await attemptValueAsync(async () => JSON.parse('{"id":1}'))), { id: 1 }, "async adapter wraps data");
+  assert(expectErr(await attemptValueAsync(async () => { throw new Error("async failure"); })).message === "async failure", "adapter catches rejections");
+}
 `;
 
-const esmConsumer = `import { all, Err, fail, fromJSON, map, ok, onOk, pipe } from "@pencroff-lab/kore";
+const esmConsumer = `import { all, attemptValue, attemptValueAsync, Err, fail, fromJSON, map, ok, onOk, pipe } from "@pencroff-lab/kore";
 import { expectErr, expectOk } from "@pencroff-lab/kore/test";
 import assert from "node:assert";
 ${consumerBody}
+await verifyAsyncAdapter();
 console.log("ESM consumer ok");
 `;
 
-const cjsConsumer = `const { all, Err, fail, fromJSON, map, ok, onOk, pipe } = require("@pencroff-lab/kore");
+const cjsConsumer = `const { all, attemptValue, attemptValueAsync, Err, fail, fromJSON, map, ok, onOk, pipe } = require("@pencroff-lab/kore");
 const { expectErr, expectOk } = require("@pencroff-lab/kore/test");
 const assert = require("node:assert");
 ${consumerBody}
-console.log("CJS consumer ok");
+verifyAsyncAdapter().then(() => console.log("CJS consumer ok"), error => {
+  console.error(error);
+  process.exitCode = 1;
+});
 `;
 
 // A declaration-only consumer: it type-checks against dist/esm/*.d.ts, so the
@@ -61,6 +75,8 @@ console.log("CJS consumer ok");
 // inference, `ensure` refinement, and the tuple callback signatures.
 const typesConsumer = `import {
 	all,
+	attempt, attemptAsync, attemptValue, attemptValueAsync,
+	effect, flatMap, flatMapAsync, mapErr, mapErrAsync,
 	ensure,
 	Err,
 	fail,
@@ -68,6 +84,7 @@ const typesConsumer = `import {
 	onErr,
 	onErrAsync,
 	onOk,
+	onOkAsync, onTuple, onTupleAsync,
 	pipe,
 	pipeAsync,
 	type ResultTuple,
@@ -112,7 +129,125 @@ const refined: ResultTuple<string> = ensure(
 const rejected = pipe(ok(1), onOk((n: number) => n + 1));
 
 const failure: ResultTuple<never> = fail("nope");
+
+type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
+type Expect<T extends true> = T;
+const literal = attempt(() => [1, null]);
+const asyncLiteral = attemptAsync(async () => [1, null]);
+const data = attemptValue(() => JSON.parse("{}"));
+const asyncData = attemptValueAsync(async () => JSON.parse("{}"));
+const likeData: Promise<ResultTuple<number>> = attemptValueAsync(() => Promise.resolve(1) as PromiseLike<number>);
+const adapterTypes: [
+  Expect<Equal<typeof data, ResultTuple<unknown>>>,
+  Expect<Equal<typeof asyncData, Promise<ResultTuple<unknown>>>>,
+  Expect<Equal<typeof literal, ResultTuple<number>>>,
+  Expect<Equal<typeof asyncLiteral, Promise<ResultTuple<number>>>>,
+] = [true, true, true, true];
+
+function rejectedTypes() {
+  const [value, error] = data;
+  if (error === null) {
+    // @ts-expect-error unknown data requires validation after success narrowing
+    const unchecked = value.id;
+  }
+  return [
+    // @ts-expect-error response.json belongs to the async adapter
+    attemptValue(() => new Response("{}").json()),
+    // @ts-expect-error sync adapters reject Promise<any>
+    attemptValue(() => Promise.resolve(JSON.parse("{}"))),
+    // @ts-expect-error sync adapters reject PromiseLike
+    attemptValue(() => Promise.resolve(1) as PromiseLike<number>),
+    // @ts-expect-error sync adapters reject async callbacks
+    attemptValue(async () => 1),
+    // @ts-expect-error sync adapters reject a promised branch
+    attemptValue(() => Math.random() ? 1 : Promise.resolve(1)),
+    // @ts-expect-error raw any callback
+    attempt(() => JSON.parse("{}")),
+    // @ts-expect-error Promise<any> callback
+    attemptAsync(async () => JSON.parse("{}")),
+    // @ts-expect-error raw any callback
+    flatMap(ok(1), () => JSON.parse("{}")),
+    // @ts-expect-error Promise<any> callback
+    flatMapAsync(ok(1), async () => JSON.parse("{}")),
+    // @ts-expect-error raw any callback
+    mapErr(fail("x"), () => JSON.parse("{}")),
+    // @ts-expect-error Promise<any> callback
+    mapErrAsync(fail("x"), async () => JSON.parse("{}")),
+    // @ts-expect-error any predicate
+    ensure(ok(1), () => JSON.parse("true"), () => Err.from("no")),
+    // @ts-expect-error any error factory
+    ensure(ok(1), () => false, () => JSON.parse("null")),
+    // @ts-expect-error raw any stage factory
+    onOk(() => JSON.parse("{}")),
+    // @ts-expect-error Promise<any> stage factory
+    onOkAsync(async () => JSON.parse("{}")),
+    // @ts-expect-error raw any recovery factory
+    onErr(() => JSON.parse("{}")),
+    // @ts-expect-error Promise<any> recovery factory
+    onErrAsync(async () => JSON.parse("{}")),
+    // @ts-expect-error raw any tuple callback
+    onTuple(() => JSON.parse("{}")),
+    // @ts-expect-error Promise<any> tuple callback
+    onTupleAsync(async () => JSON.parse("{}")),
+    // @ts-expect-error raw any source
+    pipe(JSON.parse("{}")),
+    // @ts-expect-error Promise<any> source
+    pipeAsync(Promise.resolve(JSON.parse("{}"))),
+    // @ts-expect-error wrong stage input
+    pipe(ok(1), onOk((s: string) => ok(s.toUpperCase()))),
+    // @ts-expect-error wrong stage input can silently succeed at runtime
+    pipe(ok(1), onOk((s: string) => ok(s.length))),
+    // @ts-expect-error eleven sync stages exceed the ladder
+    pipe(ok(1), step, step, step, step, step, step, step, step, step, step, step),
+    // @ts-expect-error eleven async stages exceed the ladder
+    pipeAsync(ok(1), step, step, step, step, step, step, step, step, step, step, step),
+    // @ts-expect-error effect must not discard a tuple
+    effect(ok(1), () => fail("save")),
+    // @ts-expect-error effect must not discard a promise
+    effect(ok(1), async () => {}),
+  ];
+}
+function _contextualStageTypes(): unknown[] {
+	const inline = pipe(ok(1), onOk(n => {
+		const _input: Expect<Equal<typeof n, number>> = true;
+		return ok(n + 1);
+	}), onOk(n => ok(String(n))));
+	const tuple = pipe(ok(1), onTuple(([n,e]) => e === null ? ok(n + 1) : fail(e)), onOk(n => ok(String(n))));
+	const asyncInline = pipeAsync(ok(1), onOkAsync(async n => {
+		const _input: Expect<Equal<typeof n, number>> = true;
+		return ok(n + 1);
+	}), onOk(n => ok(String(n))));
+	const mixed = pipeAsync(Promise.resolve(ok(1)), onOk(n => ok(n + 1)), onOkAsync(async n => ok(String(n))));
+	const asyncTuple = pipeAsync(ok(1), onTuple(([n,e]) => e === null ? ok(n + 1) : fail(e)), onOk(n => ok(String(n))));
+	const awaitedTuple = pipeAsync(Promise.resolve(ok(1)), onTupleAsync(async ([n,e]) => e === null ? ok(n + 1) : fail(e)), onOk(n => ok(String(n))));
+	const recover = onErr(() => ok("fixed"));
+	const recoverAsync = onErrAsync(async () => ok("fixed"));
+	const stored = onOk((n: number) => ok(n + 1));
+	const storedRecovered = pipe(ok(1), stored, recover, onOk(n => {
+		const _input: Expect<Equal<typeof n, number | string>> = true;
+		return ok(String(n));
+	}));
+	const storedRecoveredAsync = pipeAsync(ok(1), stored, recoverAsync, onOk(n => {
+		const _input: Expect<Equal<typeof n, number | string>> = true;
+		return ok(String(n));
+	}));
+	const ten = pipe(ok(0), onOk(n=>ok(n+1)), onOk(n=>ok(n+1)), onOk(n=>ok(n+1)), onOk(n=>ok(n+1)), onOk(n=>ok(n+1)), onOk(n=>ok(n+1)), onOk(n=>ok(n+1)), onOk(n=>ok(n+1)), onOk(n=>ok(n+1)), onOk(n=>ok(String(n))));
+	const types: [
+		Expect<Equal<typeof inline, ResultTuple<string>>>,
+		Expect<Equal<typeof tuple, ResultTuple<string>>>,
+		Expect<Equal<typeof asyncInline, Promise<ResultTuple<string>>>>,
+		Expect<Equal<typeof mixed, Promise<ResultTuple<string>>>>,
+		Expect<Equal<typeof asyncTuple, Promise<ResultTuple<string>>>>,
+		Expect<Equal<typeof awaitedTuple, Promise<ResultTuple<string>>>>,
+		Expect<Equal<typeof storedRecovered, ResultTuple<string>>>,
+		Expect<Equal<typeof storedRecoveredAsync, Promise<ResultTuple<string>>>>,
+		Expect<Equal<typeof ten, ResultTuple<string>>>,
+	] = [true,true,true,true,true,true,true,true,true];
+	return types;
+}
+
 export const checked = [
+	adapterTypes,
 	heterogeneous,
 	tenStages,
 	refined,
@@ -125,6 +260,18 @@ export const checked = [
 ];
 `;
 
+const mustUseConsumer = `import { type ResultTuple } from "@pencroff-lab/kore";
+declare function save(): ResultTuple<void>;
+declare function saveAsync(): Promise<ResultTuple<void>>;
+save();
+await saveAsync();
+saveAsync();
+[1].forEach(() => save());
+const [value, error] = save();
+// kore-ignore-result: checker fixture exercises intentional discard
+void save();
+`;
+
 const tsconfig = JSON.stringify({
 	compilerOptions: {
 		strict: true,
@@ -134,13 +281,14 @@ const tsconfig = JSON.stringify({
 		moduleResolution: "bundler",
 		skipLibCheck: true,
 	},
-	include: ["types-consumer.ts"],
+	include: ["types-consumer.ts", "must-use-consumer.ts"],
 });
 
 await Bun.write(join(work, "package.json"), '{"name":"kore-consumer-check"}\n');
 await Bun.write(join(work, "consumer.mjs"), esmConsumer);
 await Bun.write(join(work, "consumer.cjs"), cjsConsumer);
 await Bun.write(join(work, "types-consumer.ts"), typesConsumer);
+await Bun.write(join(work, "must-use-consumer.ts"), mustUseConsumer);
 await Bun.write(join(work, "tsconfig.json"), tsconfig);
 
 async function run(label: string, cmd: string[]): Promise<void> {
@@ -165,6 +313,24 @@ await run("declaration consumer", [
 	"--project",
 	join(work, "tsconfig.json"),
 ]);
+
+const usageErrors = resultUsageViolations(
+	resultUsageProgram(join(work, "tsconfig.json"), "@pencroff-lab/kore"),
+	work,
+	["must-use-consumer.ts"],
+);
+check(
+	"built-package must-use fixture catches all four drops",
+	usageErrors.length === 4,
+);
+for (const line of [4, 5, 6, 7]) {
+	check(
+		`built-package must-use fixture reports line ${line}`,
+		usageErrors.some((error) =>
+			error.startsWith(`must-use-consumer.ts:${line}:`),
+		),
+	);
+}
 
 // ─── Foreign-copy Err reconstruction ─────────────────────────────────────────
 

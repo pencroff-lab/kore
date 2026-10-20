@@ -22,8 +22,8 @@ production bundles.
 
 A `ResultTuple<T>` is `readonly [T, null] | readonly [null, Err]`. The error
 slot is the only failure signal — no operation inspects a value's runtime
-shape. Every fallible callback returns a `ResultTuple`; `map` is the single
-exception, and its return is always data.
+shape. Every fallible callback returns a `ResultTuple`; maps and explicit value
+adapters carry their callback returns as data.
 
 ## API reference
 
@@ -73,6 +73,8 @@ the package.
 - [TSDoc formatting rules](guides/tsdoc_guide.md)
 
 ## For agents
+
+Start with the [core subset and safety rules](../llms.txt#core-subset).
 
 [`llms.txt`](../llms.txt) at the package root is the machine-readable index of
 this documentation set. It links only to files that ship in the package.

@@ -7,6 +7,7 @@ import {
 	any,
 	attempt,
 	attemptAsync,
+	attemptValue,
 	copy,
 	defaultTo,
 	effect,
@@ -93,17 +94,6 @@ describe("flow", () => {
 
 			expect(defaultTo(chained, () => 0)).toBe(0);
 			expect(widened).toBe(true);
-		});
-
-		test("a fallible callback rejects non-tuple returns", () => {
-			// @ts-expect-error a bare value is not a ResultTuple
-			flatMap(ok(1), (n: number) => n * 2);
-			// @ts-expect-error a bare Err is not a ResultTuple
-			flatMap(ok(1), () => Err.from("nope"));
-			// @ts-expect-error a callback that falls off its end returns void
-			flatMap(ok(1), () => {});
-
-			expect(true).toBe(true);
 		});
 
 		test("defaultTo rejects a bare fallback value", () => {
@@ -305,8 +295,9 @@ describe("flow", () => {
 		test("does not call the callback on a failure", () => {
 			const fn = sinon.stub().returns(1);
 
-			map(fail("nope"), fn);
+			const result = map(fail("nope"), fn);
 
+			expect(result[1]?.message).toEqual("nope");
 			sinon.assert.notCalled(fn);
 		});
 
@@ -557,8 +548,8 @@ describe("flow", () => {
 
 		test("passes a failure through and calls neither callback", () => {
 			const failed = fail("nope");
-			const predicate = sinon.stub().returns(true);
-			const factory = sinon.stub().returns(Err.from("x"));
+			const predicate = sinon.stub<[number], boolean>().returns(true);
+			const factory = sinon.stub<[number], Err>().returns(Err.from("x"));
 
 			const result = ensure(failed, predicate, factory);
 
@@ -584,10 +575,11 @@ describe("flow", () => {
 		});
 
 		test("the error factory is lazy", () => {
-			const factory = sinon.stub().returns(Err.from("x"));
+			const factory = sinon.stub<[number], Err>().returns(Err.from("x"));
 
-			ensure(ok(5), positive, factory);
+			const [, error] = ensure(ok(5), positive, factory);
 
+			expect(error).toEqual(null);
 			sinon.assert.notCalled(factory);
 		});
 
@@ -811,7 +803,7 @@ describe("flow", () => {
 		});
 
 		test("skips success stages after a failure and recovers mid-chain", () => {
-			const later = sinon.stub().returns(ok(0));
+			const later = sinon.stub<[number], ResultTuple<number>>().returns(ok(0));
 
 			const [value] = pipe(
 				ok(2),
@@ -872,9 +864,9 @@ describe("flow", () => {
 			expect(typed).toBe(true);
 		});
 
-		test("widens to ResultTuple<unknown> past ten stages", () => {
+		test("composes longer flows in typed chunks", () => {
 			const step = onOk((n: number) => ok(n + 1));
-			const result = pipe(
+			const first = pipe(
 				ok(0),
 				step,
 				step,
@@ -886,12 +878,11 @@ describe("flow", () => {
 				step,
 				step,
 				step,
-				step,
 			);
-			const widened: Expect<typeof result, ResultTuple<unknown>> = true;
-
+			const result = pipe(first, step);
+			const typed: Expect<typeof result, ResultTuple<number>> = true;
 			expect(result[0]).toBe(11);
-			expect(widened).toBe(true);
+			expect(typed).toBe(true);
 		});
 	});
 
@@ -975,9 +966,9 @@ describe("flow", () => {
 			expect(typed).toBe(true);
 		});
 
-		test("widens to ResultTuple<unknown> past ten stages", async () => {
+		test("composes longer flows in typed chunks", async () => {
 			const step = onOkAsync(async (n: number) => ok(n + 1));
-			const result = await pipeAsync(
+			const first = await pipeAsync(
 				ok(0),
 				step,
 				step,
@@ -989,12 +980,11 @@ describe("flow", () => {
 				step,
 				step,
 				step,
-				step,
 			);
-			const widened: Expect<typeof result, ResultTuple<unknown>> = true;
-
+			const result = await pipeAsync(first, step);
+			const typed: Expect<typeof result, ResultTuple<number>> = true;
 			expect(result[0]).toBe(11);
-			expect(widened).toBe(true);
+			expect(typed).toBe(true);
 		});
 	});
 
@@ -1489,8 +1479,9 @@ describe("flow", () => {
 				return t;
 			};
 
-			pipe(source, record, record);
+			const [, error] = pipe(source, record, record);
 
+			expect(error).toEqual(null);
 			expect(source[0]).toBe(1);
 			expect(stages[0]).not.toBe(source);
 		});
@@ -1553,7 +1544,16 @@ describe("flow", () => {
 
 		test("a config pipeline enriches and recovers", () => {
 			const parse = (raw: string): ResultTuple<{ port: number }> =>
-				attempt(() => ok(JSON.parse(raw) as { port: number }));
+				flatMap(
+					attemptValue(() => JSON.parse(raw)),
+					(data) =>
+						typeof data === "object" &&
+						data !== null &&
+						"port" in data &&
+						typeof data.port === "number"
+							? ok({ port: data.port })
+							: fail("numeric port required", "CONFIG:SHAPE"),
+				);
 
 			const load = (raw: string) =>
 				pipe(

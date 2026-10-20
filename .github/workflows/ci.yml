@@ -54,6 +54,9 @@ jobs:
       - name: Check import boundaries
         run: bun run check:boundaries
 
+      - name: Check result usage
+        run: bun run check:result-usage
+
       - name: Check docs
         run: bun run check:docs
 
@@ -260,24 +263,70 @@ jobs:
           path: build/receipt
           retention-days: 30
 
+      - name: Commit the verified publication receipt
+        id: receipt_commit
+        uses: actions/github-script@v7
+        continue-on-error: true
+        env:
+          VERSION: ${{ needs.release_state.outputs.version }}
+        with:
+          github-token: ${{ secrets.REPO_TAG_TOKEN }}
+          script: |
+            const fs = require("node:fs");
+            const path = require("node:path");
+            const receipt = fs.readFileSync(
+              path.join(process.env.GITHUB_WORKSPACE, "site", "published.json"),
+              "utf8",
+            );
+            const file = { ...context.repo, path: "site/published.json" };
+            const { data: current } = await github.rest.repos.getContent({
+              ...file,
+              ref: "main",
+            });
+            if (current.type !== "file" || current.encoding !== "base64") {
+              throw new Error("Expected a base64 receipt file on main.");
+            }
+            if (Buffer.from(current.content, "base64").toString("utf8") === receipt) {
+              core.info(`Receipt for ${process.env.VERSION} is already current on main.`);
+              return;
+            }
+            const { data: released } = await github.rest.repos.getContent({
+              ...file,
+              ref: context.sha,
+            });
+            if (released.type !== "file") {
+              throw new Error("Expected a receipt file at the release commit.");
+            }
+            // Compare against the release blob so a newer receipt cannot be overwritten.
+            await github.rest.repos.createOrUpdateFileContents({
+              ...file,
+              branch: "main",
+              sha: released.sha,
+              content: Buffer.from(receipt, "utf8").toString("base64"),
+              message: `docs: record ${process.env.VERSION} publication`,
+            });
+            core.info(`Committed the verified ${process.env.VERSION} receipt to main.`);
+
       - name: Explain the finalization step
+        env:
+          VERSION: ${{ needs.release_state.outputs.version }}
+          RECEIPT_COMMIT_OUTCOME: ${{ steps.receipt_commit.outcome }}
         run: |
           {
             echo "### Publication recorded"
             echo ""
-            echo "\`@pencroff-lab/kore@${{ needs.release_state.outputs.version }}\` is published and tagged."
+            echo "\`@pencroff-lab/kore@${VERSION}\` is published and tagged."
             echo ""
-            echo "The site still serves the previous default edition. To promote it, commit the"
-            echo "verified receipt from the \`publication-receipt-${{ needs.release_state.outputs.version }}\` artifact:"
-            echo ""
-            echo '```sh'
-            echo "git checkout -b docs/record-${{ needs.release_state.outputs.version }}"
-            echo "cp published.json site/published.json"
-            echo "git commit -am 'docs: record ${{ needs.release_state.outputs.version }} publication'"
-            echo '```'
-            echo ""
-            echo "Merging that commit runs the documentation-only path, which deploys the site"
-            echo "with ${{ needs.release_state.outputs.version }} promoted. It cannot republish npm."
+            if [ "$RECEIPT_COMMIT_OUTCOME" = "success" ]; then
+              echo "CI committed the verified receipt to main, or it was already current."
+              echo "The receipt commit's documentation-only run validates and deploys the site"
+              echo "with ${VERSION} promoted. It cannot republish npm or move the tag."
+            else
+              echo "The automatic receipt commit failed; npm publication and tagging succeeded."
+              echo "Use the verified \`publication-receipt-${VERSION}\` artifact as the fallback."
+              echo "Follow README's receipt recovery instructions, preserving newer receipt entries."
+              echo "Committing the recovered receipt triggers the documentation-only deployment."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ── Deploy: one artifact, one concurrency group ───────────────────────────
