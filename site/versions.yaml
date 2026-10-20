@@ -9,3 +9,6 @@ releases:
   - version: "0.7.0"
     path: "site/versions/0.7.0"
     sourceRef: "v0.7.0"
+  - version: "0.7.1"
+    path: "site/versions/0.7.1"
+    sourceRef: "v0.7.1"
