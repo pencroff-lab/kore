@@ -1,12 +1,19 @@
 {
 	"schemaVersion": 1,
-	"latestStable": "0.7.0",
+	"latestStable": "0.7.1",
 	"releases": [
 		{
 			"version": "0.7.0",
 			"sourceCommit": "79c16ef6f5e1bc81070b3f4161129aa242f1ca26",
 			"snapshotDigest": "757e526fdd5a787fc1f0c9fcaa71fb489093edd59e25b0ac97afd9276249d8e7",
 			"registryIntegrity": "sha512-pTZJ8C3hgvpGN4EQdIRBYRRjj9ceYeQtKC9JrUJ5R2eRynS3nsZ5vuSiKh9jfRpQ3LKp6nTW9rnnqpXAbwfJ8Q==",
+			"distTag": "latest"
+		},
+		{
+			"version": "0.7.1",
+			"sourceCommit": "94065f32694c9dcdd8906fbbc74f4a4931bac357",
+			"snapshotDigest": "dcd713a2297439cda175b6e88d6717dcddccb4968541fe33942fb175cfca00bf",
+			"registryIntegrity": "sha512-BNehKr1x06LfHesiX8/aF8RfKeaOZa+6AUu4xCxzg1vKqnF1M1qtH74h85SN/eVuoAHFCP9VT3RCvSMIpkhEMw==",
 			"distTag": "latest"
 		}
 	]
