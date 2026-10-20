@@ -54,6 +54,9 @@ jobs:
       - name: Check import boundaries
         run: bun run check:boundaries
 
+      - name: Check result usage
+        run: bun run check:result-usage
+
       - name: Check docs
         run: bun run check:docs
 

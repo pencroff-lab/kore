@@ -2,7 +2,7 @@
 
 Compact, sortable date and time stamps.
 
-Generated from [`src/utils/format_dt.examples.test.ts`](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/utils/format_dt.examples.test.ts).
+Generated from [`src/utils/format_dt.examples.test.ts`](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/utils/format_dt.examples.test.ts).
 These examples are executable — they run as part of the library's test
 suite, so every line below is verified against the released code.
 

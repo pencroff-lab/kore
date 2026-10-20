@@ -13,10 +13,41 @@ resolve the package directory rather than assuming a flat layout).
 
 - [Documentation index](docs/README.md): entry point for all shipped documentation
 
+## Core subset
+
+Start with `ok`, `fail`, `attempt`, `map`, `flatMap`, `mapErr`, `defaultTo`,
+then `pipe` with `onOk` / `onErr`. Fallible callbacks return tuples; `map`
+returns data. Async operations, whole-tuple hooks, collections and serialization
+are advanced operations; see the [flow reference](docs/api/flow.md).
+
+1. Test `error === null` before using the success value. Never test value
+   truthiness: `ok(null)`, `ok("")` and `ok(undefined)` are successes.
+2. Never discard a result tuple, including a resolved async result. Handle its
+   error or propagate the tuple to a caller that will handle it.
+3. Wrap `JSON.parse` with `attemptValue` and `response.json()` with
+   `attemptValueAsync`, then validate the resulting unknown data with a schema
+   or type guard. The adapters always add an envelope: parsed `[7, null]` is
+   data, not a success protocol returned by the parser. `attemptValue` rejects
+   known PromiseLike returns; use `attemptValueAsync` for those callbacks.
+
+Inferred fallible callbacks, pipeline stages and sources reject raw `any` and
+`Promise<any>`. Explicit type arguments, preannotated callbacks/operator aliases,
+and casts can erase those checks; JavaScript callers have no type protection.
+Consumers need type-aware unsafe-any lint for returns, assignments, arguments,
+member access and calls, together with `noFloatingPromises`. Promise lint alone
+allows awaited or explicitly voided tuples to be dropped. v0.7.1 ships **no
+downstream tuple must-use rule**; delivering one is a follow-up.
+
+`pipe` and `pipeAsync` accept at most ten stages. Compose longer flows in typed
+chunks. `effect` accepts only void/undefined callbacks: use `flatMap` for a
+fallible side effect and `effectAsync` for awaited void work. These guarantees
+have regression tests; comparison with disciplined `try/catch` on matched tasks
+remains unmeasured.
+
 ## Core Modules
 
 - [Err](docs/api/err.md): Immutable, value-based error type with wrapping (cause chains), aggregation, hierarchical error codes, JSON serialization, and conversion to native Error. `Err.isErr` is nominal (`instanceof`) since v0.7.0; reconstruct wire data with `Err.from`
-- [flow](docs/api/flow.md): The primary API — free functions over `ResultTuple<T>` (`readonly [T, null] | readonly [null, Err]`): `ok`, `fail`, `attempt`/`attemptAsync`, `copy`, `map`/`flatMap`/`mapErr`/`effect` plus async forms, `ensure`, the `onOk`/`onErr`/`onTuple` stage factories, `pipe`/`pipeAsync` (typed through ten stages), `defaultTo` (handler-only), `either`, `all`, `any`, `fromJSON`. Every fallible callback returns a `ResultTuple`; the error slot is the only failure signal, and `map` is the one callback whose return is never inspected
+- [flow](docs/api/flow.md): The primary API — free functions over `ResultTuple<T>` (`readonly [T, null] | readonly [null, Err]`): `ok`, `fail`, `attempt`/`attemptAsync`, `attemptValue`/`attemptValueAsync` for throwing value functions, `copy`, `map`/`flatMap`/`mapErr`/`effect` plus async forms, `ensure`, the `onOk`/`onErr`/`onTuple` stage factories, `pipe`/`pipeAsync` (up to ten stages), `defaultTo` (handler-only), `either`, `all`, `any`, `fromJSON`. Every fallible callback returns a `ResultTuple`; value adapters always envelope their data
 - [flow test helpers](docs/api/test.md): `expectOk` / `expectErr`, published from the `@pencroff-lab/kore/test` subpath only
 - [Outcome](docs/api/outcome.md): **Deprecated, frozen.** Monadic result container wrapping `[T, null] | [null, Err]` with map/pipe chains, combinators (all, any), side effects, and terminal operations. Callbacks follow the value protocol (`Err` = failure, `Outcome` = passthrough, anything else = the success value); `fromTuple`/`fromTupleAsync` are the only tuple entry points, and `toTuple()` is the only extraction
 - [Logger](docs/api/logger.md): Structured, level-filtered logging with pluggable transports and Err integration

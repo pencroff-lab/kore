@@ -2,7 +2,7 @@
 
 Asserting on result tuples with expectOk and expectErr.
 
-Generated from [`src/flow/test.examples.test.ts`](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/test.examples.test.ts).
+Generated from [`src/flow/test.examples.test.ts`](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/test.examples.test.ts).
 These examples are executable — they run as part of the library's test
 suite, so every line below is verified against the released code.
 

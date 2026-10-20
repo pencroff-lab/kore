@@ -26,6 +26,8 @@ The package ships its own documentation. After installing, start at
 resolve inside the installed package, so they always describe the version you
 have.
 
+Agents can start with the [core subset and safety rules](llms.txt#core-subset).
+
 Detailed API documentation for each module:
 
 - [Err](docs/api/err.md) -- Immutable, value-based error type with wrapping, aggregation, and serialization
@@ -163,9 +165,9 @@ ok(Err.from("this is data"));   // ResultTuple<Err>
 ok(ok(1));                      // ResultTuple<ResultTuple<number>> — nesting is explicit
 ```
 
-`map` is the single exception: its return is never inspected, so an `Err` or a
-tuple returned from `map` is data. A callback that returns a bare value, a bare
-`Err`, or nothing at all does not compile.
+`map` and the explicit value adapters carry callback returns as data, including
+an `Err` or a tuple. A fallible callback that returns a bare value, a bare
+`Err`, or nothing at all does not compile on the typed path.
 
 #### Boundaries and transformations
 
@@ -175,7 +177,7 @@ ok();                         // [undefined, null] — ResultTuple<void>
 fail("Not found", "NOT_FOUND");
 fail(Err.from(caught, { code: "READ_FAILED", metadata: { path } }));
 
-attempt(() => ok(JSON.parse(raw)));            // converts a throw to a failure
+attemptValue(() => JSON.parse(raw));           // unknown data; validate before use
 await attemptAsync(async () => ok(await fetchUser(id)));
 
 map(result, (n) => n * 2);                     // total callback, return-preserving
@@ -208,8 +210,8 @@ const fetched = await pipeAsync(
 
 `pipe` and `pipeAsync` copy the source once on entry and catch each stage
 separately, so a later `onErr` stage can recover from a throwing custom stage.
-Both are typed through ten stages; past that the result widens to
-`ResultTuple<unknown>`. A reusable pipeline is an ordinary typed function:
+Both accept at most ten stages; compose longer flows in typed chunks.
+A reusable pipeline is an ordinary typed function:
 
 ```typescript
 const transform = (source: ResultTuple<Input>) =>

@@ -19,7 +19,7 @@ dependency, so it works in any runner.
 
 > **expectErr**\<`T`\>(`tuple`): [`Err`](err.md#err)
 
-Defined in: [flow/test.ts:48](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/test.ts#L48)
+Defined in: [flow/test.ts:48](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/test.ts#L48)
 
 Assert the tuple failed and return its error.
 
@@ -53,7 +53,7 @@ Error if the tuple holds a success value
 
 > **expectOk**\<`T`\>(`tuple`): `T`
 
-Defined in: [flow/test.ts:34](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/flow/test.ts#L34)
+Defined in: [flow/test.ts:34](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/flow/test.ts#L34)
 
 Assert the tuple succeeded and return its value.
 

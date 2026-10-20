@@ -8,11 +8,15 @@
  * **Key concepts:**
  * - **One fallible protocol** — every fallible callback returns a `ResultTuple`.
  *   The error slot is the only failure signal; no operator inspects a value's
- *   runtime shape. `map` is the single exception: its return is always data.
+ *   runtime shape. Maps and value adapters always carry callback returns as data.
  * - **`ok` / `fail` are the boundary** — `ok(err)` and `ok(tuple)` carry
  *   error- or tuple-shaped values as successful data.
  * - **Exception boundaries** — `attempt`/`attemptAsync`, every callback-taking
  *   operation, and every pipeline stage convert a throw into `Err.from(caught)`.
+ *   `attemptValue` / `attemptValueAsync` always envelope throwing value returns,
+ *   normalizing untyped data to `unknown` for validation by the caller.
+ * - **Type guards** reject inferred raw `any` returns and sources. Explicit type
+ *   arguments, preannotations and casts erase that check; use unsafe-any lint.
  * - **Input protection** — a pipeline copies its source once on entry, and tuple
  *   callbacks receive a copy. Payloads are never cloned.
  * - **Error enrichment** lives on `Err`: use `mapErr`/`onErr` and chain
@@ -24,7 +28,20 @@
 
 import type { ResultTuple } from "../types/common.types";
 import { Err, type ErrCode } from "../types/err";
-import type { AnyOp, AsyncSource, OkValues, Op, OpAsync } from "./flow.types";
+import type {
+	AnyOp,
+	AsyncSlots,
+	AsyncSource,
+	NoAny,
+	OkValue,
+	OkValues,
+	Op,
+	OpAsync,
+	ResultSlots,
+	SafeValue,
+	SyncValue,
+	UseAttemptValueOrAttemptValueAsync,
+} from "./flow.types";
 
 export type { ResultTuple } from "../types/common.types";
 export type {
@@ -100,9 +117,11 @@ export function fail(error: Err | string, code?: ErrCode): ResultTuple<never> {
  * @param fn - Callback returning a result tuple
  * @returns The callback's tuple, or `Err.from(caught)` as a failure
  */
-export function attempt<T>(fn: () => ResultTuple<T>): ResultTuple<T> {
+export function attempt<T, Raw extends ResultTuple<T> = ResultTuple<T>>(
+	fn: (() => Raw) & NoAny<Raw, unknown, UseAttemptValueOrAttemptValueAsync>,
+): ResultTuple<OkValue<Raw>> {
 	try {
-		return fn();
+		return fn() as ResultTuple<OkValue<Raw>>;
 	} catch (e) {
 		return [null, Err.from(e)];
 	}
@@ -114,13 +133,50 @@ export function attempt<T>(fn: () => ResultTuple<T>): ResultTuple<T> {
  * @param fn - Async callback returning a result tuple
  * @returns Promise of the callback's tuple, or of a failure
  */
-export async function attemptAsync<T>(
-	fn: () => Promise<ResultTuple<T>>,
-): Promise<ResultTuple<T>> {
+export async function attemptAsync<
+	T,
+	Raw extends AsyncSource<T> = Promise<ResultTuple<T>>,
+>(
+	fn: (() => Raw) &
+		NoAny<Raw, Promise<unknown>, UseAttemptValueOrAttemptValueAsync>,
+): Promise<ResultTuple<OkValue<Awaited<Raw>>>> {
 	try {
-		return await fn();
+		return (await fn()) as ResultTuple<OkValue<Awaited<Raw>>>;
 	} catch (e) {
 		return [null, Err.from(e)];
+	}
+}
+
+/**
+ * Wrap a throwing value callback as data, normalizing `any` to `unknown`.
+ *
+ * @param fn - Synchronous data callback; use `attemptValueAsync` for PromiseLike returns
+ * @returns A success envelope, or a caught throw as a failure
+ * @see [flow.examples.test.ts](../../src/flow/flow.examples.test.ts)
+ */
+export function attemptValue<T>(
+	fn: (() => T) & SyncValue<T>,
+): ResultTuple<SafeValue<T>> {
+	try {
+		return ok(fn()) as ResultTuple<SafeValue<T>>;
+	} catch (e) {
+		return fail(Err.from(e));
+	}
+}
+
+/**
+ * Await and wrap a value callback, converting throws and rejections.
+ *
+ * @param fn - Callback returning a promise of data
+ * @returns A success envelope with awaited `any` normalized to `unknown`, or a failure
+ */
+export async function attemptValueAsync<T>(
+	fn: () => PromiseLike<T>,
+): Promise<ResultTuple<SafeValue<Awaited<T>>>> {
+	try {
+		return ok(await fn()) as ResultTuple<SafeValue<Awaited<T>>>;
+	} catch (e) {
+		return fail(Err.from(e));
 	}
 }
 
@@ -180,13 +236,18 @@ export async function mapAsync<In, Out>(
  * @param fn - Callback returning a result tuple
  * @returns The callback's tuple, the original failure, or a caught throw
  */
-export function flatMap<In, Out>(
+export function flatMap<
+	In,
+	Out,
+	Raw extends ResultTuple<Out> = ResultTuple<Out>,
+>(
 	tuple: ResultTuple<In>,
-	fn: (value: In) => ResultTuple<Out>,
-): ResultTuple<Out> {
+	fn: ((value: In) => Raw) &
+		NoAny<Raw, unknown, UseAttemptValueOrAttemptValueAsync>,
+): ResultTuple<OkValue<Raw>> {
 	if (tuple[1] !== null) return tuple;
 	try {
-		return fn(tuple[0]);
+		return fn(tuple[0]) as ResultTuple<OkValue<Raw>>;
 	} catch (e) {
 		return [null, Err.from(e)];
 	}
@@ -199,13 +260,18 @@ export function flatMap<In, Out>(
  * @param fn - Async callback returning a result tuple
  * @returns Promise of the resulting tuple
  */
-export async function flatMapAsync<In, Out>(
+export async function flatMapAsync<
+	In,
+	Out,
+	Raw extends AsyncSource<Out> = Promise<ResultTuple<Out>>,
+>(
 	tuple: ResultTuple<In>,
-	fn: (value: In) => Promise<ResultTuple<Out>>,
-): Promise<ResultTuple<Out>> {
+	fn: ((value: In) => Raw) &
+		NoAny<Raw, Promise<unknown>, UseAttemptValueOrAttemptValueAsync>,
+): Promise<ResultTuple<OkValue<Awaited<Raw>>>> {
 	if (tuple[1] !== null) return tuple;
 	try {
-		return await fn(tuple[0]);
+		return (await fn(tuple[0])) as ResultTuple<OkValue<Awaited<Raw>>>;
 	} catch (e) {
 		return [null, Err.from(e)];
 	}
@@ -222,13 +288,18 @@ export async function flatMapAsync<In, Out>(
  * @param fn - Callback receiving the error and returning a result tuple
  * @returns The callback's tuple, the original success, or a caught throw
  */
-export function mapErr<In, Out>(
+export function mapErr<
+	In,
+	Out,
+	Raw extends ResultTuple<Out> = ResultTuple<Out>,
+>(
 	tuple: ResultTuple<In>,
-	fn: (error: Err) => ResultTuple<Out>,
-): ResultTuple<In | Out> {
+	fn: ((error: Err) => Raw) &
+		NoAny<Raw, unknown, UseAttemptValueOrAttemptValueAsync>,
+): ResultTuple<In | OkValue<Raw>> {
 	if (tuple[1] === null) return tuple;
 	try {
-		return fn(tuple[1]);
+		return fn(tuple[1]) as ResultTuple<OkValue<Raw>>;
 	} catch (e) {
 		return [null, Err.from(e)];
 	}
@@ -241,13 +312,18 @@ export function mapErr<In, Out>(
  * @param fn - Async callback receiving the error
  * @returns Promise of the resulting tuple
  */
-export async function mapErrAsync<In, Out>(
+export async function mapErrAsync<
+	In,
+	Out,
+	Raw extends AsyncSource<Out> = Promise<ResultTuple<Out>>,
+>(
 	tuple: ResultTuple<In>,
-	fn: (error: Err) => Promise<ResultTuple<Out>>,
-): Promise<ResultTuple<In | Out>> {
+	fn: ((error: Err) => Raw) &
+		NoAny<Raw, Promise<unknown>, UseAttemptValueOrAttemptValueAsync>,
+): Promise<ResultTuple<In | OkValue<Awaited<Raw>>>> {
 	if (tuple[1] === null) return tuple;
 	try {
-		return await fn(tuple[1]);
+		return (await fn(tuple[1])) as ResultTuple<OkValue<Awaited<Raw>>>;
 	} catch (e) {
 		return [null, Err.from(e)];
 	}
@@ -257,7 +333,7 @@ export async function mapErrAsync<In, Out>(
  * Run a side effect on either channel.
  *
  * The callback receives the returned copy, not the caller's tuple, and its
- * normal return value is ignored. A throw becomes the failure.
+ * callback must return void or undefined. A throw becomes the failure.
  *
  * @param tuple - Source result
  * @param fn - Side effect receiving the output tuple
@@ -265,7 +341,8 @@ export async function mapErrAsync<In, Out>(
  */
 export function effect<T>(
 	tuple: ResultTuple<T>,
-	fn: (tuple: ResultTuple<T>) => void,
+	// biome-ignore lint/suspicious/noConfusingVoidType: this union rejects implicit tuple and promise discards while retaining void callbacks
+	fn: (tuple: ResultTuple<T>) => void | undefined,
 ): ResultTuple<T> {
 	const out = copy(tuple);
 	try {
@@ -308,10 +385,18 @@ export async function effectAsync<T>(
  * @param toErr - Error factory, called only when the predicate fails
  * @returns The original success, a constructed failure, or a caught throw
  */
-export function ensure<T, S extends T = T>(
+export function ensure<
+	T,
+	S extends T = T,
+	Predicate extends boolean = boolean,
+	ErrorValue extends Err = Err,
+>(
 	tuple: ResultTuple<T>,
-	predicate: ((value: T) => value is S) | ((value: T) => boolean),
-	toErr: (value: T) => Err,
+	predicate:
+		| ((value: T) => value is S)
+		| ((value: T) => Predicate & NoAny<Predicate>),
+	toErr: ((value: T) => ErrorValue) &
+		NoAny<ErrorValue, unknown, UseAttemptValueOrAttemptValueAsync>,
 ): ResultTuple<S> {
 	if (tuple[1] !== null) return tuple;
 	const value = tuple[0];
@@ -333,10 +418,11 @@ export function ensure<T, S extends T = T>(
  * @param fn - Callback returning a result tuple
  * @returns A synchronous pipeline stage
  */
-export function onOk<In, Out>(
-	fn: (value: In) => ResultTuple<Out>,
-): Op<In, Out> {
-	return (tuple) => flatMap(tuple, fn);
+export function onOk<In, Out, Raw extends ResultTuple<Out> = ResultTuple<Out>>(
+	fn: ((value: In) => Raw) &
+		NoAny<Raw, unknown, UseAttemptValueOrAttemptValueAsync>,
+): Op<In, OkValue<Raw>> {
+	return (tuple) => flatMap<In, Out, Raw>(tuple, fn);
 }
 
 /**
@@ -345,10 +431,15 @@ export function onOk<In, Out>(
  * @param fn - Async callback returning a result tuple
  * @returns An asynchronous pipeline stage
  */
-export function onOkAsync<In, Out>(
-	fn: (value: In) => Promise<ResultTuple<Out>>,
-): OpAsync<In, Out> {
-	return (tuple) => flatMapAsync(tuple, fn);
+export function onOkAsync<
+	In,
+	Out,
+	Raw extends AsyncSource<Out> = Promise<ResultTuple<Out>>,
+>(
+	fn: ((value: In) => Raw) &
+		NoAny<Raw, Promise<unknown>, UseAttemptValueOrAttemptValueAsync>,
+): OpAsync<In, OkValue<Awaited<Raw>>> {
+	return (tuple) => flatMapAsync<In, Out, Raw>(tuple, fn);
 }
 
 /**
@@ -362,9 +453,10 @@ export function onOkAsync<In, Out>(
  * @param fn - Callback receiving the error and returning a result tuple
  * @returns A synchronous pipeline stage that preserves the success type
  */
-export function onErr<Out>(
-	fn: (error: Err) => ResultTuple<Out>,
-): <In>(tuple: ResultTuple<In>) => ResultTuple<In | Out> {
+export function onErr<Out, Raw extends ResultTuple<Out> = ResultTuple<Out>>(
+	fn: ((error: Err) => Raw) &
+		NoAny<Raw, unknown, UseAttemptValueOrAttemptValueAsync>,
+): <In>(tuple: ResultTuple<In>) => ResultTuple<In | OkValue<Raw>> {
 	return (tuple) => mapErr(tuple, fn);
 }
 
@@ -374,9 +466,15 @@ export function onErr<Out>(
  * @param fn - Async callback receiving the error
  * @returns An asynchronous pipeline stage that preserves the success type
  */
-export function onErrAsync<Out>(
-	fn: (error: Err) => Promise<ResultTuple<Out>>,
-): <In>(tuple: ResultTuple<In>) => Promise<ResultTuple<In | Out>> {
+export function onErrAsync<
+	Out,
+	Raw extends AsyncSource<Out> = Promise<ResultTuple<Out>>,
+>(
+	fn: ((error: Err) => Raw) &
+		NoAny<Raw, Promise<unknown>, UseAttemptValueOrAttemptValueAsync>,
+): <In>(
+	tuple: ResultTuple<In>,
+) => Promise<ResultTuple<In | OkValue<Awaited<Raw>>>> {
 	return (tuple) => mapErrAsync(tuple, fn);
 }
 
@@ -386,10 +484,16 @@ export function onErrAsync<Out>(
  * @param fn - Callback receiving a tuple copy and returning a result tuple
  * @returns A synchronous pipeline stage
  */
-export function onTuple<In, Out>(
-	fn: (tuple: ResultTuple<In>) => ResultTuple<Out>,
-): Op<In, Out> {
-	return (tuple) => attempt(() => fn(copy(tuple)));
+export function onTuple<
+	In,
+	Out,
+	Raw extends ResultTuple<Out> = ResultTuple<Out>,
+>(
+	fn: ((tuple: ResultTuple<In>) => Raw) &
+		NoAny<Raw, unknown, UseAttemptValueOrAttemptValueAsync>,
+): Op<In, OkValue<Raw>> {
+	return (tuple) =>
+		attempt<OkValue<Raw>>(() => fn(copy(tuple)) as ResultTuple<OkValue<Raw>>);
 }
 
 /**
@@ -398,10 +502,18 @@ export function onTuple<In, Out>(
  * @param fn - Async callback receiving a tuple copy
  * @returns An asynchronous pipeline stage
  */
-export function onTupleAsync<In, Out>(
-	fn: (tuple: ResultTuple<In>) => Promise<ResultTuple<Out>>,
-): OpAsync<In, Out> {
-	return (tuple) => attemptAsync(() => fn(copy(tuple)));
+export function onTupleAsync<
+	In,
+	Out,
+	Raw extends AsyncSource<Out> = Promise<ResultTuple<Out>>,
+>(
+	fn: ((tuple: ResultTuple<In>) => Raw) &
+		NoAny<Raw, Promise<unknown>, UseAttemptValueOrAttemptValueAsync>,
+): OpAsync<In, OkValue<Awaited<Raw>>> {
+	return (tuple) =>
+		attemptAsync<OkValue<Awaited<Raw>>>(
+			() => fn(copy(tuple)) as Promise<ResultTuple<OkValue<Awaited<Raw>>>>,
+		);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -412,104 +524,249 @@ export function onTupleAsync<In, Out>(
  * Run synchronous stages over a result tuple.
  *
  * The source is copied once on entry, and each stage is caught separately so a
- * later `onErr` stage can recover. Typed through ten stages; past that the
- * result widens to `ResultTuple<unknown>`.
+ * later `onErr` stage can recover. Accepts up to ten typed stages; compose
+ * longer flows in typed chunks.
  *
  * @see {@link pipeAsync} for asynchronous and mixed stages
  */
-export function pipe<A>(source: ResultTuple<A>): ResultTuple<A>;
-export function pipe<A, B>(
-	source: ResultTuple<A>,
-	op1: Op<A, B>,
-): ResultTuple<B>;
-export function pipe<A, B, C>(
-	source: ResultTuple<A>,
-	op1: Op<A, B>,
-	op2: Op<B, C>,
-): ResultTuple<C>;
-export function pipe<A, B, C, D>(
-	source: ResultTuple<A>,
-	op1: Op<A, B>,
-	op2: Op<B, C>,
-	op3: Op<C, D>,
-): ResultTuple<D>;
-export function pipe<A, B, C, D, E>(
-	source: ResultTuple<A>,
-	op1: Op<A, B>,
-	op2: Op<B, C>,
-	op3: Op<C, D>,
-	op4: Op<D, E>,
-): ResultTuple<E>;
-export function pipe<A, B, C, D, E, F>(
-	source: ResultTuple<A>,
-	op1: Op<A, B>,
-	op2: Op<B, C>,
-	op3: Op<C, D>,
-	op4: Op<D, E>,
-	op5: Op<E, F>,
-): ResultTuple<F>;
-export function pipe<A, B, C, D, E, F, G>(
-	source: ResultTuple<A>,
-	op1: Op<A, B>,
-	op2: Op<B, C>,
-	op3: Op<C, D>,
-	op4: Op<D, E>,
-	op5: Op<E, F>,
-	op6: Op<F, G>,
-): ResultTuple<G>;
-export function pipe<A, B, C, D, E, F, G, H>(
-	source: ResultTuple<A>,
-	op1: Op<A, B>,
-	op2: Op<B, C>,
-	op3: Op<C, D>,
-	op4: Op<D, E>,
-	op5: Op<E, F>,
-	op6: Op<F, G>,
-	op7: Op<G, H>,
-): ResultTuple<H>;
-export function pipe<A, B, C, D, E, F, G, H, I>(
-	source: ResultTuple<A>,
-	op1: Op<A, B>,
-	op2: Op<B, C>,
-	op3: Op<C, D>,
-	op4: Op<D, E>,
-	op5: Op<E, F>,
-	op6: Op<F, G>,
-	op7: Op<G, H>,
-	op8: Op<H, I>,
-): ResultTuple<I>;
-export function pipe<A, B, C, D, E, F, G, H, I, J>(
-	source: ResultTuple<A>,
-	op1: Op<A, B>,
-	op2: Op<B, C>,
-	op3: Op<C, D>,
-	op4: Op<D, E>,
-	op5: Op<E, F>,
-	op6: Op<F, G>,
-	op7: Op<G, H>,
-	op8: Op<H, I>,
-	op9: Op<I, J>,
-): ResultTuple<J>;
-export function pipe<A, B, C, D, E, F, G, H, I, J, K>(
-	source: ResultTuple<A>,
-	op1: Op<A, B>,
-	op2: Op<B, C>,
-	op3: Op<C, D>,
-	op4: Op<D, E>,
-	op5: Op<E, F>,
-	op6: Op<F, G>,
-	op7: Op<G, H>,
-	op8: Op<H, I>,
-	op9: Op<I, J>,
-	op10: Op<J, K>,
-): ResultTuple<K>;
+export function pipe<A, Source extends ResultTuple<A> = ResultTuple<A>>(
+	source: Source & NoAny<Source>,
+): ResultTuple<OkValue<Source>>;
 
-/* Past ten stages the ladder falls off: stages and result widen. */
-export function pipe(
-	source: ResultTuple<unknown>,
-	// biome-ignore lint/suspicious/noExplicitAny: widened stages stay assignable
-	...ops: Array<Op<any, any>>
-): ResultTuple<unknown>;
+export function pipe<
+	A,
+	B,
+	Source extends ResultTuple<A> = ResultTuple<A>,
+	R1 extends ResultTuple<B> = ResultTuple<B>,
+>(
+	source: Source & ResultSlots<A> & NoAny<Source>,
+	op1: Op<NoInfer<A>, B, R1 & ResultSlots<B>>,
+): ResultTuple<B>;
+
+export function pipe<
+	A,
+	B,
+	C,
+	Source extends ResultTuple<A> = ResultTuple<A>,
+	R1 extends ResultTuple<B> = ResultTuple<B>,
+	R2 extends ResultTuple<C> = ResultTuple<C>,
+>(
+	source: Source & ResultSlots<A> & NoAny<Source>,
+	op1: Op<NoInfer<A>, B, R1 & ResultSlots<B>>,
+	op2: Op<NoInfer<B>, C, R2 & ResultSlots<C>>,
+): ResultTuple<C>;
+
+export function pipe<
+	A,
+	B,
+	C,
+	D,
+	Source extends ResultTuple<A> = ResultTuple<A>,
+	R1 extends ResultTuple<B> = ResultTuple<B>,
+	R2 extends ResultTuple<C> = ResultTuple<C>,
+	R3 extends ResultTuple<D> = ResultTuple<D>,
+>(
+	source: Source & ResultSlots<A> & NoAny<Source>,
+	op1: Op<NoInfer<A>, B, R1 & ResultSlots<B>>,
+	op2: Op<NoInfer<B>, C, R2 & ResultSlots<C>>,
+	op3: Op<NoInfer<C>, D, R3 & ResultSlots<D>>,
+): ResultTuple<D>;
+
+export function pipe<
+	A,
+	B,
+	C,
+	D,
+	E,
+	Source extends ResultTuple<A> = ResultTuple<A>,
+	R1 extends ResultTuple<B> = ResultTuple<B>,
+	R2 extends ResultTuple<C> = ResultTuple<C>,
+	R3 extends ResultTuple<D> = ResultTuple<D>,
+	R4 extends ResultTuple<E> = ResultTuple<E>,
+>(
+	source: Source & ResultSlots<A> & NoAny<Source>,
+	op1: Op<NoInfer<A>, B, R1 & ResultSlots<B>>,
+	op2: Op<NoInfer<B>, C, R2 & ResultSlots<C>>,
+	op3: Op<NoInfer<C>, D, R3 & ResultSlots<D>>,
+	op4: Op<NoInfer<D>, E, R4 & ResultSlots<E>>,
+): ResultTuple<E>;
+
+export function pipe<
+	A,
+	B,
+	C,
+	D,
+	E,
+	F,
+	Source extends ResultTuple<A> = ResultTuple<A>,
+	R1 extends ResultTuple<B> = ResultTuple<B>,
+	R2 extends ResultTuple<C> = ResultTuple<C>,
+	R3 extends ResultTuple<D> = ResultTuple<D>,
+	R4 extends ResultTuple<E> = ResultTuple<E>,
+	R5 extends ResultTuple<F> = ResultTuple<F>,
+>(
+	source: Source & ResultSlots<A> & NoAny<Source>,
+	op1: Op<NoInfer<A>, B, R1 & ResultSlots<B>>,
+	op2: Op<NoInfer<B>, C, R2 & ResultSlots<C>>,
+	op3: Op<NoInfer<C>, D, R3 & ResultSlots<D>>,
+	op4: Op<NoInfer<D>, E, R4 & ResultSlots<E>>,
+	op5: Op<NoInfer<E>, F, R5 & ResultSlots<F>>,
+): ResultTuple<F>;
+
+export function pipe<
+	A,
+	B,
+	C,
+	D,
+	E,
+	F,
+	G,
+	Source extends ResultTuple<A> = ResultTuple<A>,
+	R1 extends ResultTuple<B> = ResultTuple<B>,
+	R2 extends ResultTuple<C> = ResultTuple<C>,
+	R3 extends ResultTuple<D> = ResultTuple<D>,
+	R4 extends ResultTuple<E> = ResultTuple<E>,
+	R5 extends ResultTuple<F> = ResultTuple<F>,
+	R6 extends ResultTuple<G> = ResultTuple<G>,
+>(
+	source: Source & ResultSlots<A> & NoAny<Source>,
+	op1: Op<NoInfer<A>, B, R1 & ResultSlots<B>>,
+	op2: Op<NoInfer<B>, C, R2 & ResultSlots<C>>,
+	op3: Op<NoInfer<C>, D, R3 & ResultSlots<D>>,
+	op4: Op<NoInfer<D>, E, R4 & ResultSlots<E>>,
+	op5: Op<NoInfer<E>, F, R5 & ResultSlots<F>>,
+	op6: Op<NoInfer<F>, G, R6 & ResultSlots<G>>,
+): ResultTuple<G>;
+
+export function pipe<
+	A,
+	B,
+	C,
+	D,
+	E,
+	F,
+	G,
+	H,
+	Source extends ResultTuple<A> = ResultTuple<A>,
+	R1 extends ResultTuple<B> = ResultTuple<B>,
+	R2 extends ResultTuple<C> = ResultTuple<C>,
+	R3 extends ResultTuple<D> = ResultTuple<D>,
+	R4 extends ResultTuple<E> = ResultTuple<E>,
+	R5 extends ResultTuple<F> = ResultTuple<F>,
+	R6 extends ResultTuple<G> = ResultTuple<G>,
+	R7 extends ResultTuple<H> = ResultTuple<H>,
+>(
+	source: Source & ResultSlots<A> & NoAny<Source>,
+	op1: Op<NoInfer<A>, B, R1 & ResultSlots<B>>,
+	op2: Op<NoInfer<B>, C, R2 & ResultSlots<C>>,
+	op3: Op<NoInfer<C>, D, R3 & ResultSlots<D>>,
+	op4: Op<NoInfer<D>, E, R4 & ResultSlots<E>>,
+	op5: Op<NoInfer<E>, F, R5 & ResultSlots<F>>,
+	op6: Op<NoInfer<F>, G, R6 & ResultSlots<G>>,
+	op7: Op<NoInfer<G>, H, R7 & ResultSlots<H>>,
+): ResultTuple<H>;
+
+export function pipe<
+	A,
+	B,
+	C,
+	D,
+	E,
+	F,
+	G,
+	H,
+	I,
+	Source extends ResultTuple<A> = ResultTuple<A>,
+	R1 extends ResultTuple<B> = ResultTuple<B>,
+	R2 extends ResultTuple<C> = ResultTuple<C>,
+	R3 extends ResultTuple<D> = ResultTuple<D>,
+	R4 extends ResultTuple<E> = ResultTuple<E>,
+	R5 extends ResultTuple<F> = ResultTuple<F>,
+	R6 extends ResultTuple<G> = ResultTuple<G>,
+	R7 extends ResultTuple<H> = ResultTuple<H>,
+	R8 extends ResultTuple<I> = ResultTuple<I>,
+>(
+	source: Source & ResultSlots<A> & NoAny<Source>,
+	op1: Op<NoInfer<A>, B, R1 & ResultSlots<B>>,
+	op2: Op<NoInfer<B>, C, R2 & ResultSlots<C>>,
+	op3: Op<NoInfer<C>, D, R3 & ResultSlots<D>>,
+	op4: Op<NoInfer<D>, E, R4 & ResultSlots<E>>,
+	op5: Op<NoInfer<E>, F, R5 & ResultSlots<F>>,
+	op6: Op<NoInfer<F>, G, R6 & ResultSlots<G>>,
+	op7: Op<NoInfer<G>, H, R7 & ResultSlots<H>>,
+	op8: Op<NoInfer<H>, I, R8 & ResultSlots<I>>,
+): ResultTuple<I>;
+
+export function pipe<
+	A,
+	B,
+	C,
+	D,
+	E,
+	F,
+	G,
+	H,
+	I,
+	J,
+	Source extends ResultTuple<A> = ResultTuple<A>,
+	R1 extends ResultTuple<B> = ResultTuple<B>,
+	R2 extends ResultTuple<C> = ResultTuple<C>,
+	R3 extends ResultTuple<D> = ResultTuple<D>,
+	R4 extends ResultTuple<E> = ResultTuple<E>,
+	R5 extends ResultTuple<F> = ResultTuple<F>,
+	R6 extends ResultTuple<G> = ResultTuple<G>,
+	R7 extends ResultTuple<H> = ResultTuple<H>,
+	R8 extends ResultTuple<I> = ResultTuple<I>,
+	R9 extends ResultTuple<J> = ResultTuple<J>,
+>(
+	source: Source & ResultSlots<A> & NoAny<Source>,
+	op1: Op<NoInfer<A>, B, R1 & ResultSlots<B>>,
+	op2: Op<NoInfer<B>, C, R2 & ResultSlots<C>>,
+	op3: Op<NoInfer<C>, D, R3 & ResultSlots<D>>,
+	op4: Op<NoInfer<D>, E, R4 & ResultSlots<E>>,
+	op5: Op<NoInfer<E>, F, R5 & ResultSlots<F>>,
+	op6: Op<NoInfer<F>, G, R6 & ResultSlots<G>>,
+	op7: Op<NoInfer<G>, H, R7 & ResultSlots<H>>,
+	op8: Op<NoInfer<H>, I, R8 & ResultSlots<I>>,
+	op9: Op<NoInfer<I>, J, R9 & ResultSlots<J>>,
+): ResultTuple<J>;
+
+export function pipe<
+	A,
+	B,
+	C,
+	D,
+	E,
+	F,
+	G,
+	H,
+	I,
+	J,
+	K,
+	Source extends ResultTuple<A> = ResultTuple<A>,
+	R1 extends ResultTuple<B> = ResultTuple<B>,
+	R2 extends ResultTuple<C> = ResultTuple<C>,
+	R3 extends ResultTuple<D> = ResultTuple<D>,
+	R4 extends ResultTuple<E> = ResultTuple<E>,
+	R5 extends ResultTuple<F> = ResultTuple<F>,
+	R6 extends ResultTuple<G> = ResultTuple<G>,
+	R7 extends ResultTuple<H> = ResultTuple<H>,
+	R8 extends ResultTuple<I> = ResultTuple<I>,
+	R9 extends ResultTuple<J> = ResultTuple<J>,
+	R10 extends ResultTuple<K> = ResultTuple<K>,
+>(
+	source: Source & ResultSlots<A> & NoAny<Source>,
+	op1: Op<NoInfer<A>, B, R1 & ResultSlots<B>>,
+	op2: Op<NoInfer<B>, C, R2 & ResultSlots<C>>,
+	op3: Op<NoInfer<C>, D, R3 & ResultSlots<D>>,
+	op4: Op<NoInfer<D>, E, R4 & ResultSlots<E>>,
+	op5: Op<NoInfer<E>, F, R5 & ResultSlots<F>>,
+	op6: Op<NoInfer<F>, G, R6 & ResultSlots<G>>,
+	op7: Op<NoInfer<G>, H, R7 & ResultSlots<H>>,
+	op8: Op<NoInfer<H>, I, R8 & ResultSlots<I>>,
+	op9: Op<NoInfer<I>, J, R9 & ResultSlots<J>>,
+	op10: Op<NoInfer<J>, K, R10 & ResultSlots<K>>,
+): ResultTuple<K>;
 
 /* Implementation for pipe overloads. */
 export function pipe(
@@ -537,99 +794,244 @@ export function pipe(
  *
  * @see {@link pipe} for the synchronous version
  */
-export function pipeAsync<A>(source: AsyncSource<A>): Promise<ResultTuple<A>>;
-export function pipeAsync<A, B>(
-	source: AsyncSource<A>,
-	op1: AnyOp<A, B>,
-): Promise<ResultTuple<B>>;
-export function pipeAsync<A, B, C>(
-	source: AsyncSource<A>,
-	op1: AnyOp<A, B>,
-	op2: AnyOp<B, C>,
-): Promise<ResultTuple<C>>;
-export function pipeAsync<A, B, C, D>(
-	source: AsyncSource<A>,
-	op1: AnyOp<A, B>,
-	op2: AnyOp<B, C>,
-	op3: AnyOp<C, D>,
-): Promise<ResultTuple<D>>;
-export function pipeAsync<A, B, C, D, E>(
-	source: AsyncSource<A>,
-	op1: AnyOp<A, B>,
-	op2: AnyOp<B, C>,
-	op3: AnyOp<C, D>,
-	op4: AnyOp<D, E>,
-): Promise<ResultTuple<E>>;
-export function pipeAsync<A, B, C, D, E, F>(
-	source: AsyncSource<A>,
-	op1: AnyOp<A, B>,
-	op2: AnyOp<B, C>,
-	op3: AnyOp<C, D>,
-	op4: AnyOp<D, E>,
-	op5: AnyOp<E, F>,
-): Promise<ResultTuple<F>>;
-export function pipeAsync<A, B, C, D, E, F, G>(
-	source: AsyncSource<A>,
-	op1: AnyOp<A, B>,
-	op2: AnyOp<B, C>,
-	op3: AnyOp<C, D>,
-	op4: AnyOp<D, E>,
-	op5: AnyOp<E, F>,
-	op6: AnyOp<F, G>,
-): Promise<ResultTuple<G>>;
-export function pipeAsync<A, B, C, D, E, F, G, H>(
-	source: AsyncSource<A>,
-	op1: AnyOp<A, B>,
-	op2: AnyOp<B, C>,
-	op3: AnyOp<C, D>,
-	op4: AnyOp<D, E>,
-	op5: AnyOp<E, F>,
-	op6: AnyOp<F, G>,
-	op7: AnyOp<G, H>,
-): Promise<ResultTuple<H>>;
-export function pipeAsync<A, B, C, D, E, F, G, H, I>(
-	source: AsyncSource<A>,
-	op1: AnyOp<A, B>,
-	op2: AnyOp<B, C>,
-	op3: AnyOp<C, D>,
-	op4: AnyOp<D, E>,
-	op5: AnyOp<E, F>,
-	op6: AnyOp<F, G>,
-	op7: AnyOp<G, H>,
-	op8: AnyOp<H, I>,
-): Promise<ResultTuple<I>>;
-export function pipeAsync<A, B, C, D, E, F, G, H, I, J>(
-	source: AsyncSource<A>,
-	op1: AnyOp<A, B>,
-	op2: AnyOp<B, C>,
-	op3: AnyOp<C, D>,
-	op4: AnyOp<D, E>,
-	op5: AnyOp<E, F>,
-	op6: AnyOp<F, G>,
-	op7: AnyOp<G, H>,
-	op8: AnyOp<H, I>,
-	op9: AnyOp<I, J>,
-): Promise<ResultTuple<J>>;
-export function pipeAsync<A, B, C, D, E, F, G, H, I, J, K>(
-	source: AsyncSource<A>,
-	op1: AnyOp<A, B>,
-	op2: AnyOp<B, C>,
-	op3: AnyOp<C, D>,
-	op4: AnyOp<D, E>,
-	op5: AnyOp<E, F>,
-	op6: AnyOp<F, G>,
-	op7: AnyOp<G, H>,
-	op8: AnyOp<H, I>,
-	op9: AnyOp<I, J>,
-	op10: AnyOp<J, K>,
-): Promise<ResultTuple<K>>;
+export function pipeAsync<A, Source extends AsyncSource<A> = AsyncSource<A>>(
+	source: Source & NoAny<Source>,
+): Promise<ResultTuple<OkValue<Awaited<Source>>>>;
 
-/* Past ten stages the ladder falls off: stages and result widen. */
-export function pipeAsync(
-	source: AsyncSource<unknown>,
-	// biome-ignore lint/suspicious/noExplicitAny: widened stages stay assignable
-	...ops: Array<AnyOp<any, any>>
-): Promise<ResultTuple<unknown>>;
+export function pipeAsync<
+	A,
+	B,
+	Source extends AsyncSource<A> = AsyncSource<A>,
+	R1 extends AsyncSource<B> = AsyncSource<B>,
+>(
+	source: Source & AsyncSlots<A> & NoAny<Source>,
+	op1: AnyOp<NoInfer<A>, B, R1 & AsyncSlots<B>>,
+): Promise<ResultTuple<B>>;
+
+export function pipeAsync<
+	A,
+	B,
+	C,
+	Source extends AsyncSource<A> = AsyncSource<A>,
+	R1 extends AsyncSource<B> = AsyncSource<B>,
+	R2 extends AsyncSource<C> = AsyncSource<C>,
+>(
+	source: Source & AsyncSlots<A> & NoAny<Source>,
+	op1: AnyOp<NoInfer<A>, B, R1 & AsyncSlots<B>>,
+	op2: AnyOp<NoInfer<B>, C, R2 & AsyncSlots<C>>,
+): Promise<ResultTuple<C>>;
+
+export function pipeAsync<
+	A,
+	B,
+	C,
+	D,
+	Source extends AsyncSource<A> = AsyncSource<A>,
+	R1 extends AsyncSource<B> = AsyncSource<B>,
+	R2 extends AsyncSource<C> = AsyncSource<C>,
+	R3 extends AsyncSource<D> = AsyncSource<D>,
+>(
+	source: Source & AsyncSlots<A> & NoAny<Source>,
+	op1: AnyOp<NoInfer<A>, B, R1 & AsyncSlots<B>>,
+	op2: AnyOp<NoInfer<B>, C, R2 & AsyncSlots<C>>,
+	op3: AnyOp<NoInfer<C>, D, R3 & AsyncSlots<D>>,
+): Promise<ResultTuple<D>>;
+
+export function pipeAsync<
+	A,
+	B,
+	C,
+	D,
+	E,
+	Source extends AsyncSource<A> = AsyncSource<A>,
+	R1 extends AsyncSource<B> = AsyncSource<B>,
+	R2 extends AsyncSource<C> = AsyncSource<C>,
+	R3 extends AsyncSource<D> = AsyncSource<D>,
+	R4 extends AsyncSource<E> = AsyncSource<E>,
+>(
+	source: Source & AsyncSlots<A> & NoAny<Source>,
+	op1: AnyOp<NoInfer<A>, B, R1 & AsyncSlots<B>>,
+	op2: AnyOp<NoInfer<B>, C, R2 & AsyncSlots<C>>,
+	op3: AnyOp<NoInfer<C>, D, R3 & AsyncSlots<D>>,
+	op4: AnyOp<NoInfer<D>, E, R4 & AsyncSlots<E>>,
+): Promise<ResultTuple<E>>;
+
+export function pipeAsync<
+	A,
+	B,
+	C,
+	D,
+	E,
+	F,
+	Source extends AsyncSource<A> = AsyncSource<A>,
+	R1 extends AsyncSource<B> = AsyncSource<B>,
+	R2 extends AsyncSource<C> = AsyncSource<C>,
+	R3 extends AsyncSource<D> = AsyncSource<D>,
+	R4 extends AsyncSource<E> = AsyncSource<E>,
+	R5 extends AsyncSource<F> = AsyncSource<F>,
+>(
+	source: Source & AsyncSlots<A> & NoAny<Source>,
+	op1: AnyOp<NoInfer<A>, B, R1 & AsyncSlots<B>>,
+	op2: AnyOp<NoInfer<B>, C, R2 & AsyncSlots<C>>,
+	op3: AnyOp<NoInfer<C>, D, R3 & AsyncSlots<D>>,
+	op4: AnyOp<NoInfer<D>, E, R4 & AsyncSlots<E>>,
+	op5: AnyOp<NoInfer<E>, F, R5 & AsyncSlots<F>>,
+): Promise<ResultTuple<F>>;
+
+export function pipeAsync<
+	A,
+	B,
+	C,
+	D,
+	E,
+	F,
+	G,
+	Source extends AsyncSource<A> = AsyncSource<A>,
+	R1 extends AsyncSource<B> = AsyncSource<B>,
+	R2 extends AsyncSource<C> = AsyncSource<C>,
+	R3 extends AsyncSource<D> = AsyncSource<D>,
+	R4 extends AsyncSource<E> = AsyncSource<E>,
+	R5 extends AsyncSource<F> = AsyncSource<F>,
+	R6 extends AsyncSource<G> = AsyncSource<G>,
+>(
+	source: Source & AsyncSlots<A> & NoAny<Source>,
+	op1: AnyOp<NoInfer<A>, B, R1 & AsyncSlots<B>>,
+	op2: AnyOp<NoInfer<B>, C, R2 & AsyncSlots<C>>,
+	op3: AnyOp<NoInfer<C>, D, R3 & AsyncSlots<D>>,
+	op4: AnyOp<NoInfer<D>, E, R4 & AsyncSlots<E>>,
+	op5: AnyOp<NoInfer<E>, F, R5 & AsyncSlots<F>>,
+	op6: AnyOp<NoInfer<F>, G, R6 & AsyncSlots<G>>,
+): Promise<ResultTuple<G>>;
+
+export function pipeAsync<
+	A,
+	B,
+	C,
+	D,
+	E,
+	F,
+	G,
+	H,
+	Source extends AsyncSource<A> = AsyncSource<A>,
+	R1 extends AsyncSource<B> = AsyncSource<B>,
+	R2 extends AsyncSource<C> = AsyncSource<C>,
+	R3 extends AsyncSource<D> = AsyncSource<D>,
+	R4 extends AsyncSource<E> = AsyncSource<E>,
+	R5 extends AsyncSource<F> = AsyncSource<F>,
+	R6 extends AsyncSource<G> = AsyncSource<G>,
+	R7 extends AsyncSource<H> = AsyncSource<H>,
+>(
+	source: Source & AsyncSlots<A> & NoAny<Source>,
+	op1: AnyOp<NoInfer<A>, B, R1 & AsyncSlots<B>>,
+	op2: AnyOp<NoInfer<B>, C, R2 & AsyncSlots<C>>,
+	op3: AnyOp<NoInfer<C>, D, R3 & AsyncSlots<D>>,
+	op4: AnyOp<NoInfer<D>, E, R4 & AsyncSlots<E>>,
+	op5: AnyOp<NoInfer<E>, F, R5 & AsyncSlots<F>>,
+	op6: AnyOp<NoInfer<F>, G, R6 & AsyncSlots<G>>,
+	op7: AnyOp<NoInfer<G>, H, R7 & AsyncSlots<H>>,
+): Promise<ResultTuple<H>>;
+
+export function pipeAsync<
+	A,
+	B,
+	C,
+	D,
+	E,
+	F,
+	G,
+	H,
+	I,
+	Source extends AsyncSource<A> = AsyncSource<A>,
+	R1 extends AsyncSource<B> = AsyncSource<B>,
+	R2 extends AsyncSource<C> = AsyncSource<C>,
+	R3 extends AsyncSource<D> = AsyncSource<D>,
+	R4 extends AsyncSource<E> = AsyncSource<E>,
+	R5 extends AsyncSource<F> = AsyncSource<F>,
+	R6 extends AsyncSource<G> = AsyncSource<G>,
+	R7 extends AsyncSource<H> = AsyncSource<H>,
+	R8 extends AsyncSource<I> = AsyncSource<I>,
+>(
+	source: Source & AsyncSlots<A> & NoAny<Source>,
+	op1: AnyOp<NoInfer<A>, B, R1 & AsyncSlots<B>>,
+	op2: AnyOp<NoInfer<B>, C, R2 & AsyncSlots<C>>,
+	op3: AnyOp<NoInfer<C>, D, R3 & AsyncSlots<D>>,
+	op4: AnyOp<NoInfer<D>, E, R4 & AsyncSlots<E>>,
+	op5: AnyOp<NoInfer<E>, F, R5 & AsyncSlots<F>>,
+	op6: AnyOp<NoInfer<F>, G, R6 & AsyncSlots<G>>,
+	op7: AnyOp<NoInfer<G>, H, R7 & AsyncSlots<H>>,
+	op8: AnyOp<NoInfer<H>, I, R8 & AsyncSlots<I>>,
+): Promise<ResultTuple<I>>;
+
+export function pipeAsync<
+	A,
+	B,
+	C,
+	D,
+	E,
+	F,
+	G,
+	H,
+	I,
+	J,
+	Source extends AsyncSource<A> = AsyncSource<A>,
+	R1 extends AsyncSource<B> = AsyncSource<B>,
+	R2 extends AsyncSource<C> = AsyncSource<C>,
+	R3 extends AsyncSource<D> = AsyncSource<D>,
+	R4 extends AsyncSource<E> = AsyncSource<E>,
+	R5 extends AsyncSource<F> = AsyncSource<F>,
+	R6 extends AsyncSource<G> = AsyncSource<G>,
+	R7 extends AsyncSource<H> = AsyncSource<H>,
+	R8 extends AsyncSource<I> = AsyncSource<I>,
+	R9 extends AsyncSource<J> = AsyncSource<J>,
+>(
+	source: Source & AsyncSlots<A> & NoAny<Source>,
+	op1: AnyOp<NoInfer<A>, B, R1 & AsyncSlots<B>>,
+	op2: AnyOp<NoInfer<B>, C, R2 & AsyncSlots<C>>,
+	op3: AnyOp<NoInfer<C>, D, R3 & AsyncSlots<D>>,
+	op4: AnyOp<NoInfer<D>, E, R4 & AsyncSlots<E>>,
+	op5: AnyOp<NoInfer<E>, F, R5 & AsyncSlots<F>>,
+	op6: AnyOp<NoInfer<F>, G, R6 & AsyncSlots<G>>,
+	op7: AnyOp<NoInfer<G>, H, R7 & AsyncSlots<H>>,
+	op8: AnyOp<NoInfer<H>, I, R8 & AsyncSlots<I>>,
+	op9: AnyOp<NoInfer<I>, J, R9 & AsyncSlots<J>>,
+): Promise<ResultTuple<J>>;
+
+export function pipeAsync<
+	A,
+	B,
+	C,
+	D,
+	E,
+	F,
+	G,
+	H,
+	I,
+	J,
+	K,
+	Source extends AsyncSource<A> = AsyncSource<A>,
+	R1 extends AsyncSource<B> = AsyncSource<B>,
+	R2 extends AsyncSource<C> = AsyncSource<C>,
+	R3 extends AsyncSource<D> = AsyncSource<D>,
+	R4 extends AsyncSource<E> = AsyncSource<E>,
+	R5 extends AsyncSource<F> = AsyncSource<F>,
+	R6 extends AsyncSource<G> = AsyncSource<G>,
+	R7 extends AsyncSource<H> = AsyncSource<H>,
+	R8 extends AsyncSource<I> = AsyncSource<I>,
+	R9 extends AsyncSource<J> = AsyncSource<J>,
+	R10 extends AsyncSource<K> = AsyncSource<K>,
+>(
+	source: Source & AsyncSlots<A> & NoAny<Source>,
+	op1: AnyOp<NoInfer<A>, B, R1 & AsyncSlots<B>>,
+	op2: AnyOp<NoInfer<B>, C, R2 & AsyncSlots<C>>,
+	op3: AnyOp<NoInfer<C>, D, R3 & AsyncSlots<D>>,
+	op4: AnyOp<NoInfer<D>, E, R4 & AsyncSlots<E>>,
+	op5: AnyOp<NoInfer<E>, F, R5 & AsyncSlots<F>>,
+	op6: AnyOp<NoInfer<F>, G, R6 & AsyncSlots<G>>,
+	op7: AnyOp<NoInfer<G>, H, R7 & AsyncSlots<H>>,
+	op8: AnyOp<NoInfer<H>, I, R8 & AsyncSlots<I>>,
+	op9: AnyOp<NoInfer<I>, J, R9 & AsyncSlots<J>>,
+	op10: AnyOp<NoInfer<J>, K, R10 & AsyncSlots<K>>,
+): Promise<ResultTuple<K>>;
 
 /* Implementation for pipeAsync overloads. */
 export async function pipeAsync(

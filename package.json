@@ -1,6 +1,6 @@
 {
 	"name": "@pencroff-lab/kore",
-	"version": "0.7.0",
+	"version": "0.7.1",
 	"description": "Core utilities library",
 	"license": "Apache-2.0",
 	"author": "Pencroff",
@@ -44,8 +44,9 @@
 		"lint:type": "tsc --noEmit",
 		"check:docs": "bun scripts/check-docs.sh.ts",
 		"check:boundaries": "bun scripts/check-boundaries.sh.ts",
+		"check:result-usage": "bun scripts/check-result-usage.sh.ts",
 		"check:release": "bun scripts/check-release-state.sh.ts",
-		"lint": "bun run lint:edit && bun run lint:type && bun run check:boundaries && bun run check:docs",
+		"lint": "bun run lint:edit && bun run lint:type && bun run check:boundaries && bun run check:result-usage && bun run check:docs",
 		"build": "bun run build:esm && bun run build:cjs",
 		"prebuild": "rm -rf dist",
 		"build:esm": "tsc --project tsconfig.esm.json",

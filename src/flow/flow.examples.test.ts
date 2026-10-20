@@ -1,10 +1,13 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import sinon from "sinon";
 import { Err } from "../types/err";
 import {
 	all,
 	any,
 	attempt,
 	attemptAsync,
+	attemptValue,
+	attemptValueAsync,
 	defaultTo,
 	effect,
 	either,
@@ -90,9 +93,8 @@ describe("Creating results", () => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 describe("Exception boundaries", () => {
-	test("attempt() wraps a throwing API", () => {
-		const parse = (raw: string) =>
-			attempt(() => ok(JSON.parse(raw) as unknown));
+	test("attemptValue() wraps a throwing value API", () => {
+		const parse = (raw: string) => attemptValue(() => JSON.parse(raw));
 
 		expect(parse('{"a":1}')[0]).toEqual({ a: 1 });
 		expect(parse("nope")[1]).toBeInstanceOf(Err);
@@ -118,6 +120,71 @@ describe("Exception boundaries", () => {
 		const [value] = flatMap(ok(1), () => ok(Promise.resolve(2)));
 
 		expect(value).toBeInstanceOf(Promise);
+	});
+});
+
+describe("Safe boundary and side-effect patterns", () => {
+	let sandbox: sinon.SinonSandbox;
+	beforeEach(() => {
+		sandbox = sinon.createSandbox();
+	});
+	afterEach(() => sandbox.restore());
+
+	test("validate parsed unknown data before reading it", () => {
+		const parsePort = (raw: string): ResultTuple<number> =>
+			flatMap(
+				attemptValue(() => JSON.parse(raw)),
+				(data) => {
+					if (
+						typeof data !== "object" ||
+						data === null ||
+						!("port" in data) ||
+						typeof data.port !== "number"
+					) {
+						return fail("numeric port required", "CONFIG:PORT");
+					}
+					return ok(data.port);
+				},
+			);
+		expect(parsePort('{"port":8080}')).toEqual([8080, null]);
+		expect(parsePort("[7,null]")[1]?.code).toEqual("CONFIG:PORT");
+	});
+
+	test("attemptValueAsync wraps response data before schema validation", async () => {
+		const json = sandbox.stub<[], Promise<unknown>>().resolves({ port: 8080 });
+		const result = await attemptValueAsync(json);
+		expect(result).toEqual([{ port: 8080 }, null]);
+		sinon.assert.calledOnce(json);
+	});
+
+	test("fallible side effects use flatMap so failures propagate", () => {
+		const save = sandbox
+			.stub<[number], ResultTuple<void>>()
+			.returns(fail("disk full", "SAVE"));
+		const result = flatMap(ok(1), (n) => map(save(n), () => n));
+		expect(result[1]?.code).toEqual("SAVE");
+		sinon.assert.calledOnceWithExactly(save, 1);
+		save.returns(ok());
+		expect(flatMap(ok(1), (n) => map(save(n), () => n))).toEqual([1, null]);
+	});
+
+	test("compose longer pipelines in typed chunks", () => {
+		const step = onOk((n: number) => ok(n + 1));
+		const first = pipe(
+			ok(0),
+			step,
+			step,
+			step,
+			step,
+			step,
+			step,
+			step,
+			step,
+			step,
+			step,
+		);
+		const result: ResultTuple<number> = pipe(first, step);
+		expect(result).toEqual([11, null]);
 	});
 });
 
@@ -398,18 +465,19 @@ describe("Input protection", () => {
 	test("a pipeline copies its source once, so stages cannot reach it", () => {
 		const source: ResultTuple<number> = ok(1);
 
-		pipe(source, (tuple) => {
+		const [, error] = pipe(source, (tuple) => {
 			(tuple as [number | null, Err | null])[0] = 99;
 			return tuple;
 		});
 
+		expect(error).toEqual(null);
 		expect(source[0]).toBe(1);
 	});
 
 	test("a tuple callback receives a copy", () => {
 		const source: ResultTuple<number> = ok(1);
 
-		pipe(
+		const [, error] = pipe(
 			source,
 			onTuple<number, number>((tuple) => {
 				(tuple as [number | null, Err | null])[0] = 99;
@@ -417,6 +485,7 @@ describe("Input protection", () => {
 			}),
 		);
 
+		expect(error).toEqual(null);
 		expect(source[0]).toBe(1);
 	});
 

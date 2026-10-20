@@ -75,13 +75,15 @@ const values = results
 
 ## Exception boundaries
 
-### `attempt()` — catch synchronous throws
+### `attemptValue()` — catch a throwing value function
 
 ```typescript
-const parsed = attempt(() => ok(JSON.parse(raw)));
+const parsed = attemptValue(() => JSON.parse(raw)); // unknown; validate before use
 ```
 
-The callback returns a tuple, so it can also decide the channel itself:
+The adapter returns `ResultTuple<unknown>` for untyped parser output. Validate
+that data before accessing fields. Use `attempt()` when the callback itself
+decides the result channel:
 
 ```typescript
 attempt(() => (isValid(input) ? ok(input) : fail("invalid", "VALIDATION")));
@@ -96,7 +98,8 @@ cause chain, a serialized `Err` is reconstructed, and anything else lands in the
 ```typescript
 await attemptAsync(async () => {
   const res = await fetch(url);
-  return res.ok ? ok(await res.json()) : fail(`HTTP ${res.status}`, "HTTP");
+  if (!res.ok) return fail(`HTTP ${res.status}`, "HTTP");
+  return attemptValueAsync(() => res.json()); // validate the unknown body
 });
 ```
 
@@ -217,9 +220,9 @@ A rejected source enters the failure channel before the first stage, so a later
 
 ### Typed stages
 
-Both composers are typed through **ten** stages. Past ten, the trailing overload
-widens the result to `ResultTuple<unknown>`. A reusable pipeline is an ordinary
-typed function:
+Both composers accept up to **ten** typed stages. Compose longer flows in typed
+chunks; there is no widening fallback. A reusable pipeline is an ordinary typed
+function:
 
 ```typescript
 const transform = (source: ResultTuple<Input>) =>
@@ -345,12 +348,16 @@ not round-trip.
 
 ### API handler with validation
 
+The application supplies `validateDraft(data: unknown): ResultTuple<Draft>`
+to check the parsed payload against its schema before reading draft fields.
+
 ```typescript
 const handle = (raw: string) =>
   either(
     pipe(
       ok(raw),
-      onOk((body: string) => attempt(() => ok(JSON.parse(body) as Draft))),
+      onOk((body: string) => attemptValue(() => JSON.parse(body))),
+      onOk(validateDraft),
       onOk((draft: Draft) =>
         ensure(ok(draft), (d) => d.title.length > 0, () =>
           Err.from("title is required", "VALIDATION:TITLE"),

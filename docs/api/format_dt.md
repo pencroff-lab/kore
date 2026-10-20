@@ -17,7 +17,7 @@ delimiter — all controlled via a single `DtStampOptions` object.
 
 ### DtStampOptions
 
-Defined in: [utils/format\_dt.ts:16](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/utils/format_dt.ts#L16)
+Defined in: [utils/format\_dt.ts:16](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/utils/format_dt.ts#L16)
 
 Options for configuring `dtStamp()` output format.
 
@@ -27,7 +27,7 @@ Options for configuring `dtStamp()` output format.
 
 > `optional` **delimiter**: `string`
 
-Defined in: [utils/format\_dt.ts:21](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/utils/format_dt.ts#L21)
+Defined in: [utils/format\_dt.ts:21](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/utils/format_dt.ts#L21)
 
 Character(s) between date/time segments.
 
@@ -41,7 +41,7 @@ Character(s) between date/time segments.
 
 > `optional` **ms**: `boolean`
 
-Defined in: [utils/format\_dt.ts:26](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/utils/format_dt.ts#L26)
+Defined in: [utils/format\_dt.ts:26](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/utils/format_dt.ts#L26)
 
 Include milliseconds in the time portion.
 
@@ -55,7 +55,7 @@ false
 
 > `optional` **parts**: `"date"` \| `"datetime"` \| `"time"`
 
-Defined in: [utils/format\_dt.ts:36](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/utils/format_dt.ts#L36)
+Defined in: [utils/format\_dt.ts:36](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/utils/format_dt.ts#L36)
 
 Which parts of the stamp to include.
 - `"datetime"` -- full stamp (date + time)
@@ -72,7 +72,7 @@ Which parts of the stamp to include.
 
 > `optional` **readable**: `boolean`
 
-Defined in: [utils/format\_dt.ts:38](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/utils/format_dt.ts#L38)
+Defined in: [utils/format\_dt.ts:38](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/utils/format_dt.ts#L38)
 
 Use human-readable separators (dashes, colons).
 
@@ -86,7 +86,7 @@ false
 
 > `optional` **tz**: `"utc"` \| `"local"`
 
-Defined in: [utils/format\_dt.ts:28](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/utils/format_dt.ts#L28)
+Defined in: [utils/format\_dt.ts:28](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/utils/format_dt.ts#L28)
 
 Timezone for date/time components.
 
@@ -102,7 +102,7 @@ Timezone for date/time components.
 
 > **dtStamp**(`date?`, `options?`): `string`
 
-Defined in: [utils/format\_dt.ts:51](https://github.com/pencroff-lab/kore/blob/v0.7.0/src/utils/format_dt.ts#L51)
+Defined in: [utils/format\_dt.ts:51](https://github.com/pencroff-lab/kore/blob/v0.7.1/src/utils/format_dt.ts#L51)
 
 Format a `Date` into a filesystem/log-safe timestamp string.
 

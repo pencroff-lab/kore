@@ -258,7 +258,7 @@ async function saveNote(
 Services receive logger through their factory/constructor and create service-specific child loggers:
 
 ```typescript
-import { attemptAsync, ok, type Logger, type ResultTuple } from "@pencroff-lab/kore";
+import { attemptValueAsync, type Logger, type ResultTuple } from "@pencroff-lab/kore";
 
 interface ShellExecutor {
   run(prompt: string, model: string): Promise<string>;
@@ -283,7 +283,7 @@ function createClaudeService(deps: ClaudeServiceDeps) {
         promptLength: prompt.length
       });
 
-      return attemptAsync(async () => ok(await shell.run(prompt, config.model)));
+      return attemptValueAsync(() => shell.run(prompt, config.model));
     }
   };
 }

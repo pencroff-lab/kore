@@ -16,45 +16,54 @@ function parseConfig(raw: string): Config {
 }
 ```
 
-## Step 2: Wrap with `attempt()`
+## Step 2: Wrap with `attemptValue()`
 
-The simplest migration — keep the internals, change the boundary:
+Catch the untyped boundary with a value adapter, then validate the unknown
+payload inside a fallible callback:
 
 ```typescript
-import { attempt, ok, type ResultTuple } from "@pencroff-lab/kore";
+import { attemptValue, flatMap, ok, type ResultTuple } from "@pencroff-lab/kore";
 
 function parseConfig(raw: string): ResultTuple<Config> {
-  return attempt(() => {
-    const json = JSON.parse(raw);
-    if (!json.port) throw new Error("port is required");
-    return ok({ port: json.port, host: json.host ?? "localhost" });
+  return flatMap(attemptValue(() => JSON.parse(raw)), (json) => {
+    if (typeof json !== "object" || json === null ||
+        !("port" in json) || typeof json.port !== "number") {
+      throw new Error("numeric port is required");
+    }
+    const host = "host" in json ? json.host : "localhost";
+    if (typeof host !== "string") throw new Error("host must be a string");
+    return ok({ port: json.port, host });
   });
 }
 ```
 
-`attempt()` catches any thrown exception and converts it with `Err.from()`. The
-callback still has to return a tuple — `ok(...)` or `fail(...)` — so a missing
-return is a compile error rather than a silent success.
+`attemptValue()` always wraps the parser's return as data, normalizing `any` to
+`unknown`; it also converts throws with `Err.from()`. `flatMap()` catches the
+validation throws and requires its callback to return `ok(...)` or `fail(...)`.
 
 ## Step 3: Replace throws with explicit failures
 
 For real error codes and metadata, return `fail()` instead of throwing:
 
 ```typescript
-import { attempt, Err, fail, ok, type ResultTuple } from "@pencroff-lab/kore";
+import { attemptValue, fail, ok, type ResultTuple } from "@pencroff-lab/kore";
 
 function parseConfig(raw: string): ResultTuple<Config> {
-  const [json, parseErr] = attempt<unknown>(() => ok(JSON.parse(raw)));
-  if (parseErr) {
+  const [json, parseErr] = attemptValue(() => JSON.parse(raw));
+  if (parseErr !== null) {
     return fail(parseErr.wrap("Invalid JSON", { code: "PARSE_ERROR" }));
   }
 
-  const obj = json as Record<string, unknown>;
-  if (!obj.port) return fail("port is required", "MISSING_FIELD");
+  if (typeof json !== "object" || json === null || !("port" in json)) {
+    return fail("port is required", "MISSING_FIELD");
+  }
+  if (typeof json.port !== "number") return fail("port must be a number", "INVALID_FIELD");
+  const host = "host" in json ? json.host : "localhost";
+  if (typeof host !== "string") return fail("host must be a string", "INVALID_FIELD");
 
   return ok({
-    port: obj.port as number,
-    host: (obj.host as string) ?? "localhost",
+    port: json.port,
+    host,
   });
 }
 ```
@@ -95,7 +104,9 @@ either(
 
 ## Async functions
 
-Use `attemptAsync()` for async throwing code:
+Use `attemptAsync()` for the fallible operation and `attemptValueAsync()` for
+the untyped response body. Here `isUser(data: unknown): data is User` is the
+application's schema validator:
 
 ```typescript
 // Before
@@ -117,7 +128,10 @@ async function fetchUser(id: string): Promise<ResultTuple<User>> {
         }),
       );
     }
-    return ok((await res.json()) as User);
+    const [data, parseErr] = await attemptValueAsync(() => res.json());
+    if (parseErr !== null) return fail(parseErr);
+    if (!isUser(data)) return fail("Invalid user payload", "INVALID_USER");
+    return ok(data);
   });
 }
 ```
@@ -128,7 +142,7 @@ async function fetchUser(id: string): Promise<ResultTuple<User>> {
 
 ```typescript
 const safeJsonParse = (raw: string): ResultTuple<unknown> =>
-  attempt(() => ok(JSON.parse(raw)));
+  attemptValue(() => JSON.parse(raw));
 ```
 
 ### Composing tuple-returning functions
@@ -166,8 +180,8 @@ try {
   `TypeError`. To catch only expected failures, use an explicit `try/catch`
   inside the callback and return `fail(...)` yourself.
 - **A fallible callback must return a tuple.** A bare value, a bare `Err`, and a
-  missing return are all compile errors. `map` is the one exception: its return
-  is data, never control flow.
+  missing return are compile errors on the typed path. Maps and the explicit
+  value adapters carry callback returns as data.
 - **`ok(err)` carries an error as data.** The tuple's error slot is the only
   failure signal, so a value that happens to be an `Err` — or a tuple — is
   carried unchanged.

@@ -1,16 +1,10 @@
-import { afterEach, beforeEach, test } from "bun:test";
+import { expect, test } from "bun:test";
 import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fromMarkdown } from "mdast-util-from-markdown";
-import sinon from "sinon";
 
 const root = resolve(import.meta.dir, "..");
-let sandbox: sinon.SinonSandbox;
-beforeEach(() => {
-	sandbox = sinon.createSandbox();
-});
-afterEach(() => sandbox.restore());
 
 // Extract the actual first code block under a named heading, never a copy.
 function snippet(source: string, heading: string): string {
@@ -90,6 +84,7 @@ export const hideBin = (argv: string[]): string[] => argv.slice(2);
 `;
 
 const runner = `
+import { expect } from "bun:test";
 import sinon from "sinon";
 import { Err, fail, fromJSON, ok } from "@pencroff-lab/kore";
 import { expectOk, expectErr } from "@pencroff-lab/kore/test";
@@ -101,14 +96,16 @@ import { initializeCli } from "./initialization";
 import { createClaudeService } from "./service";
 import { getProfile, handleRequest } from "./propagation";
 import { createHandler } from "./factory";
+import { parseConfig as liftedConfig } from "./migration-lifted";
+import { parseConfig as explicitConfig } from "./migration-explicit";
 import { sandbox, state, log, ctx, note, section, deps, testConfig, mockDb, command } from "./support";
 
 try {
   const shell = sandbox.stub(state, "shell").resolves({ exitCode: 0, stdout: { toString: () => "output" } });
   const parse = sandbox.stub(state, "parse").returns(ok(note));
   const logger = log as unknown as sinon.SinonStub;
-  sinon.assert.match(expectOk(await callClaude("prompt", ctx)), "output");
-  sinon.assert.match(expectOk(await generateNote(section, ctx)), note);
+  expect(expectOk(await callClaude("prompt", ctx))).toEqual("output");
+  expect(expectOk(await generateNote(section, ctx))).toEqual(note);
   await handler({ plan: "test" });
   sinon.assert.neverCalledWith(logger, log.ERROR);
 
@@ -116,15 +113,15 @@ try {
   parse.resetHistory();
   shell.resolves({ exitCode: 1, stdout: { toString: () => "" } });
   const cliError = expectErr(await generateNote(section, ctx));
-  sinon.assert.match(cliError.message, 'Failed to generate note for "Section"');
-  sinon.assert.match(cliError.root.code, "CLI_ERROR");
-  sinon.assert.match(cliError.root.getMetadata("exitCode"), 1);
+  expect(cliError.message).toEqual('Failed to generate note for "Section"');
+  expect(cliError.root.code).toEqual("CLI_ERROR");
+  expect(cliError.root.getMetadata<number>("exitCode")).toEqual(1);
   sinon.assert.notCalled(parse);
   logger.resetHistory();
   await handler({ plan: "test" });
   sinon.assert.calledOnceWithExactly(logger.withArgs(log.DEBUG), log.DEBUG, "Claude CLI failed", sinon.match.instanceOf(Err));
   sinon.assert.calledOnce(logger.withArgs(log.ERROR));
-  sinon.assert.match(logger.withArgs(log.ERROR).firstCall.args[2].root.code, "CLI_ERROR");
+  expect(logger.withArgs(log.ERROR).firstCall.args[2].root.code).toEqual("CLI_ERROR");
 
   shell.resolves({ exitCode: 0, stdout: { toString: () => "output" } });
   parse.returns(fail("bad format", "PARSE"));
@@ -132,15 +129,15 @@ try {
   await handler({ plan: "test" });
   sinon.assert.calledOnce(logger.withArgs(log.DEBUG));
   sinon.assert.calledOnce(logger.withArgs(log.ERROR));
-  sinon.assert.match(logger.withArgs(log.ERROR).firstCall.args[2].root.code, "PARSE");
+  expect(logger.withArgs(log.ERROR).firstCall.args[2].root.code).toEqual("PARSE");
 
   shell.rejects(new Error("shell rejected"));
-  sinon.assert.match(expectErr(await callClaude("prompt", ctx)).message, "shell rejected");
+  expect(expectErr(await callClaude("prompt", ctx)).message).toEqual("shell rejected");
   shell.throws(new Error("shell threw"));
-  sinon.assert.match(expectErr(await callClaude("prompt", ctx)).message, "shell threw");
+  expect(expectErr(await callClaude("prompt", ctx)).message).toEqual("shell threw");
 
   const write = sandbox.stub(Bun, "write").resolves(4);
-  sinon.assert.match(expectOk(await saveNote(note, { ...ctx, dryRun: true, dryRunLog: log })), note.path);
+  expect(expectOk(await saveNote(note, { ...ctx, dryRun: true, dryRunLog: log }))).toEqual(note.path);
   sinon.assert.notCalled(write);
   sinon.assert.calledWith(logger, log.INFO, "Would write note", sinon.match({ path: note.path }));
   let finishWrite: (bytes: number) => void = () => {};
@@ -149,11 +146,11 @@ try {
   const saved = saveNote(note, ctx);
   sinon.assert.notCalled(logger.withArgs(log.INFO, "Wrote note"));
   finishWrite(4);
-  sinon.assert.match(expectOk(await saved), note.path);
+  expect(expectOk(await saved)).toEqual(note.path);
   sinon.assert.calledOnce(write);
-  sinon.assert.match(write.firstCall.args, [note.path, note.content]);
+  expect<unknown[]>(write.firstCall.args).toEqual([note.path, note.content]);
   write.rejects(new Error("disk full"));
-  sinon.assert.match(expectErr(await saveNote(note, ctx)).message, "disk full");
+  expect(expectErr(await saveNote(note, ctx)).message).toEqual("disk full");
 
   const load = sandbox.stub(state, "loadConfig");
   const database = sandbox.stub(state, "database").returns(ok(mockDb));
@@ -165,8 +162,8 @@ try {
   sinon.assert.notCalled(database);
   finishLoad(ok(testConfig));
   const initialization = await initialized;
-  sinon.assert.match(initialization[1], null);
-  sinon.assert.match(initialization[0], undefined);
+  expect(initialization[1]).toEqual(null);
+  expect(initialization[0]).toEqual(undefined);
   sinon.assert.callOrder(load, database, factory, run);
   for (const stage of ["config", "database", "handler"] as const) {
     load.resolves(ok(testConfig)); database.returns(ok(mockDb)); factory.returns(ok(async () => {}));
@@ -174,30 +171,38 @@ try {
     if (stage === "config") load.resolves(fail(stage));
     if (stage === "database") database.returns(fail(stage));
     if (stage === "handler") factory.returns(fail(stage));
-    sinon.assert.match(expectErr(await initializeCli()).message, stage);
+    expect(expectErr(await initializeCli()).message).toEqual(stage);
     sinon.assert.notCalled(run);
   }
 
   const serviceShell = { run: sandbox.stub().resolves("answer") };
   const service = createClaudeService({ shell: serviceShell, log, config: { model: "test" } });
-  sinon.assert.match(expectOk(await service.generate("question")), "answer");
+  expect(expectOk(await service.generate("question"))).toEqual("answer");
   sinon.assert.calledWithExactly(serviceShell.run, "question", "test");
   serviceShell.run.rejects(new Error("service failed"));
-  sinon.assert.match(expectErr(await service.generate("question")).message, "service failed");
+  expect(expectErr(await service.generate("question")).message).toEqual("service failed");
 
   const query = sandbox.stub(state, "query").returns(ok({ name: "Ada" }));
-  sinon.assert.match(expectOk(getProfile("1")), { name: "Ada", displayName: "Ada" });
-  sinon.assert.match(handleRequest("1"), { status: 200, body: { displayName: "Ada" } });
+  expect(expectOk(getProfile("1"))).toEqual({ name: "Ada", displayName: "Ada" });
+  expect(handleRequest("1")).toEqual({ status: 200, body: { name: "Ada", displayName: "Ada" } });
   for (const row of [{ code: "NOT_FOUND", status: 404 }, { code: "DATABASE", status: 500 }]) {
     query.returns(fail("missing", row.code));
     const error = expectErr(getProfile("1"));
-    sinon.assert.match(error.code, "PROFILE_ERROR");
-    sinon.assert.match(error.root.code, row.code);
-    sinon.assert.match(handleRequest("1"), { status: row.status, body: { error: "getProfile failed" } });
+    expect(error.code).toEqual("PROFILE_ERROR");
+    expect(error.root.code).toEqual(row.code);
+    expect(handleRequest("1")).toEqual({ status: row.status, body: { error: "getProfile failed" } });
   }
   query.throws(new Error("database threw"));
-  sinon.assert.match(expectErr(getProfile("1")).message, "database threw");
-  sinon.assert.match(expectErr(fromJSON("bad envelope")).code, "INVALID_JSON");
+  expect(expectErr(getProfile("1")).message).toEqual("database threw");
+  expect(expectErr(fromJSON("bad envelope")).code).toEqual("INVALID_JSON");
+
+  for (const parseConfig of [liftedConfig, explicitConfig]) {
+    expect(expectOk(parseConfig('{"port":8080}'))).toEqual({ port: 8080, host: "localhost" });
+    for (const raw of ["{}", "null", "[7,null]", "broken", '{"port":"bad"}', '{"port":1,"host":false}']) {
+      expect(expectErr(parseConfig(raw)) instanceof Err).toEqual(true);
+    }
+  }
+  expect(expectErr(explicitConfig("broken")).code).toEqual("PARSE_ERROR");
 
   const actualHandler = expectOk(createHandler(deps));
   await actualHandler({ plan: "test" });
@@ -220,6 +225,21 @@ test("rewritten guide snippets compile strictly and run success, failure and asy
 		const errors = await Bun.file(
 			join(root, "docs/guides/error-handling-patterns.md"),
 		).text();
+		const migration = await Bun.file(
+			join(root, "docs/guides/migration-from-throwing.md"),
+		).text();
+		for (const row of [
+			{ file: "migration-lifted", heading: "Step 2: Wrap with attemptValue()" },
+			{
+				file: "migration-explicit",
+				heading: "Step 3: Replace throws with explicit failures",
+			},
+		]) {
+			await Bun.write(
+				join(work, `${row.file}.ts`),
+				`${snippet(migration, row.heading)}\ninterface Config { port: number; host: string; }\nexport { parseConfig };\n`,
+			);
+		}
 		const modules = [
 			{
 				file: "context",
@@ -344,7 +364,7 @@ test("rewritten guide snippets compile strictly and run success, failure and asy
 				new Response(process.stderr).text(),
 				process.exited,
 			]);
-			sinon.assert.match({ status, output: `${out}${err}` }, { status: 0 });
+			expect({ status, output: `${out}${err}` }).toMatchObject({ status: 0 });
 		}
 	} finally {
 		rmSync(work, { recursive: true, force: true });
