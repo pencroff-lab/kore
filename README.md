@@ -552,6 +552,11 @@ does not publish. Merging the prepared commit to `main` publishes npm, verifies
 the exact registry version, creates `v<version>`, and uploads the verified
 `publication-receipt-<version>` artifact.
 
+After upload, npm may keep a version in post-publish validation for several
+minutes. CI polls every 20 seconds for up to about 30 minutes, waiting for both
+the exact version and `latest` to point to it before checking the tag and
+recording the receipt. A timeout reports the last registry observation.
+
 ### 3. Automatic publication receipt and deployment
 
 After verifying npm and the release tag, the publish job commits
@@ -611,10 +616,18 @@ and no receipt should be committed until the exact version exists on npm.
 
 ### npm published, but receipt generation failed
 
-Do **not** publish again and do not bump to another version. This includes the
-`Executable not found in $PATH: "npm"` failure from the slim Bun CI image. The
-receipt verifier uses `bun info`; update to the fix if the failed release commit
-predates it.
+Rerun the failed release job. The publish step skips an exact version that
+already exists, then waits for registry availability and `latest` before
+continuing through the tag and receipt checks. A rerun trusts the existing
+registry artifact: its integrity is recorded, but no comparison with a local
+build is made. Investigate an unexpected artifact rather than treating the
+skip as proof of its origin. Do not bump the version just because npm's
+post-publish validation delayed the verification step.
+
+Reruns use the workflow at the original release commit. For older runs without
+the skip/wait steps, or a recorder that needs a tooling fix, use the recovery
+procedure below. This includes the old `Executable not found in $PATH: "npm"`
+failure; the current recorder uses `bun info`.
 
 The recorder requires `HEAD` to equal the commit referenced by `v<version>`.
 Create a recovery branch at that tag, apply any verifier fix without committing
@@ -631,17 +644,18 @@ bun run docs:record-publication -- "$VERSION"
 bun run docs:release-state
 ```
 
-Commit `site/published.json` together with the tooling fix. The resulting
-branch reports `mode=docs-only`; merging it skips npm publication and resumes
-the documentation deployment.
+Commit only `site/published.json` first, then commit any tooling fix separately.
+The resulting branch reports `mode=docs-only`; merging it skips npm publication
+and resumes the documentation deployment.
 
 ### The version already exists on npm
 
 First determine whether it is the package produced by the current release. If
-it is the expected release and `v<version>` points at its release commit, use
-the receipt-recovery procedure above. If it belongs to another build, stop and
-investigate; npm versions are immutable, so the intended release needs a new
-version rather than an overwritten artifact.
+it is the expected release and `v<version>` points at its release commit, rerun
+the failed release job; it skips publication and resumes verification. For an
+older workflow, use the receipt-recovery procedure above. If it belongs to
+another build, stop and investigate; npm versions are immutable, so the intended
+release needs a new version rather than an overwritten artifact.
 
 ### The release tag is missing or points at another commit
 
@@ -682,7 +696,8 @@ A `409` error means the receipt changed after the release commit. Review the
 diff before committing: retain newer release entries and `latestStable` rather
 than replacing them with an older artifact. The classifier must report
 `mode=docs-only`. Merge the recovery PR to trigger the documentation-only
-workflow; do not publish npm again. If the artifact expired, check out
+workflow. A release-job rerun with the updated workflow also skips the existing
+npm version. If the artifact expired, check out
 `v<version>` and recreate it with `docs:record-publication` as described in
 [receipt-generation recovery](#npm-published-but-receipt-generation-failed).
 
